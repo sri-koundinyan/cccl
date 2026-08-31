@@ -78,10 +78,23 @@ check_source_compiles(
 )
 cmake_pop_check_state()
 
+set(atomic_codegen_sass_cas_subword_bitwise_archs)
+set(atomic_codegen_sass_native_subword_bitwise_archs)
 if (libcudacxx_atomic_codegen_uses_nvvm_backend)
   set(atomic_codegen_sass_backend_prefix NVVM)
+  foreach (arch IN LISTS atomic_codegen_sass_cuda_archs)
+    if (arch GREATER_EQUAL 100)
+      list(APPEND atomic_codegen_sass_native_subword_bitwise_archs ${arch})
+    else()
+      list(APPEND atomic_codegen_sass_cas_subword_bitwise_archs ${arch})
+    endif()
+  endforeach()
 else()
   set(atomic_codegen_sass_backend_prefix PTX)
+  set(
+    atomic_codegen_sass_cas_subword_bitwise_archs
+    ${atomic_codegen_sass_cuda_archs}
+  )
 endif()
 
 if (NOT libcudacxx_atomic_codegen_has_int128)
@@ -104,14 +117,32 @@ endif()
 
 # Restrict FileCheck to the wrapper so instructions in outlined helpers cannot
 # mask an inlining regression.
-libcudacxx_codegen_add_sass_tests(
-  AGGREGATE_TARGET libcudacxx.test.atomics.sass
-  TARGET_PREFIX atomic_codegen
-  ARCHITECTURES ${atomic_codegen_sass_cuda_archs}
-  DUMP_FUNCTIONS atomic_codegen_test
-  CHECK_PREFIXES
-    ${atomic_codegen_sass_cuda_version_prefix}
-    ${atomic_codegen_sass_backend_prefix}
-  TESTS ${libcudacxx_atomic_codegen_tests}
-  COMPILE_DEFINITIONS _CCCL_ATOMIC_UNSAFE_AUTOMATIC_STORAGE=1
-)
+if (atomic_codegen_sass_cas_subword_bitwise_archs)
+  libcudacxx_codegen_add_sass_tests(
+    AGGREGATE_TARGET libcudacxx.test.atomics.sass
+    TARGET_PREFIX atomic_codegen
+    ARCHITECTURES ${atomic_codegen_sass_cas_subword_bitwise_archs}
+    DUMP_FUNCTIONS atomic_codegen_test
+    CHECK_PREFIXES
+      ${atomic_codegen_sass_cuda_version_prefix}
+      ${atomic_codegen_sass_backend_prefix}
+      CAS_SUBWORD_BITWISE
+    TESTS ${libcudacxx_atomic_codegen_tests}
+    COMPILE_DEFINITIONS _CCCL_ATOMIC_UNSAFE_AUTOMATIC_STORAGE=1
+  )
+endif()
+
+if (atomic_codegen_sass_native_subword_bitwise_archs)
+  libcudacxx_codegen_add_sass_tests(
+    AGGREGATE_TARGET libcudacxx.test.atomics.sass
+    TARGET_PREFIX atomic_codegen
+    ARCHITECTURES ${atomic_codegen_sass_native_subword_bitwise_archs}
+    DUMP_FUNCTIONS atomic_codegen_test
+    CHECK_PREFIXES
+      ${atomic_codegen_sass_cuda_version_prefix}
+      ${atomic_codegen_sass_backend_prefix}
+      NATIVE_SUBWORD_BITWISE
+    TESTS ${libcudacxx_atomic_codegen_tests}
+    COMPILE_DEFINITIONS _CCCL_ATOMIC_UNSAFE_AUTOMATIC_STORAGE=1
+  )
+endif()
