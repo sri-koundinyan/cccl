@@ -1,9 +1,20 @@
 # Usage:
-#   - Automatic deploys run on pushes to main and publish docs under docs/unstable/.
+#   - Pushes to main publish the development docs under docs/unstable/.
+#   - Pushing a release tag (vMAJOR.MINOR.PATCH) publishes that release under
+#     docs/<major>.<minor>/. Patch releases refresh their minor directory in
+#     place; per-patch directories are not viable against the 1 GB GitHub Pages
+#     size limit (see docs/published_versions.json).
+#   - Releases are published from tags rather than from release branches on
+#     purpose: a branch tip carries backports that have not shipped yet, so
+#     branch/3.4.x is 3.4.3-in-development rather than the released 3.4.2.
 #   - Manual workflow_dispatch accepts:
-#       * destination_override: publish into a custom docs/<dir> (e.g. for fork testing)
-#       * latest_override: optional, override the "latest" flag (kept for compatibility)
-#   - Root assets (index.html redirect, nv-versions.json, objects.inv, .nojekyll) are produced during the doc build.
+#       * source_ref, to build content from any ref (used to backfill releases
+#         predating this workflow, whose own tooling would clobber the site root)
+#       * destination_override, to publish into a custom docs/<dir> when
+#         rehearsing a deploy on a fork
+#   - Which version is "latest" is NOT decided here. It comes from
+#     docs/published_versions.json, so that every build publishes the same
+#     complete version list instead of overwriting the previous build's.
 #   - Base URL is computed from GITHUB_REPOSITORY (owner/repo) for both push and manual runs.
 name: Deploy CCCL Documentation
 
@@ -11,16 +22,22 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
   workflow_dispatch:
     inputs:
       destination_override:
-        description: "Directory under docs/ to publish to (e.g. unstable, 3.0)"
+        description: "Directory under docs/ to publish to (e.g. unstable, 3.4)"
         required: false
         type: string
-      latest_override:
-        description: "Mark this build as the latest version (true/false)"
+      source_ref:
+        description: >-
+          Ref to build the documentation content from (e.g. branch/3.4.x).
+          Defaults to the ref this run was started on. Use this to publish a
+          release's docs without running that branch's older tooling: the
+          content comes from the release branch, the site root comes from here.
         required: false
-        type: boolean
+        type: string
 
 permissions:
   contents: write
@@ -56,56 +73,93 @@ jobs:
         shell: bash --noprofile --norc -euo pipefail {0}
         env:
           DESTINATION_OVERRIDE: ${{ github.event.inputs.destination_override }}
-          LATEST_OVERRIDE: ${{ github.event.inputs.latest_override }}
+          SOURCE_REF: ${{ github.event.inputs.source_ref }}
         run: |
+          should_deploy="true"
+          dest_dir=""
+
+          # A release ref names the directory it publishes to. Patch releases
+          # collapse into their minor directory, and the ".x" of a release
+          # branch is a branching convention readers should never see in a URL.
+          # Anchored, so that pre-release refs such as v3.5.0-rc0 and v3.6.0.dev
+          # resolve to nothing and are skipped rather than published as releases.
+          version_dir_for_ref() {
+            if [[ "$1" =~ ^v([0-9]+\.[0-9]+)\.[0-9]+$ ]]; then
+              printf '%s' "${BASH_REMATCH[1]}"
+            elif [[ "$1" =~ ^branch/([0-9]+\.[0-9]+)\.x$ ]]; then
+              printf '%s' "${BASH_REMATCH[1]}"
+            fi
+          }
+
           if [ -n "${DESTINATION_OVERRIDE}" ]; then
             dest_dir="${DESTINATION_OVERRIDE}"
-          else
-            ref="${GITHUB_REF#refs/heads/}"
-            if [ "$ref" = "main" ]; then
-              dest_dir="unstable"
-            elif [[ "$ref" == branch/* ]]; then
-              version="${ref#branch/}"
-              if [ -z "$version" ]; then
-                echo "Unable to determine version directory from branch '${ref}'." >&2
-                exit 1
-              fi
-              dest_dir="${version}"
-            else
-              echo "Branch '${ref}' is not configured for docs deployment." >&2
+          elif [ -n "${SOURCE_REF}" ]; then
+            dest_dir="$(version_dir_for_ref "${SOURCE_REF}")"
+            if [ -z "${dest_dir}" ]; then
+              echo "source_ref '${SOURCE_REF}' is not a release ref." >&2
+              echo "Pass destination_override to publish it anyway." >&2
               exit 1
             fi
+          elif [ "${GITHUB_REF}" = "refs/heads/main" ]; then
+            dest_dir="unstable"
+          elif [ "${GITHUB_REF#refs/tags/}" != "${GITHUB_REF}" ]; then
+            dest_dir="$(version_dir_for_ref "${GITHUB_REF#refs/tags/}")"
+            if [ -z "${dest_dir}" ]; then
+              echo "Tag '${GITHUB_REF#refs/tags/}' is not a release tag; skipping."
+              should_deploy="false"
+            fi
+          else
+            echo "Ref '${GITHUB_REF}' is not configured for docs deployment; skipping."
+            should_deploy="false"
           fi
 
-          is_latest="false"
-          if [ "${dest_dir}" = "unstable" ]; then
-            is_latest="true"
+          if [ "${should_deploy}" = "true" ]; then
+            echo "Publishing documentation to docs/${dest_dir}/"
           fi
 
-          if [ -n "${LATEST_OVERRIDE}" ]; then
-            case "${LATEST_OVERRIDE}" in
-              true|TRUE|True)
-                is_latest="true"
-                ;;
-              false|FALSE|False)
-                is_latest="false"
-                ;;
-            esac
-          fi
-
+          echo "should_deploy=${should_deploy}" >> "${GITHUB_OUTPUT}"
           echo "destination_dir=${dest_dir}" >> "${GITHUB_OUTPUT}"
-          echo "is_latest=${is_latest}" >> "${GITHUB_OUTPUT}"
+
+      # Only used when publishing a release's docs. Its tooling builds the
+      # version's own pages; it is deliberately not allowed to write the site
+      # root, because an older branch's generator would replace the full version
+      # list with a single entry for itself.
+      - name: Checkout documentation source
+        if: ${{ steps.destination.outputs.should_deploy == 'true' && github.event.inputs.source_ref != '' }}
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
+        with:
+          ref: ${{ github.event.inputs.source_ref }}
+          path: docs-source
+          persist-credentials: false
 
       - name: Build docs
+        if: ${{ steps.destination.outputs.should_deploy == 'true' }}
         uses: ./.github/actions/docs-build
         with:
           upload_workflow_artifact: "false"
+          source_dir: ${{ github.event.inputs.source_ref != '' && 'docs-source' || '.' }}
         env:
           CCCL_DOCS_BASE_URL: ${{ steps.base_url.outputs.base }}
-          CCCL_DOCS_IS_LATEST: ${{ steps.destination.outputs.is_latest }}
           SPHINX_CCCL_VER: ${{ steps.destination.outputs.destination_dir }}
 
+      # Re-assemble the site root from this ref's tooling and version manifest,
+      # discarding whatever the build produced. For a build of main this is a
+      # no-op repeat; for a release branch it is what keeps the version list,
+      # the root redirect and the 404 handler under a single owner.
+      - name: Assemble site root
+        if: ${{ steps.destination.outputs.should_deploy == 'true' }}
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          CCCL_DOCS_BASE_URL: ${{ steps.base_url.outputs.base }}
+          VERSION: ${{ steps.destination.outputs.destination_dir }}
+        run: |
+          rm -f _site/nv-versions.json _site/versions.json \
+                _site/index.html _site/404.html _site/objects.inv
+          rm -rf _site/latest
+          ./docs/assemble_site.bash _site "${VERSION}" "${CCCL_DOCS_BASE_URL}"
+
       - name: Prepare deployment artifacts
+        if: ${{ steps.destination.outputs.should_deploy == 'true' }}
         shell: bash --noprofile --norc -euo pipefail {0}
         run: |
           root_dir="deploy/docs"
@@ -113,11 +167,16 @@ jobs:
 
           cp -a _site/. "${root_dir}/"
 
+      # force_orphan recreates gh-pages from just this build, which would delete
+      # every previously published version directory. keep_files without it is
+      # what makes publishing additive: this deploy adds or replaces the version
+      # it built and the root assets, and leaves other versions untouched.
       - name: Deploy to GitHub Pages
+        if: ${{ steps.destination.outputs.should_deploy == 'true' }}
         uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453  # v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./deploy
           publish_branch: gh-pages
           keep_files: true
-          force_orphan: true
+          force_orphan: false

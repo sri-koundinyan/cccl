@@ -1,0 +1,40 @@
+{
+  "_comment": [
+    "Source of truth for the versions offered in the documentation version switcher.",
+    "",
+    "ORDERING RULE: publish the versioned directory FIRST (workflow_dispatch of",
+    "docs-deploy.yml with source_ref set to the release tag), confirm it renders,",
+    "and only THEN add its entry here. An entry added before its directory exists",
+    "is a dropdown link that 404s -- exactly the failure mode versioned docs are",
+    "meant to prevent.",
+    "",
+    "'dir' is the directory under the docs site root. It MUST match the",
+    "SPHINX_CCCL_VER used to build that version, because docs/conf.py sets",
+    "html_theme_options.switcher.version_match from that value; a mismatch leaves",
+    "the switcher unable to highlight the version the reader is currently on.",
+    "",
+    "Directories are MAJOR.MINOR, matching docs/VERSION.md on the release branch.",
+    "Patch releases refresh their minor directory in place rather than adding a",
+    "new one -- see the retention note below for why per-patch directories are",
+    "not an option.",
+    "",
+    "'latest_stable' names the entry aliased at /latest/ and used as the redirect",
+    "target for the site root and for legacy unversioned URLs. Keep it null until",
+    "a stable version has actually been published; while it is null the site root",
+    "redirects to unstable/, preserving today's behavior.",
+    "",
+    "RETENTION: GitHub Pages refuses to publish a site larger than 1 GB. A built",
+    "CCCL version measures 130-180 MB, so the site holds roughly five directories",
+    "in total, main included. 'size_budget_versions' is the number this list is",
+    "expected to stay within; exceeding it is a warning at build time, not an",
+    "error, because the real remedy is a decision about which release to drop."
+  ],
+  "size_budget_versions": 5,
+  "latest_stable": null,
+  "versions": [
+    {
+      "dir": "unstable",
+      "label": "unstable (main)"
+    }
+  ]
+}

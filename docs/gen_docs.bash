@@ -260,9 +260,13 @@ else
 fi
 
 VERSION="${SPHINX_CCCL_VER:-unstable}"
+# Export it back so conf.py resolves `release` from the same value used for the
+# output directory. Without this, an unset SPHINX_CCCL_VER makes conf.py fall
+# back to VERSION.md, and the pages get stamped with a version_match (e.g. 3.6)
+# that no version-switcher entry (e.g. unstable) can ever match.
+export SPHINX_CCCL_VER="${VERSION}"
 BASE_URL="${CCCL_DOCS_BASE_URL:-https://nvidia.github.io/cccl/}"
 BASE_URL="${BASE_URL%/}/"
-IS_LATEST="${CCCL_DOCS_IS_LATEST:-true}"
 
 HTML_DIR="${BUILDDIR}/html"
 VERSIONED_HTML_DIR="${HTML_DIR}/${VERSION}"
@@ -279,36 +283,13 @@ mkdir -p "${VERSIONED_HTML_DIR}"
 # Use the virtual environment's Python
 python -m sphinx.cmd.build -b html -d "${BUILDDIR}/doctrees" -j auto "." "${VERSIONED_HTML_DIR}" "${SPHINXOPTS[@]}"
 
-# Copy objects.inv to the root to support intersphinx consumers
-if [[ -f "${VERSIONED_HTML_DIR}/objects.inv" ]]; then
-    cp "${VERSIONED_HTML_DIR}/objects.inv" "${HTML_DIR}/objects.inv"
-fi
-
 # Scrape docs to generate page list
 ./scrape_docs.bash "${VERSIONED_HTML_DIR}"
 
-cp "./404.html" "${HTML_DIR}/404.html"
-cp "./index.html" "${HTML_DIR}/index.html"
-
-# Provide version metadata for the theme switcher
-cat > "${HTML_DIR}/nv-versions.json" <<EOF
-[
-  {
-    "name": "${VERSION}",
-    "version": "${VERSION}",
-    "url": "${BASE_URL}${VERSION}/",
-    "latest": ${IS_LATEST},
-    "preferred": ${IS_LATEST}
-  }
-]
-EOF
-
-cat > "${HTML_DIR}/versions.json" <<EOF
-{
-  "${VERSION}": "${VERSION}"
-}
-EOF
-
-touch "${HTML_DIR}/.nojekyll"
+# Assemble the site root around the version that was just built: the switcher
+# manifests, the root redirect, the 404 handler, the /latest/ alias and
+# objects.inv. Split into its own script so the versioning behavior can be
+# tested without a full Doxygen and Sphinx run; see test_assemble_site.bash.
+./assemble_site.bash "${HTML_DIR}" "${VERSION}" "${BASE_URL}"
 
 echo "Documentation build complete! HTML output is in ${BUILDDIR}/html/"

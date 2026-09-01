@@ -6,6 +6,13 @@ inputs:
     description: "Uploads the built docs as a workflow artifact (actions/upload-artifact)."
     required: false
     default: "true"
+  source_dir:
+    description: >-
+      Checkout to build the docs from. Defaults to the workspace root. Set this
+      to build a release branch's documentation from a separate checkout while
+      the site-root assembly stays with the tooling in the workspace root.
+    required: false
+    default: "."
 
 
 runs:
@@ -14,14 +21,14 @@ runs:
     # Build all docs (gen_docs.bash detects and installs missing deps)
     - name: Build all docs
       shell: bash --noprofile --norc -euo pipefail {0}
-      run: ./docs/gen_docs.bash --allow-dep-install
+      run: ${{ inputs.source_dir }}/docs/gen_docs.bash --allow-dep-install
 
     # Copy all docs to the right folder
     - name: Move docs to right folder
       shell: bash --noprofile --norc -euo pipefail {0}
       run: |
         mkdir -p _site
-        cp -rf ./docs/_build/html/* _site/
+        cp -rf ${{ inputs.source_dir }}/docs/_build/html/* _site/
         touch _site/.nojekyll
 
     # Update docs as workflow artifact:

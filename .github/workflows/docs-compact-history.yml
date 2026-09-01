@@ -1,0 +1,114 @@
+# Collapses the gh-pages branch to a single commit, discarding history while
+# keeping every published file.
+#
+# Why this exists: docs-deploy.yml used to pass force_orphan, which recreated
+# gh-pages from scratch on every run. That kept history at one commit, but it
+# also deleted every previously published version, which is incompatible with
+# versioned documentation. Turning it off preserves versions and, as a
+# consequence, accumulates history.
+#
+# Measured against a local replay of the real deploy action: a routine push adds
+# well under 100 KB, a rebuild touching every generated API page adds ~364 KB,
+# and publishing a genuinely new version adds ~4 MB. At CCCL's rate of roughly
+# eight pushes to main per day that is on the order of 150 MB a year, against
+# GitHub's guidance that repositories stay under 1 GB. Slow enough to schedule,
+# fast enough to be worth scheduling.
+#
+# This force-pushes. The verification step is the interlock: it refuses to
+# proceed unless the tree it is about to make permanent is coherent.
+name: Compact CCCL Documentation History
+
+on:
+  schedule:
+    # 04:00 UTC on the first of January, April, July and October.
+    - cron: "0 4 1 1,4,7,10 *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Verify and report the saving without pushing"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  compact:
+    name: Compact gh-pages history
+    if: ${{ github.repository == 'NVIDIA/cccl' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout documentation tooling
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
+        with:
+          path: tooling
+          persist-credentials: false
+
+      - name: Checkout published site
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
+        with:
+          ref: gh-pages
+          path: site
+          # Full history: its size is the thing being measured and removed.
+          fetch-depth: 0
+
+      - name: Verify the site before making it permanent
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: |
+          ./tooling/docs/verify_published_site.py \
+            --site-root site/docs \
+            --manifest tooling/docs/published_versions.json
+
+      - name: Report current size
+        id: size
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: |
+          history_bytes=$(du -sb site/.git | cut -f1)
+          content_bytes=$(du -sb --exclude=.git site | cut -f1)
+          echo "history_bytes=${history_bytes}" >> "${GITHUB_OUTPUT}"
+          {
+            echo "### gh-pages size"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Published content | $(numfmt --to=iec --suffix=B -- "${content_bytes}") |"
+            echo "| Git history | $(numfmt --to=iec --suffix=B -- "${history_bytes}") |"
+            echo "| Commits | $(git -C site rev-list --count HEAD) |"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Compact
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.dry_run == 'false' }}
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd site
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          git checkout --orphan compacted
+          git add -A
+          git commit -q -m "Compact documentation history
+
+          Collapses gh-pages to a single commit. No published file changes;
+          only the history leading to them is discarded."
+
+          # Confirm the new tree is identical to what was verified above before
+          # anything irreversible happens.
+          if ! git diff --quiet compacted gh-pages -- .; then
+            echo "Compacted tree differs from the verified tree; refusing to push." >&2
+            git diff --stat compacted gh-pages -- . | tail -20 >&2
+            exit 1
+          fi
+
+          git push --force origin compacted:gh-pages
+          echo "gh-pages compacted to a single commit." >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Note dry run
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run != 'false' }}
+        run: |
+          echo "Dry run: nothing was pushed. Re-run with dry_run=false to compact." \
+            >> "${GITHUB_STEP_SUMMARY}"

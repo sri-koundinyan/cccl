@@ -364,6 +364,54 @@ jobs:
         with:
           upload_workflow_artifact: "false"
 
+      # Surfaces how many published URLs a change would stop resolving. Advisory
+      # by design: restructuring removes paths on purpose, and the point is that
+      # the blast radius shows up in review rather than in a user's bookmark.
+      - name: Report removed documentation URLs
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: |
+          ./docs/check_removed_pages.py \
+            --current _site/unstable/pagelist.txt \
+            --baseline https://nvidia.github.io/cccl/unstable/pagelist.txt \
+            --summary removed-pages.md
+          cat removed-pages.md >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Collect rendered pages for link checking
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: |
+          find _site -type f -name '*.html' ! -path '*/_static/*' \
+            | LC_ALL=C sort > lychee-rendered-html-files.txt
+          wc -l lychee-rendered-html-files.txt
+
+      # Offline: internal links and anchors only. No network, so no flakiness,
+      # and it targets exactly what a documentation restructure breaks.
+      #
+      # Exclusions are generated-anchor noise, not real links: Breathe emits
+      # mangled C++ anchors (#_CPPv4...) and docutils emits "problematic" ids
+      # (#id7) that never resolve.
+      #
+      # fail is false because main currently has 7 errors these exclusions do
+      # not cover: 3 links to API pages that are never generated, and 4 stale
+      # #sec anchors into cub/index.html. Fix those seven and this becomes a
+      # real gate by flipping this one field.
+      - name: Check internal documentation links
+        uses: lycheeverse/lychee-action@6da1d14f3a43098a294b7696d93d938aa8d20fc0  # v2
+        with:
+          args: >-
+            --offline
+            --include-fragments
+            --no-progress
+            --exclude '#_CPPv4'
+            --exclude '#id[0-9]+$'
+            --files-from lychee-rendered-html-files.txt
+          fail: false
+          failIfEmpty: true
+          format: markdown
+          jobSummary: true
+          lycheeVersion: v0.24.2
+          output: lychee-rendered-html.md
+          token: ${{ github.token }}
+
   build-rapids:
     name: Build RAPIDS (optional)
     needs: build-workflow
