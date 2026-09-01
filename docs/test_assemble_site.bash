@@ -195,10 +195,23 @@ assert_eq "release URLs are absolute and version-scoped" \
     "https://nvidia.github.io/cccl/3.4/" \
     "$(json_query "${ROOT}/nv-versions.json" '[e["url"] for e in data if e["version"] == "3.4"][0]')"
 
-if grep -q 'url=latest/' "${ROOT}/index.html"; then
-    pass "site root redirects to latest/ once a stable version exists"
+# The root must target the concrete version, not the latest/ alias: the alias is
+# only written by a build of latest_stable, so a root pointing at it would 404
+# for every deploy between naming a new latest_stable and rebuilding it.
+if grep -q 'url=3.4/' "${ROOT}/index.html"; then
+    pass "site root redirects to the concrete stable version"
 else
-    fail "site root should redirect to latest/ once a stable version exists"
+    fail "site root should redirect to 3.4/, not to the latest/ alias"
+fi
+if grep -q 'url=latest/' "${ROOT}/index.html"; then
+    fail "site root must not depend on the latest/ alias existing"
+else
+    pass "site root does not depend on the alias"
+fi
+if grep -q 'DEFAULT_VERSION = "3.4"' "${ROOT}/404.html"; then
+    pass "the 404 handler falls back to the concrete stable version"
+else
+    fail "the 404 handler should fall back to 3.4, not to the alias"
 fi
 
 # /latest/ is redirect stubs, not a copy: a duplicate of the stable build costs
@@ -243,10 +256,26 @@ fi
 assert_file "latest/ was not rebuilt from scratch" "${ROOT}/latest/sentinel.txt"
 assert_eq "root objects.inv still points at the stable build" \
     "objects-inv-for-3.4" "$(cat "${ROOT}/objects.inv")"
-if grep -q 'url=latest/' "${ROOT}/index.html"; then
-    pass "site root still redirects to latest/ after an unstable deploy"
+if grep -q 'url=3.4/' "${ROOT}/index.html"; then
+    pass "site root still points at the stable version after an unstable deploy"
 else
     fail "an unstable deploy changed the site root redirect"
+fi
+
+# The regression the live fork deploy caught: publishing a version other than
+# latest_stable must still leave a root redirect that resolves, even though this
+# build does not write the alias.
+if [[ ! -d "${ROOT}/latest" ]]; then
+    fail "precondition: this case expects no alias written by an unstable build"
+else
+    rm -rf "${ROOT}/latest"
+    assemble "${ROOT}" unstable "${MANIFEST}"
+    target="$(grep -o 'url=[^"]*' "${ROOT}/index.html" | head -1 | sed 's|url=||;s|/$||')"
+    if [[ -d "${ROOT}/${target}" ]]; then
+        pass "root redirect resolves even when the alias is absent"
+    else
+        fail "root redirects to '${target}/', which does not exist"
+    fi
 fi
 
 # ---------------------------------------------------------------------------

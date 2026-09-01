@@ -113,13 +113,19 @@ def build_legacy_versions(manifest):
 def default_version(manifest):
     """The version the site root and legacy unversioned URLs redirect to.
 
-    Resolves to the ``latest`` alias rather than the concrete stable version, so
-    that a bookmark of the site root or an old unversioned link keeps landing on
-    the current release instead of pinning to whichever release happened to be
-    current when the redirect was rendered.
+    Deliberately the concrete version directory rather than the ``latest``
+    alias. The alias is only written by a build of latest_stable itself, so
+    naming a new latest_stable would otherwise repoint the site root at a
+    directory that does not exist yet, and the root would 404 until that
+    version happened to be rebuilt.
+
+    Pointing at the concrete directory costs nothing, because these redirects
+    are re-rendered from this manifest on every deploy and so track
+    latest_stable without needing the alias as an intermediary.
     """
-    if manifest.get("latest_stable") is not None:
-        return "latest"
+    latest_stable = manifest.get("latest_stable")
+    if latest_stable is not None:
+        return latest_stable
 
     dirs = [entry["dir"] for entry in manifest["versions"]]
     return "unstable" if "unstable" in dirs else dirs[0]
