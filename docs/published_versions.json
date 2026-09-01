@@ -30,11 +30,15 @@
     "error, because the real remedy is a decision about which release to drop."
   ],
   "size_budget_versions": 5,
-  "latest_stable": null,
+  "latest_stable": "3.4",
   "versions": [
     {
       "dir": "unstable",
       "label": "unstable (main)"
+    },
+    {
+      "dir": "3.4",
+      "label": "3.4"
     }
   ]
 }
