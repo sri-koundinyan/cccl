@@ -245,7 +245,6 @@ start_case "An unstable build must not hijack latest/ or objects.inv"
 # The regression that would quietly turn the stable docs into development docs.
 
 make_version_build "${ROOT}" unstable
-echo "sentinel" > "${ROOT}/latest/sentinel.txt"
 assemble "${ROOT}" unstable "${MANIFEST}"
 
 if grep -q '3.4/index.html' "${ROOT}/latest/index.html"; then
@@ -253,7 +252,14 @@ if grep -q '3.4/index.html' "${ROOT}/latest/index.html"; then
 else
     fail "an unstable deploy repointed latest/ away from the stable build"
 fi
-assert_file "latest/ was not rebuilt from scratch" "${ROOT}/latest/sentinel.txt"
+# The alias is regenerated on every deploy, so what matters is not that it was
+# left alone but that it was rebuilt pointing at the stable version rather than
+# at whatever this deploy happened to build.
+if grep -q 'unstable/index.html' "${ROOT}/latest/index.html"; then
+    fail "an unstable deploy made latest/ serve the development docs"
+else
+    pass "latest/ never points at the development docs"
+fi
 assert_eq "root objects.inv still points at the stable build" \
     "objects-inv-for-3.4" "$(cat "${ROOT}/objects.inv")"
 if grep -q 'url=3.4/' "${ROOT}/index.html"; then
@@ -483,6 +489,64 @@ if python3 "${CHECK}" --current "${PAGES_DIR}/same.txt" \
     pass "an unreachable baseline is skipped rather than failing"
 else
     fail "an unreachable baseline should be skipped, not fatal"
+fi
+
+# ---------------------------------------------------------------------------
+start_case "Changing latest_stable repoints /latest/ without republishing it"
+# The alias used to be written only by a deploy of latest_stable, so promoting a
+# new release left /latest/ pointing at the previous one -- serving the wrong
+# version silently, while the switcher claimed it was current.
+
+PROMO="${WORK_DIR}/promotion"
+PUBLISHED="${WORK_DIR}/promotion_published"
+make_version_build "${PROMO}" 3.4
+make_version_build "${PROMO}" 3.5
+make_version_build "${PROMO}" unstable
+
+M_OLD="${WORK_DIR}/promo_old.json"
+write_manifest "${M_OLD}" 3.4 unstable 3.5 3.4
+assemble "${PROMO}" 3.4 "${M_OLD}"
+if grep -q '3.4/index.html' "${PROMO}/latest/index.html"; then
+    pass "latest/ points at the stable version it was built for"
+else
+    fail "latest/ should point at 3.4"
+fi
+
+# Simulate the published site as it now stands, then promote 3.5 and deploy
+# something unrelated -- the sequence that used to leave the alias stale.
+rm -rf "${PUBLISHED}"; cp -r "${PROMO}" "${PUBLISHED}"
+M_NEW="${WORK_DIR}/promo_new.json"
+write_manifest "${M_NEW}" 3.5 unstable 3.5 3.4
+
+CCCL_DOCS_PUBLISHED_SITE="${PUBLISHED}" CCCL_DOCS_VERSIONS_FILE="${M_NEW}" \
+    "${SCRIPT_PATH}/assemble_site.bash" "${PROMO}" unstable "https://nvidia.github.io/cccl/" \
+    > /dev/null
+
+if grep -q '3.5/index.html' "${PROMO}/latest/index.html"; then
+    pass "deploying an unrelated version still repoints latest/ at the new stable"
+else
+    fail "latest/ still points at the old stable after promotion"
+fi
+assert_eq "the switcher and the alias agree on which version is latest" \
+    "3.5" \
+    "$(json_query "${PROMO}/nv-versions.json" '[e["version"] for e in data if e.get("preferred")][0]')"
+
+# Nested pages must be repointed too, not just the landing page.
+if grep -q '3.5/sub/page.html' "${PROMO}/latest/sub/page.html"; then
+    pass "nested alias stubs are repointed as well"
+else
+    fail "nested alias stubs still point at the old version"
+fi
+
+# With no copy of the stable version anywhere, the deploy must still succeed.
+NOCOPY="${WORK_DIR}/promotion_nocopy"
+make_version_build "${NOCOPY}" unstable
+if CCCL_DOCS_VERSIONS_FILE="${M_NEW}" \
+        "${SCRIPT_PATH}/assemble_site.bash" "${NOCOPY}" unstable \
+        "https://nvidia.github.io/cccl/" > /dev/null 2>&1; then
+    pass "a deploy proceeds when the stable version is not available to mirror"
+else
+    fail "an unavailable stable version should warn, not block the deploy"
 fi
 
 # ---------------------------------------------------------------------------

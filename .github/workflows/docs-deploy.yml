@@ -142,6 +142,19 @@ jobs:
           CCCL_DOCS_BASE_URL: ${{ steps.base_url.outputs.base }}
           SPHINX_CCCL_VER: ${{ steps.destination.outputs.destination_dir }}
 
+      # The already-published site, so that /latest/ can be rebuilt from the
+      # stable version's pages even when this run is deploying something else.
+      # Absent on the very first deploy, when gh-pages does not exist yet.
+      - name: Checkout published site
+        id: published
+        if: ${{ steps.destination.outputs.should_deploy == 'true' }}
+        continue-on-error: true
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
+        with:
+          ref: gh-pages
+          path: published-site
+          persist-credentials: false
+
       # Releases predating versioned publishing build a flat tree and generate
       # no page list. Reshape them here rather than backporting the build script
       # to every old tag. A no-op for a modern build.
@@ -162,6 +175,7 @@ jobs:
         env:
           CCCL_DOCS_BASE_URL: ${{ steps.base_url.outputs.base }}
           VERSION: ${{ steps.destination.outputs.destination_dir }}
+          CCCL_DOCS_PUBLISHED_SITE: published-site/docs
         run: |
           rm -f _site/nv-versions.json _site/versions.json \
                 _site/index.html _site/404.html _site/objects.inv

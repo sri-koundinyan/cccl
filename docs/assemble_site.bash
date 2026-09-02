@@ -92,16 +92,39 @@ sed -e "s|@DEFAULT_VERSION@|${DEFAULT_VERSION}|g" \
     -e "s|@SITE_BASE@|${SITE_BASE}|g" \
     "${SCRIPT_PATH}/404.html" > "${HTML_DIR}/404.html"
 
-# Provide a URL that always resolves to the newest release. Only the build of
-# latest_stable may write it; an unstable build must not, or /latest/ would
-# silently become the development docs.
+# Provide a URL that always resolves to the newest release.
 #
-# Built as redirects rather than a copy: a full duplicate costs about 150 MB
+# Built as redirects rather than a copy: a full duplicate costs 100-300 MB
 # against a 1 GB GitHub Pages budget, and readers are better served landing on
 # a pinned version-scoped URL anyway.
-if [[ -n "${LATEST_STABLE}" && "${VERSION}" == "${LATEST_STABLE}" ]]; then
-    python3 "${SCRIPT_PATH}/make_latest_alias.py" \
-        --site-root "${HTML_DIR}" --version "${VERSION}"
+#
+# Regenerated on EVERY deploy, not only on a deploy of latest_stable. Writing it
+# only when the stable version is rebuilt means that changing latest_stable
+# leaves the alias pointing at the previous release, so /latest/ silently serves
+# the wrong version while the switcher claims otherwise. To rebuild it during a
+# deploy of some other version, the stable version's pages are read from a
+# checkout of the already-published site.
+if [[ -n "${LATEST_STABLE}" ]]; then
+    ALIAS_SOURCE=""
+    if [[ -d "${HTML_DIR}/${LATEST_STABLE}" ]]; then
+        ALIAS_SOURCE="${HTML_DIR}"
+    elif [[ -n "${CCCL_DOCS_PUBLISHED_SITE:-}" \
+            && -d "${CCCL_DOCS_PUBLISHED_SITE}/${LATEST_STABLE}" ]]; then
+        ALIAS_SOURCE="${CCCL_DOCS_PUBLISHED_SITE}"
+    fi
+
+    if [[ -n "${ALIAS_SOURCE}" ]]; then
+        python3 "${SCRIPT_PATH}/make_latest_alias.py" \
+            --site-root "${HTML_DIR}" \
+            --version "${LATEST_STABLE}" \
+            --source-root "${ALIAS_SOURCE}"
+    else
+        # Refusing here would block the deploy of an unrelated version over a
+        # stale alias, which is worse than saying so plainly.
+        echo "Warning: cannot rebuild latest/ -- no copy of ${LATEST_STABLE} available." >&2
+        echo "         /latest/ keeps whatever it pointed at before. Republish" >&2
+        echo "         ${LATEST_STABLE} to refresh it." >&2
+    fi
 fi
 
 # The root objects.inv is what intersphinx consumers resolve against, so it has

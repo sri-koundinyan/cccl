@@ -48,10 +48,17 @@ STUB = """<!DOCTYPE html>
 """
 
 
-def build_alias(site_root, version, alias="latest"):
-    """Create ``<site_root>/<alias>`` mirroring ``<site_root>/<version>``."""
+def build_alias(site_root, version, alias="latest", source_root=None):
+    """Create ``<site_root>/<alias>`` mirroring ``<source_root>/<version>``.
+
+    ``source_root`` defaults to ``site_root``, which is the case when the stable
+    version is the one being deployed. It is given separately when regenerating
+    the alias during a deploy of some *other* version: the pages to mirror then
+    live in a checkout of the already-published site rather than in this build.
+    The stubs are relative, so they resolve correctly either way.
+    """
     site_root = Path(site_root)
-    source = site_root / version
+    source = Path(source_root if source_root is not None else site_root) / version
     target = site_root / alias
 
     if not source.is_dir():
@@ -93,9 +100,15 @@ def main(argv=None):
     parser.add_argument("--site-root", required=True, help="the published site root")
     parser.add_argument("--version", required=True, help="version directory to alias")
     parser.add_argument("--alias", default="latest", help="alias directory name")
+    parser.add_argument(
+        "--source-root",
+        help="where to read the aliased version's pages from (default: --site-root)",
+    )
     args = parser.parse_args(argv)
 
-    stubs, copied = build_alias(args.site_root, args.version, args.alias)
+    stubs, copied = build_alias(
+        args.site_root, args.version, args.alias, args.source_root
+    )
     print(
         f"  {args.alias}/: {stubs} redirect(s) to {args.version}/, "
         f"{copied} file(s) copied verbatim"
