@@ -332,6 +332,21 @@ make_version_build "${ROOT_MISMATCH}" unstable 3.6
 assert_fails "pages stamped with a different version than they publish as are rejected" \
     assemble "${ROOT_MISMATCH}" unstable "${GOOD}"
 
+# Releases before the version switcher existed stamp nothing. That is expected,
+# not an error -- and under `set -o pipefail` a grep matching nothing would
+# otherwise kill the script before it could say so.
+ROOT_UNSTAMPED="${WORK_DIR}/case_e_unstamped"
+mkdir -p "${ROOT_UNSTAMPED}/unstable"
+echo "<html><body>a release with no switcher config</body></html>" \
+    > "${ROOT_UNSTAMPED}/unstable/index.html"
+if assemble "${ROOT_UNSTAMPED}" unstable "${GOOD}"; then
+    pass "pages with no version_match at all are published, not rejected"
+else
+    fail "a build with no version_match should warn and continue"
+fi
+assert_file "the unstamped build still gets a site root" \
+    "${ROOT_UNSTAMPED}/nv-versions.json"
+
 # ---------------------------------------------------------------------------
 start_case "The checked-in manifest is valid"
 

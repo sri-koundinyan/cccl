@@ -59,12 +59,16 @@ LATEST_STABLE="${render_lines[2]:-}"
 # The switcher can only highlight the version the reader is on if the value
 # Sphinx stamped into the pages matches the directory they are served from.
 # These drift apart silently, so check rather than trust.
+#
+# Releases predating the version switcher stamp nothing at all, so a missing
+# value is expected and must not be fatal. The `|| true` is load-bearing: under
+# `set -o pipefail` a grep that matches nothing fails the whole pipeline.
 INDEX_PAGE="${VERSIONED_HTML_DIR}/index.html"
 if [[ -f "${INDEX_PAGE}" ]]; then
-    STAMPED_VERSION="$(grep -o "version_match = '[^']*'" "${INDEX_PAGE}" \
-        | head -1 | sed "s/version_match = '\(.*\)'/\1/")"
+    STAMPED_VERSION="$(sed -n "s/.*version_match = '\([^']*\)'.*/\1/p" \
+        "${INDEX_PAGE}" | head -1 || true)"
     if [[ -z "${STAMPED_VERSION}" ]]; then
-        echo "Warning: no version_match found in ${INDEX_PAGE}; skipping check" >&2
+        echo "  no version_match in the built pages; skipping the consistency check"
     elif [[ "${STAMPED_VERSION}" != "${VERSION}" ]]; then
         echo "Error: built pages declare version_match '${STAMPED_VERSION}'," >&2
         echo "       but they are being published as '${VERSION}'." >&2
