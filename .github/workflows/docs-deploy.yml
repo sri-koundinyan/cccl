@@ -141,6 +141,9 @@ jobs:
         env:
           CCCL_DOCS_BASE_URL: ${{ steps.base_url.outputs.base }}
           SPHINX_CCCL_VER: ${{ steps.destination.outputs.destination_dir }}
+          # The "Assemble site root" step below does this properly, with the
+          # published site available to rebuild the /latest/ alias from.
+          CCCL_DOCS_SKIP_SITE_ASSEMBLY: "1"
 
       # The already-published site, so that /latest/ can be rebuilt from the
       # stable version's pages even when this run is deploying something else.

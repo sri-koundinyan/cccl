@@ -290,6 +290,13 @@ python -m sphinx.cmd.build -b html -d "${BUILDDIR}/doctrees" -j auto "." "${VERS
 # manifests, the root redirect, the 404 handler, the /latest/ alias and
 # objects.inv. Split into its own script so the versioning behavior can be
 # tested without a full Doxygen and Sphinx run; see test_assemble_site.bash.
-./assemble_site.bash "${HTML_DIR}" "${VERSION}" "${BASE_URL}"
+#
+# The deploy workflow assembles the site itself, afterwards and with access to
+# the already-published site, so it sets this to skip a redundant pass whose
+# only visible effect is a misleading warning about being unable to rebuild the
+# /latest/ alias.
+if [[ "${CCCL_DOCS_SKIP_SITE_ASSEMBLY:-0}" != "1" ]]; then
+    ./assemble_site.bash "${HTML_DIR}" "${VERSION}" "${BASE_URL}"
+fi
 
 echo "Documentation build complete! HTML output is in ${BUILDDIR}/html/"
