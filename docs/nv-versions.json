@@ -14,5 +14,10 @@
     "version": "3.4",
     "url": "https://sri-koundinyan.github.io/cccl/3.4/",
     "preferred": true
+  },
+  {
+    "name": "3.3",
+    "version": "3.3",
+    "url": "https://sri-koundinyan.github.io/cccl/3.3/"
   }
 ]
