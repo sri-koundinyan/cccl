@@ -20,6 +20,7 @@ Usage:
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -84,10 +85,20 @@ def main(argv=None):
     parser.add_argument("--conf-py", required=True, help="the release's docs/conf.py")
     args = parser.parse_args(argv)
 
-    if backport(args.conf_py):
+    patched = backport(args.conf_py)
+    if patched:
         print(f"  added version-switcher configuration to {args.conf_py}")
     else:
         print(f"  {args.conf_py} already configures a switcher; left alone")
+
+    # Let the workflow assert afterwards that the build actually reflects this.
+    # A transformation that silently fails to take effect is how a green run can
+    # mean nothing happened.
+    github_output = os.environ.get("GITHUB_OUTPUT")
+    if github_output:
+        with open(github_output, "a", encoding="utf-8") as f:
+            f.write(f"patched={'true' if patched else 'false'}\n")
+
     return 0
 
 
