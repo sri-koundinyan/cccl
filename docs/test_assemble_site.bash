@@ -471,6 +471,48 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+start_case "Builds from releases predating versioning are reshaped"
+# v3.3.4 and earlier build a flat tree with no version directory and no page
+# list. Backfilling them must not require backporting the build script.
+
+NORMALIZE="${SCRIPT_PATH}/normalize_build_layout.bash"
+
+FLAT="${WORK_DIR}/flat"
+mkdir -p "${FLAT}/cub" "${FLAT}/_static"
+echo "<html>flat index</html>" > "${FLAT}/index.html"
+echo "<html>cub page</html>" > "${FLAT}/cub/index.html"
+echo "css" > "${FLAT}/_static/theme.css"
+touch "${FLAT}/.nojekyll"
+
+"${NORMALIZE}" "${FLAT}" 3.3 > /dev/null
+
+assert_file "a flat build is nested under its version" "${FLAT}/3.3/index.html"
+assert_file "nested subdirectories are preserved" "${FLAT}/3.3/cub/index.html"
+assert_file "dotfiles move too" "${FLAT}/3.3/.nojekyll"
+assert_file "a page list is generated for the 404 handler" "${FLAT}/3.3/pagelist.txt"
+if grep -q '/cub/index.html' "${FLAT}/3.3/pagelist.txt"; then
+    pass "the generated page list covers nested pages"
+else
+    fail "the generated page list should cover nested pages"
+fi
+assert_no_dir "nothing is left at the old top level" "${FLAT}/_static"
+
+# Re-running must not nest an already-nested build a second time.
+"${NORMALIZE}" "${FLAT}" 3.3 > /dev/null
+assert_no_dir "re-running does not double-nest" "${FLAT}/3.3/3.3"
+assert_file "the build survives a second run" "${FLAT}/3.3/index.html"
+
+# A modern build already has both, so nothing should change.
+MODERN="${WORK_DIR}/modern"
+make_version_build "${MODERN}" 3.4
+before="$(cat "${MODERN}/3.4/pagelist.txt")"
+"${NORMALIZE}" "${MODERN}" 3.4 > /dev/null
+assert_eq "a modern build is left untouched" "${before}" "$(cat "${MODERN}/3.4/pagelist.txt")"
+
+assert_fails "an empty build directory is rejected" \
+    "${NORMALIZE}" "${WORK_DIR}/nonexistent" 3.3
+
+# ---------------------------------------------------------------------------
 start_case "A published site is verified before history is compacted"
 # The compaction workflow force-pushes an orphan commit, so this check is the
 # interlock standing between a maintenance job and an outage.

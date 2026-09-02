@@ -142,6 +142,16 @@ jobs:
           CCCL_DOCS_BASE_URL: ${{ steps.base_url.outputs.base }}
           SPHINX_CCCL_VER: ${{ steps.destination.outputs.destination_dir }}
 
+      # Releases predating versioned publishing build a flat tree and generate
+      # no page list. Reshape them here rather than backporting the build script
+      # to every old tag. A no-op for a modern build.
+      - name: Normalise build layout
+        if: ${{ steps.destination.outputs.should_deploy == 'true' }}
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          VERSION: ${{ steps.destination.outputs.destination_dir }}
+        run: ./docs/normalize_build_layout.bash _site "${VERSION}"
+
       # Re-assemble the site root from this ref's tooling and version manifest,
       # discarding whatever the build produced. For a build of main this is a
       # no-op repeat; for a release branch it is what keeps the version list,
