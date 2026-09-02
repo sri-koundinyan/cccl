@@ -107,28 +107,32 @@ EOF
 }
 
 write_manifest() {
-    # <path> <latest_stable-or-null> <version-dirs...>
+    # <path> <latest_stable-or-null> [size_budget]
+    #
+    # The version list is discovered from the site rather than declared here,
+    # so trailing arguments naming versions are accepted and ignored: what a
+    # test publishes is decided by which directories it creates.
     local path="$1"
     local latest="$2"
-    shift 2
     python3 -c '
 import json
 import sys
 
 path, latest = sys.argv[1], sys.argv[2]
-dirs = sys.argv[3:]
-manifest = {
-    "latest_stable": None if latest == "null" else latest,
-    "versions": [{"dir": d, "label": d} for d in dirs],
-}
+manifest = {"latest_stable": None if latest == "null" else latest}
 with open(path, "w", encoding="utf-8") as f:
     json.dump(manifest, f, indent=2)
-' "${path}" "${latest}" "$@"
+' "${path}" "${latest}"
 }
 
 assemble() {
-    # <site_root> <version> <manifest>
-    CCCL_DOCS_VERSIONS_FILE="$3" "${SCRIPT_PATH}/assemble_site.bash" \
+    # <site_root> <version> <manifest> [published_site]
+    #
+    # published_site stands in for the checkout of the already-deployed site
+    # that the workflow provides, which is where versions other than the one
+    # being built are discovered from.
+    CCCL_DOCS_VERSIONS_FILE="$3" CCCL_DOCS_PUBLISHED_SITE="${4:-}" \
+        "${SCRIPT_PATH}/assemble_site.bash" \
         "$1" "$2" "https://nvidia.github.io/cccl/" > /dev/null
 }
 
@@ -177,7 +181,8 @@ start_case "A stable release is published and becomes latest"
 
 ROOT="${WORK_DIR}/case_b"
 MANIFEST="${WORK_DIR}/manifest_b.json"
-write_manifest "${MANIFEST}" 3.4 unstable 3.4
+write_manifest "${MANIFEST}" 3.4
+make_version_build "${ROOT}" unstable
 make_version_build "${ROOT}" 3.4
 assemble "${ROOT}" 3.4 "${MANIFEST}"
 
@@ -286,15 +291,21 @@ fi
 
 # ---------------------------------------------------------------------------
 start_case "Every build publishes the same version list"
-# This is the property that makes an additive deploy safe: publishing 3.4 and
-# publishing unstable must not disagree about which versions exist.
+# The property that makes an additive deploy safe: given the same published
+# site, deploying 3.4 and deploying unstable must not disagree about which
+# versions exist. Each deploy sees only its own build plus the published site,
+# which is what the workflow supplies via CCCL_DOCS_PUBLISHED_SITE.
+
+PUBLISHED_D="${WORK_DIR}/case_d_published"
+make_version_build "${PUBLISHED_D}" unstable
+make_version_build "${PUBLISHED_D}" 3.4
 
 ROOT_STABLE="${WORK_DIR}/case_d_stable"
 ROOT_UNSTABLE="${WORK_DIR}/case_d_unstable"
 make_version_build "${ROOT_STABLE}" 3.4
 make_version_build "${ROOT_UNSTABLE}" unstable
-assemble "${ROOT_STABLE}" 3.4 "${MANIFEST}"
-assemble "${ROOT_UNSTABLE}" unstable "${MANIFEST}"
+assemble "${ROOT_STABLE}" 3.4 "${MANIFEST}" "${PUBLISHED_D}"
+assemble "${ROOT_UNSTABLE}" unstable "${MANIFEST}" "${PUBLISHED_D}"
 
 for artifact in nv-versions.json versions.json index.html 404.html; do
     if cmp -s "${ROOT_STABLE}/${artifact}" "${ROOT_UNSTABLE}/${artifact}"; then
@@ -304,29 +315,58 @@ for artifact in nv-versions.json versions.json index.html 404.html; do
     fi
 done
 
+# A newly built version is listed before it has been published anywhere.
+ROOT_NEW="${WORK_DIR}/case_d_new"
+make_version_build "${ROOT_NEW}" 3.5
+assemble "${ROOT_NEW}" 3.5 "${MANIFEST}" "${PUBLISHED_D}"
+assert_eq "a version being deployed is listed alongside published ones" \
+    "unstable,3.5,3.4" \
+    "$(json_query "${ROOT_NEW}/nv-versions.json" \
+       '",".join(e["version"] for e in data if e["version"] != "latest")')"
+
 # ---------------------------------------------------------------------------
 start_case "Bad input is rejected instead of silently publishing broken links"
 
 ROOT="${WORK_DIR}/case_e"
 make_version_build "${ROOT}" unstable
 
+# A latest_stable naming a version that is not published must not point the site
+# root at a directory that 404s. Warn and fall back rather than failing, so an
+# unrelated release is not blocked by a stale setting.
 BAD="${WORK_DIR}/manifest_missing_latest.json"
-write_manifest "${BAD}" 3.9 unstable
-assert_fails "latest_stable that names an unpublished version is rejected" \
-    assemble "${ROOT}" unstable "${BAD}"
+write_manifest "${BAD}" 3.9
+ROOT_MISSING="${WORK_DIR}/case_e_missing_latest"
+make_version_build "${ROOT_MISSING}" unstable
+if assemble "${ROOT_MISSING}" unstable "${BAD}"; then
+    pass "an unpublished latest_stable does not fail the deploy"
+else
+    fail "an unpublished latest_stable should warn, not block the deploy"
+fi
+if grep -q 'url=unstable/' "${ROOT_MISSING}/index.html"; then
+    pass "the site root falls back to a version that exists"
+else
+    fail "the site root should fall back rather than point at an absent version"
+fi
+assert_eq "no latest entry is offered for an unpublished version" \
+    "0" "$(json_query "${ROOT_MISSING}/nv-versions.json" \
+           'sum(e["version"] == "latest" for e in data)')"
 
-BAD="${WORK_DIR}/manifest_duplicate.json"
-write_manifest "${BAD}" null unstable 3.4 3.4
-assert_fails "duplicate version directories are rejected" \
-    assemble "${ROOT}" unstable "${BAD}"
+# A site root with no version directories at all means nothing was built.
+assert_fails "a site with no version directories is rejected" \
+    assemble "${WORK_DIR}/case_e_bare" unstable "${BAD}"
 
-BAD="${WORK_DIR}/manifest_empty.json"
-write_manifest "${BAD}" null
-assert_fails "an empty version list is rejected" \
-    assemble "${ROOT}" unstable "${BAD}"
-
+# A directory without a landing page is a partial upload; it must not be
+# advertised, and it must not be mistaken for the version being deployed.
+ROOT_PARTIAL="${WORK_DIR}/case_e_partial"
+make_version_build "${ROOT_PARTIAL}" unstable
+mkdir -p "${ROOT_PARTIAL}/3.2/sub"
+echo "orphan" > "${ROOT_PARTIAL}/3.2/sub/page.html"
 GOOD="${WORK_DIR}/manifest_ok.json"
-write_manifest "${GOOD}" null unstable
+write_manifest "${GOOD}" null
+assemble "${ROOT_PARTIAL}" unstable "${GOOD}"
+assert_eq "a version directory with no index.html is not advertised" \
+    "unstable" \
+    "$(json_query "${ROOT_PARTIAL}/nv-versions.json" '",".join(e["version"] for e in data)')"
 assert_fails "assembling a version that was never built is rejected" \
     assemble "${WORK_DIR}/case_e_empty" 3.4 "${GOOD}"
 

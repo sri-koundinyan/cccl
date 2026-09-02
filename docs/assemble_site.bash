@@ -45,11 +45,20 @@ fi
 # yet. Production builds always use the checked-in manifest.
 VERSIONS_FILE="${CCCL_DOCS_VERSIONS_FILE:-${SCRIPT_PATH}/published_versions.json}"
 
+# The version list is discovered rather than declared. Search this build first,
+# so the version being deployed is counted before it has been published, then
+# the already-published site if a checkout of it was provided.
+DISCOVER_ARGS=(--discover-from "${HTML_DIR}")
+if [[ -n "${CCCL_DOCS_PUBLISHED_SITE:-}" && -d "${CCCL_DOCS_PUBLISHED_SITE}" ]]; then
+    DISCOVER_ARGS+=(--discover-from "${CCCL_DOCS_PUBLISHED_SITE}")
+fi
+
 # Render nv-versions.json and versions.json, and read back the derived values.
 render_output="$(python3 "${SCRIPT_PATH}/render_versions.py" \
     --manifest "${VERSIONS_FILE}" \
     --base-url "${BASE_URL}" \
-    --out-dir "${HTML_DIR}")"
+    --out-dir "${HTML_DIR}" \
+    "${DISCOVER_ARGS[@]}")"
 mapfile -t render_lines <<< "${render_output}"
 
 DEFAULT_VERSION="${render_lines[0]}"

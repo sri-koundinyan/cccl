@@ -1,55 +1,35 @@
 {
   "_comment": [
-    "Source of truth for the versions offered in the documentation version switcher.",
+    "Settings for the documentation version switcher that cannot be derived",
+    "from the published site.",
     "",
-    "ORDERING RULE: publish the versioned directory FIRST (workflow_dispatch of",
-    "docs-deploy.yml with source_ref set to the release tag), confirm it renders,",
-    "and only THEN add its entry here. An entry added before its directory exists",
-    "is a dropdown link that 404s -- exactly the failure mode versioned docs are",
-    "meant to prevent.",
+    "The list of versions is NOT here. It is discovered from the directories",
+    "that actually exist on the published site, so publishing a version is all",
+    "it takes for it to appear in the switcher. A directory counts only once it",
+    "contains an index.html, so a failed or partial upload is not advertised,",
+    "and the switcher cannot drift out of step with what is really published.",
+    "To retire a release, delete its directory from the gh-pages branch.",
     "",
-    "'dir' is the directory under the docs site root. It MUST match the",
-    "SPHINX_CCCL_VER used to build that version, because docs/conf.py sets",
-    "html_theme_options.switcher.version_match from that value; a mismatch leaves",
-    "the switcher unable to highlight the version the reader is currently on.",
+    "'latest_stable' is the one thing that stays a human decision. Publishing a",
+    "release is not the same as declaring it the version readers should land on",
+    "by default: during a release candidate period, or when a build turns out to",
+    "be wrong, you want the former without the latter. It is the target for the",
+    "site root, for legacy unversioned URLs, and for the /latest/ alias.",
     "",
-    "Directories are MAJOR.MINOR, matching docs/VERSION.md on the release branch.",
-    "Patch releases refresh their minor directory in place rather than adding a",
-    "new one -- see the retention note below for why per-patch directories are",
-    "not an option.",
+    "Set it to the MAJOR.MINOR directory of the release, e.g. \"3.4\". Keep it",
+    "null until a stable version has actually been published; while it is null",
+    "the site root redirects to unstable/. If it names a version that is not",
+    "published, it is ignored with a warning rather than pointing the site root",
+    "at a directory that 404s.",
     "",
-    "'latest_stable' names the entry aliased at /latest/. Keep it null until a",
-    "stable version has actually been published; while it is null the site root",
-    "redirects to unstable/, preserving today's behavior.",
-    "",
-    "CHANGING latest_stable TAKES TWO STEPS. The /latest/ alias is only written",
-    "by a deploy of latest_stable itself, so after changing this field you must",
-    "republish that version (workflow_dispatch of docs-deploy.yml with source_ref",
-    "set to its tag). Until you do, the switcher offers a /latest/ entry that",
-    "404s. The site root does not have this problem: it targets the concrete",
-    "version directory, not the alias, so it keeps resolving either way.",
-    "docs/verify_published_site.py reports the gap if you want to check.",
-    "",
-    "RETENTION: GitHub Pages refuses to publish a site larger than 1 GB. A built",
-    "CCCL version measures 130-180 MB, so the site holds roughly five directories",
-    "in total, main included. 'size_budget_versions' is the number this list is",
-    "expected to stay within; exceeding it is a warning at build time, not an",
-    "error, because the real remedy is a decision about which release to drop."
+    "RETENTION: GitHub Pages refuses to publish a site larger than 1 GB, and a",
+    "built CCCL version measures 110-290 MB -- older releases are the expensive",
+    "ones, because they rebuild against current Sphinx. 'size_budget_versions'",
+    "is the number of directories this site expects to stay within; exceeding it",
+    "warns at build time rather than failing, because the remedy is a decision",
+    "about which release to drop. Treat it as a rough proxy: the real limit is",
+    "bytes, and version sizes vary by more than a factor of two."
   ],
   "size_budget_versions": 5,
-  "latest_stable": "3.4",
-  "versions": [
-    {
-      "dir": "unstable",
-      "label": "unstable (main)"
-    },
-    {
-      "dir": "3.4",
-      "label": "3.4"
-    },
-    {
-      "dir": "3.3",
-      "label": "3.3"
-    }
-  ]
+  "latest_stable": "3.4"
 }
