@@ -632,6 +632,69 @@ assert_fails "an empty build directory is rejected" \
     "${NORMALIZE}" "${WORK_DIR}/nonexistent" 3.3
 
 # ---------------------------------------------------------------------------
+start_case "Releases predating the switcher get one added"
+# Without this, a reader arriving on a pre-3.4 page from a search result has no
+# dropdown, so no way to discover that newer documentation exists.
+
+BACKPORT="${SCRIPT_PATH}/backport_switcher_config.py"
+CONF_DIR="${WORK_DIR}/backport"
+mkdir -p "${CONF_DIR}"
+echo "3.3" > "${CONF_DIR}/VERSION.md"
+
+# A pre-3.4 conf.py: same theme and navbar as 3.4, no switcher block.
+cat > "${CONF_DIR}/conf.py" <<'EOF'
+release = "3.3"
+html_theme = "nvidia_sphinx_theme"
+html_theme_options = {
+    "navigation_depth": 4,
+    "navbar_end": ["theme-switcher", "navbar-icon-links"],
+}
+EOF
+
+python3 "${BACKPORT}" --conf-py "${CONF_DIR}/conf.py" > /dev/null
+switcher="$(cd "${CONF_DIR}" && CCCL_DOCS_BASE_URL="https://nvidia.github.io/cccl/" \
+    SPHINX_CCCL_VER="3.3" python3 -c "
+import runpy
+ns = runpy.run_path('conf.py')
+s = ns['html_theme_options']['switcher']
+print(f\"{s['version_match']}|{s['json_url']}|{ns['html_baseurl']}\")")"
+
+assert_eq "the patched config declares the publish directory as version_match" \
+    "3.3" "$(cut -d'|' -f1 <<< "${switcher}")"
+assert_eq "the switcher points at the site-root manifest" \
+    "https://nvidia.github.io/cccl/nv-versions.json" "$(cut -d'|' -f2 <<< "${switcher}")"
+assert_eq "html_baseurl follows the deploy's base URL" \
+    "https://nvidia.github.io/cccl/" "$(cut -d'|' -f3 <<< "${switcher}")"
+
+# version_match must track the publish directory, not the release's own idea of
+# its version, or assemble_site.bash will refuse to publish the build.
+alt="$(cd "${CONF_DIR}" && CCCL_DOCS_BASE_URL="https://x/" SPHINX_CCCL_VER="9.9" \
+    python3 -c "
+import runpy
+print(runpy.run_path('conf.py')['html_theme_options']['switcher']['version_match'])")"
+assert_eq "version_match follows SPHINX_CCCL_VER when it differs" "9.9" "${alt}"
+
+# Running twice must not append the block again.
+python3 "${BACKPORT}" --conf-py "${CONF_DIR}/conf.py" > /dev/null
+assert_eq "the block is added exactly once" \
+    "1" "$(grep -c 'appended by the CCCL docs deploy' "${CONF_DIR}/conf.py")"
+
+# A release that already configures a switcher is left completely alone.
+MODERN_CONF="${WORK_DIR}/backport_modern"
+mkdir -p "${MODERN_CONF}"
+cat > "${MODERN_CONF}/conf.py" <<'EOF'
+release = "3.4"
+html_theme_options = {"switcher": {"json_url": "x", "version_match": release}}
+EOF
+before="$(cat "${MODERN_CONF}/conf.py")"
+python3 "${BACKPORT}" --conf-py "${MODERN_CONF}/conf.py" > /dev/null
+assert_eq "a release that already has a switcher is untouched" \
+    "${before}" "$(cat "${MODERN_CONF}/conf.py")"
+
+assert_fails "a config without html_theme_options is rejected rather than broken" \
+    python3 "${BACKPORT}" --conf-py "${WORK_DIR}/VERSION.md"
+
+# ---------------------------------------------------------------------------
 start_case "A published site is verified before history is compacted"
 # The compaction workflow force-pushes an orphan commit, so this check is the
 # interlock standing between a maintenance job and an outage.

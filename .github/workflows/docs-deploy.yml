@@ -145,6 +145,14 @@ jobs:
           # published site available to rebuild the /latest/ alias from.
           CCCL_DOCS_SKIP_SITE_ASSEMBLY: "1"
 
+      # Releases before 3.4 have no version-switcher configuration, so their
+      # pages would render with no way to reach any other version. Add it before
+      # Sphinx runs, rather than rewriting the generated HTML afterwards.
+      - name: Backport switcher configuration
+        if: ${{ steps.destination.outputs.should_deploy == 'true' && github.event.inputs.source_ref != '' }}
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: ./docs/backport_switcher_config.py --conf-py docs-source/docs/conf.py
+
       # The already-published site, so that /latest/ can be rebuilt from the
       # stable version's pages even when this run is deploying something else.
       # Absent on the very first deploy, when gh-pages does not exist yet.
