@@ -20,8 +20,3 @@ make CUDA C++ and Python more delightful.
 - :doc:`Maintainer Docs <maintainers/index>`
 
 - :doc:`Infrastructure <infrastructure/index>`
-
-The Python libraries — ``cuda.compute`` and ``cuda.coop`` — ship on their own
-release line and are documented separately:
-
-- `CCCL Python Libraries <../python/>`_
