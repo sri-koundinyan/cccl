@@ -14,8 +14,3 @@ make CUDA C++ and Python more delightful.
 - :ref:`cccl-cpp-libraries`
 
 - :doc:`Maintainer Docs <maintainers/index>`
-
-The Python libraries ship on their own release line and are
-documented separately:
-
-- `CCCL Python Libraries <../python/>`_
