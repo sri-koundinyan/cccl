@@ -161,6 +161,15 @@ jobs:
         shell: bash --noprofile --norc -euo pipefail {0}
         run: ./docs/backport_switcher_config.py --conf-py docs-source/docs/conf.py
 
+      # Releases tagged before the split still carry python/index in their
+      # toctree, so rebuilding one would publish Python pages under a C++
+      # version number -- the mislabelling the split exists to stop.
+      - name: Unbundle the Python docs from the release
+        id: unbundle
+        if: ${{ steps.destination.outputs.should_deploy == 'true' && steps.destination.outputs.component == 'cpp' && github.event.inputs.source_ref != '' }}
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: ./docs/unbundle_python_docs.py --docs-dir docs-source/docs
+
       - name: Build C++ docs
         if: ${{ steps.destination.outputs.should_deploy == 'true' && steps.destination.outputs.component == 'cpp' }}
         uses: ./.github/actions/docs-build
@@ -212,6 +221,22 @@ jobs:
             exit 1
           fi
           echo "  ${VERSION} was built with a version switcher"
+
+      # A patch that does not reach the output is how a run goes green having
+      # achieved nothing; the switcher backport was mis-ordered exactly this way.
+      - name: Confirm the Python docs were unbundled
+        if: ${{ steps.unbundle.outputs.unbundled == 'true' }}
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          VERSION: ${{ steps.destination.outputs.destination_dir }}
+        run: |
+          if [ -d "_site/${VERSION}/python" ]; then
+            echo "Error: the release's docs were patched to drop the Python tree," >&2
+            echo "       but _site/${VERSION}/python still exists. The patch did not" >&2
+            echo "       reach Sphinx -- check it runs before the build." >&2
+            exit 1
+          fi
+          echo "  ${VERSION} was built without the Python documentation"
 
       # The already-published site, so that /latest/ can be rebuilt from the
       # stable version's pages even when this run is deploying something else.

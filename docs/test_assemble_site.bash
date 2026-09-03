@@ -837,6 +837,83 @@ assert_fails "a config without html_theme_options is rejected rather than broken
     python3 "${BACKPORT}" --conf-py "${WORK_DIR}/VERSION.md"
 
 # ---------------------------------------------------------------------------
+start_case "Old releases stop bundling the Python docs"
+# A release tagged before the split still lists python/index in its toctree, so
+# rebuilding it would publish Python pages under a C++ version number.
+
+UNBUNDLE="${SCRIPT_PATH}/unbundle_python_docs.py"
+REL="${WORK_DIR}/old_release"
+mkdir -p "${REL}"
+cat > "${REL}/index.rst" <<'EOF'
+CUDA Core Compute Libraries
+===========================
+
+.. toctree::
+   :hidden:
+   :maxdepth: 3
+
+   cpp
+   python/index
+   maintainers/index
+
+Welcome.
+
+- :ref:`cccl-cpp-libraries`
+
+- :doc:`Python Libraries <python/index>`
+
+- :doc:`Maintainer Docs <maintainers/index>`
+EOF
+cat > "${REL}/conf.py" <<'EOF'
+exclude_patterns = [
+    "_build",
+]
+EOF
+
+python3 "${UNBUNDLE}" --docs-dir "${REL}" > /dev/null
+
+if grep -q "python/index" "${REL}/index.rst"; then
+    fail "the Python toctree entry and link should both be gone"
+else
+    pass "the Python toctree entry and link are removed"
+fi
+if grep -q "cpp" "${REL}/index.rst" && grep -q "maintainers/index" "${REL}/index.rst"; then
+    pass "the other toctree entries survive"
+else
+    fail "unrelated toctree entries must not be removed"
+fi
+if grep -qE '^\s*"python",' "${REL}/conf.py"; then
+    pass "the python directory is excluded from the build"
+else
+    fail "conf.py should exclude the python directory"
+fi
+if grep -q "CCCL Python Libraries <../python/>" "${REL}/index.rst"; then
+    pass "a link across to the Python docs is left behind"
+else
+    fail "the C++ docs should still link across to the Python docs"
+fi
+
+# Running twice must not duplicate the exclusion or the cross-link.
+python3 "${UNBUNDLE}" --docs-dir "${REL}" > /dev/null
+assert_eq "the exclusion is added exactly once" \
+    "1" "$(grep -cE '^\s*"python",' "${REL}/conf.py")"
+assert_eq "the cross-link is added exactly once" \
+    "1" "$(grep -c 'CCCL Python Libraries' "${REL}/index.rst")"
+
+# A release that already keeps them separate is left alone.
+MODERN_REL="${WORK_DIR}/modern_release"
+mkdir -p "${MODERN_REL}"
+printf 'Title\n=====\n\n.. toctree::\n\n   cpp\n' > "${MODERN_REL}/index.rst"
+printf 'exclude_patterns = [\n    "python",\n]\n' > "${MODERN_REL}/conf.py"
+before_index="$(cat "${MODERN_REL}/index.rst")"
+python3 "${UNBUNDLE}" --docs-dir "${MODERN_REL}" > /dev/null
+assert_eq "a release without the Python tree is untouched" \
+    "${before_index}" "$(cat "${MODERN_REL}/index.rst")"
+
+assert_fails "a docs dir with no conf.py is rejected" \
+    python3 "${UNBUNDLE}" --docs-dir "${WORK_DIR}"
+
+# ---------------------------------------------------------------------------
 start_case "A published site is verified before history is compacted"
 # The compaction workflow force-pushes an orphan commit, so this check is the
 # interlock standing between a maintenance job and an outage.
