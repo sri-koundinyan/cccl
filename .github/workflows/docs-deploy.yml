@@ -204,6 +204,39 @@ jobs:
           cp -rf ./docs/_build/python/html/* "_site/python/"
           touch _site/.nojekyll
 
+      # The already-published site, so that /latest/ can be rebuilt from the
+      # stable version's pages even when this run is deploying something else.
+      # Absent on the very first deploy, when gh-pages does not exist yet.
+      - name: Checkout published site
+        id: published
+        if: ${{ steps.destination.outputs.should_deploy == 'true' }}
+        continue-on-error: true
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
+        with:
+          ref: gh-pages
+          path: published-site
+          persist-credentials: false
+
+      # Releases predating versioned publishing build a flat tree and generate
+      # no page list. Reshape them here rather than backporting the build script
+      # to every old tag. A no-op for a modern build.
+      - name: Normalise build layout
+        if: ${{ steps.destination.outputs.should_deploy == 'true' }}
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          VERSION: ${{ steps.destination.outputs.destination_dir }}
+          COMPONENT: ${{ steps.destination.outputs.component }}
+        run: |
+          if [ "${COMPONENT}" = "cpp" ]; then
+            ./docs/normalize_build_layout.bash _site "${VERSION}"
+          else
+            ./docs/normalize_build_layout.bash "_site/python" "${VERSION}"
+          fi
+
+      # Re-assemble the site root from this ref's tooling and version manifest,
+      # discarding whatever the build produced. For a build of main this is a
+      # no-op repeat; for a release branch it is what keeps the version list,
+      # the root redirect and the 404 handler under a single owner.
       # A patched conf.py that does not reach the output is exactly how a run
       # goes green having achieved nothing: the step order was wrong once
       # already, and every step still reported success.
@@ -238,39 +271,6 @@ jobs:
           fi
           echo "  ${VERSION} was built without the Python documentation"
 
-      # The already-published site, so that /latest/ can be rebuilt from the
-      # stable version's pages even when this run is deploying something else.
-      # Absent on the very first deploy, when gh-pages does not exist yet.
-      - name: Checkout published site
-        id: published
-        if: ${{ steps.destination.outputs.should_deploy == 'true' }}
-        continue-on-error: true
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
-        with:
-          ref: gh-pages
-          path: published-site
-          persist-credentials: false
-
-      # Releases predating versioned publishing build a flat tree and generate
-      # no page list. Reshape them here rather than backporting the build script
-      # to every old tag. A no-op for a modern build.
-      - name: Normalise build layout
-        if: ${{ steps.destination.outputs.should_deploy == 'true' }}
-        shell: bash --noprofile --norc -euo pipefail {0}
-        env:
-          VERSION: ${{ steps.destination.outputs.destination_dir }}
-          COMPONENT: ${{ steps.destination.outputs.component }}
-        run: |
-          if [ "${COMPONENT}" = "cpp" ]; then
-            ./docs/normalize_build_layout.bash _site "${VERSION}"
-          else
-            ./docs/normalize_build_layout.bash "_site/python" "${VERSION}"
-          fi
-
-      # Re-assemble the site root from this ref's tooling and version manifest,
-      # discarding whatever the build produced. For a build of main this is a
-      # no-op repeat; for a release branch it is what keeps the version list,
-      # the root redirect and the 404 handler under a single owner.
       - name: Assemble site root
         if: ${{ steps.destination.outputs.should_deploy == 'true' }}
         shell: bash --noprofile --norc -euo pipefail {0}
