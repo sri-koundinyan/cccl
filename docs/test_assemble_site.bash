@@ -887,18 +887,18 @@ if grep -qE '^\s*"python",' "${REL}/conf.py"; then
 else
     fail "conf.py should exclude the python directory"
 fi
-if grep -q "CCCL Python Libraries <../python/>" "${REL}/index.rst"; then
-    pass "a link across to the Python docs is left behind"
+# The two are separate sites, reached from the landing page; the C++ docs make
+# no mention of Python at all.
+if grep -qi "python" "${REL}/index.rst"; then
+    fail "the C++ index should not mention Python once unbundled"
 else
-    fail "the C++ docs should still link across to the Python docs"
+    pass "no reference to Python is left in the C++ index"
 fi
 
-# Running twice must not duplicate the exclusion or the cross-link.
+# Running twice must not duplicate the exclusion.
 python3 "${UNBUNDLE}" --docs-dir "${REL}" > /dev/null
 assert_eq "the exclusion is added exactly once" \
     "1" "$(grep -cE '^\s*"python",' "${REL}/conf.py")"
-assert_eq "the cross-link is added exactly once" \
-    "1" "$(grep -c 'CCCL Python Libraries' "${REL}/index.rst")"
 
 # A release that already keeps them separate is left alone.
 MODERN_REL="${WORK_DIR}/modern_release"

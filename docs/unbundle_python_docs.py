@@ -15,6 +15,9 @@ before Sphinx runs:
 * excludes ``python`` from the build, so its pages do not then warn about being
   outside any toctree, which would fail a build that treats warnings as errors
 
+No link across to the Python site is left behind: the two are separate sites,
+reached from the landing page at the site root.
+
 Does nothing if the release already keeps them separate, so it is safe to run
 against any release.
 
@@ -48,12 +51,6 @@ def patch_index(index_rst):
     if text == original:
         return False
 
-    # Leave a way across, so the C++ docs still point at their counterpart.
-    text = text.rstrip("\n") + (
-        "\n\nThe Python libraries ship on their own release line and are\n"
-        "documented separately:\n\n"
-        "- `CCCL Python Libraries <../python/>`_\n"
-    )
     index_rst.write_text(text, encoding="utf-8")
     return True
 
