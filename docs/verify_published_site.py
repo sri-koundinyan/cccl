@@ -31,6 +31,79 @@ ROOT_FILES = (
 )
 
 
+def check_component(site_root, component, manifest_path):
+    """Problems within one component's subtree."""
+    problems = []
+    label = component["id"]
+    path = component.get("path", "").strip("/")
+    root = Path(site_root) / path if path else Path(site_root)
+
+    # A component with nothing published yet is a legitimate state -- Python
+    # has no versioned docs until its first is deployed. It is only a problem if
+    # the manifest claims one of its versions is the stable default.
+    latest_stable = component.get("latest_stable")
+    if not root.is_dir():
+        if latest_stable is None:
+            return []
+        return [
+            (
+                f"{label}: latest_stable is '{latest_stable}' but nothing is "
+                f"published at {root}"
+            )
+        ]
+
+    published = []
+    for child in sorted(root.iterdir()):
+        if not child.is_dir() or not VERSION_DIR.match(child.name):
+            continue
+        if (child / "index.html").exists():
+            published.append(child.name)
+        else:
+            problems.append(
+                f"{label}: {child.name}/ exists but has no index.html, so it is "
+                f"invisible in the version switcher"
+            )
+
+    if not published and latest_stable is not None:
+        problems.append(f"{label}: no version directories are published")
+
+    if latest_stable is not None and latest_stable not in published:
+        problems.append(
+            f"{label}: latest_stable is '{latest_stable}' but it is not published"
+        )
+    elif latest_stable is not None:
+        alias = root / "latest"
+        if not alias.is_dir():
+            problems.append(f"{label}: latest_stable is set but latest/ is absent")
+        elif not (alias / "index.html").exists():
+            problems.append(f"{label}: latest/ has no index.html")
+        elif latest_stable not in (alias / "index.html").read_text(encoding="utf-8"):
+            problems.append(f"{label}: latest/ does not point at '{latest_stable}'")
+
+    switcher_path = root / "nv-versions.json"
+    if not switcher_path.exists():
+        problems.append(f"{label}: no nv-versions.json")
+    else:
+        try:
+            switcher = json.loads(switcher_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            problems.append(f"{label}: nv-versions.json is not valid JSON: {exc}")
+        else:
+            listed = {e["version"] for e in switcher} - {"latest"}
+            for missing in sorted(set(published) - listed):
+                problems.append(
+                    f"{label}: '{missing}/' is published but missing from the "
+                    f"switcher; redeploy to refresh it"
+                )
+            for extra in sorted(listed - set(published)):
+                problems.append(
+                    f"{label}: the switcher offers '{extra}' but no such "
+                    f"directory exists"
+                )
+
+    return problems
+
+
 def check(site_root, manifest_path):
     """Return a list of problems; empty means the site is coherent."""
     problems = []
@@ -46,69 +119,23 @@ def check(site_root, manifest_path):
         if not (site_root / name).exists():
             problems.append(f"missing root file: {name}")
 
-    # The switcher is built by discovery, so "listed but missing" cannot happen.
-    # What can happen is a directory that looks like a version but has no
-    # landing page: it is silently omitted from the switcher, which reads as the
-    # version having vanished.
-    published = []
-    for child in sorted(site_root.iterdir()):
-        if not child.is_dir() or not VERSION_DIR.match(child.name):
-            continue
-        if (child / "index.html").exists():
-            published.append(child.name)
-        else:
-            problems.append(
-                f"{child.name}/ exists but has no index.html, so it is invisible "
-                f"in the version switcher"
-            )
-
-    if not published:
-        problems.append("no version directories are published")
-
-    latest_stable = manifest.get("latest_stable")
-    if latest_stable is not None and latest_stable not in published:
-        problems.append(
-            f"latest_stable is '{latest_stable}' but that version is not published"
-        )
-
-    if latest_stable is not None:
-        alias = site_root / "latest"
-        if not alias.is_dir():
-            problems.append("latest_stable is set but latest/ is absent")
-        elif not (alias / "index.html").exists():
-            problems.append("latest/ has no index.html")
-        elif latest_stable not in (alias / "index.html").read_text(encoding="utf-8"):
-            problems.append(f"latest/ does not point at '{latest_stable}'")
-
     # A published site that still contains build-time placeholders means the
     # templates were copied rather than rendered.
     for name in ("index.html", "404.html"):
         path = site_root / name
         if path.exists():
             text = path.read_text(encoding="utf-8")
-            if "@DEFAULT_VERSION@" in text or "@SITE_BASE@" in text:
-                problems.append(f"{name} still contains unrendered placeholders")
+            for placeholder in (
+                "@DEFAULT_VERSION@",
+                "@SITE_BASE@",
+                "@COMPONENTS@",
+                "@COMPONENT_ROUTES@",
+            ):
+                if placeholder in text:
+                    problems.append(f"{name} still contains {placeholder}")
 
-    # The switcher is rendered into the site root; it should agree with what is
-    # on disk. A mismatch means the root assets are stale relative to the
-    # directories, e.g. a version was published without the root being rebuilt.
-    switcher_path = site_root / "nv-versions.json"
-    if switcher_path.exists():
-        try:
-            switcher = json.loads(switcher_path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError as exc:
-            problems.append(f"nv-versions.json is not valid JSON: {exc}")
-        else:
-            listed = {e["version"] for e in switcher} - {"latest"}
-            for missing in sorted(set(published) - listed):
-                problems.append(
-                    f"'{missing}/' is published but missing from the switcher; "
-                    f"redeploy to refresh the site root"
-                )
-            for extra in sorted(listed - set(published)):
-                problems.append(
-                    f"the switcher offers '{extra}' but no such directory exists"
-                )
+    for component in manifest["components"]:
+        problems.extend(check_component(site_root, component, manifest_path))
 
     return problems
 

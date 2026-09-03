@@ -55,7 +55,31 @@ def load_manifest(path):
             f"discovered from the published site; remove the key."
         )
 
+    if "components" not in manifest:
+        raise SystemExit(
+            f"{path}: no 'components'. The C++ and Python libraries version "
+            f"independently and each needs its own entry."
+        )
+
+    ids = [c["id"] for c in manifest["components"]]
+    duplicates = {i for i in ids if ids.count(i) > 1}
+    if duplicates:
+        raise SystemExit(f"{path}: duplicate component ids: {sorted(duplicates)}")
+
+    paths = [c.get("path", "") for c in manifest["components"]]
+    if len(set(paths)) != len(paths):
+        raise SystemExit(f"{path}: two components share a path: {sorted(paths)}")
+
     return manifest
+
+
+def get_component(manifest, component_id, path):
+    """The settings for one component, by id."""
+    for component in manifest["components"]:
+        if component["id"] == component_id:
+            return component
+    known = ", ".join(c["id"] for c in manifest["components"])
+    raise SystemExit(f"{path}: no component '{component_id}'. Known: {known}")
 
 
 def discover_versions(roots):
@@ -96,19 +120,20 @@ def label_for(version):
     return "unstable (main)" if version == "unstable" else version
 
 
-def resolve_latest_stable(manifest, versions, manifest_path):
+def resolve_latest_stable(component, versions, manifest_path):
     """``latest_stable`` if it is actually published, otherwise nothing.
 
     Pointing the site root at a version that is not there is the failure this
     guards against: the root would redirect to a directory that 404s.
     """
-    latest_stable = manifest.get("latest_stable")
+    latest_stable = component.get("latest_stable")
     if latest_stable is None:
         return None
 
     if latest_stable not in versions:
         print(
-            f"warning: {manifest_path} sets latest_stable to '{latest_stable}', "
+            f"warning: {manifest_path} sets {component['id']} latest_stable to "
+            f"'{latest_stable}', "
             f"which is not published. Ignoring it; the site root will fall back "
             f"to the development docs. Publish that version to fix this.",
             file=sys.stderr,
@@ -173,9 +198,18 @@ def default_version(versions, latest_stable):
     return "unstable" if "unstable" in versions else versions[0]
 
 
-def site_base_path(base_url):
-    """The path portion of the docs base URL, e.g. ``/cccl`` (no trailing slash)."""
-    return urlparse(base_url).path.rstrip("/")
+def site_base_path(base_url, component_path):
+    """The path portion of the *site* root, e.g. ``/cccl`` (no trailing slash).
+
+    ``base_url`` addresses the component, so a nested component's path is
+    stripped back off: the 404 handler is shared by the whole site and has to
+    reason about it as a whole.
+    """
+    path = urlparse(base_url).path.rstrip("/")
+    if component_path:
+        suffix = "/" + component_path.strip("/")
+        path = path.removesuffix(suffix)
+    return path
 
 
 def check_size_budget(manifest, versions):
@@ -195,7 +229,12 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", required=True, help="published_versions.json")
     parser.add_argument("--base-url", required=True, help="docs site base URL")
-    parser.add_argument("--out-dir", required=True, help="site root to write into")
+    parser.add_argument("--out-dir", required=True, help="component root to write into")
+    parser.add_argument(
+        "--component",
+        required=True,
+        help="which component in the manifest this subtree is (e.g. cpp, python)",
+    )
     parser.add_argument(
         "--discover-from",
         action="append",
@@ -217,8 +256,9 @@ def main(argv=None):
             f"index.html."
         )
 
+    component = get_component(manifest, args.component, args.manifest)
     versions = order_versions(discovered)
-    latest_stable = resolve_latest_stable(manifest, discovered, args.manifest)
+    latest_stable = resolve_latest_stable(component, discovered, args.manifest)
     check_size_budget(manifest, versions)
 
     out_dir = Path(args.out_dir)
@@ -235,7 +275,7 @@ def main(argv=None):
 
     # Consumed by assemble_site.bash, one value per line.
     print(default_version(versions, latest_stable))
-    print(site_base_path(base_url))
+    print(site_base_path(base_url, component.get("path", "")))
     print(latest_stable or "")
     return 0
 

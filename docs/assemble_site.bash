@@ -1,69 +1,84 @@
 #!/usr/bin/env bash
 
-# Assemble the site-root artifacts around an already-built versioned docs tree.
+# Assemble the published site around a freshly built component.
 #
 # Usage:
-#   ./assemble_site.bash <html_dir> <version> <base_url>
+#   ./assemble_site.bash <site_root> <component> <version> <site_base_url>
 #
-#   html_dir  Site root. Must already contain <html_dir>/<version>/ as produced
-#             by Sphinx.
-#   version   The version directory that was just built, e.g. "unstable", "3.4".
-#             Must match SPHINX_CCCL_VER, which docs/conf.py turns into the
-#             switcher's version_match.
-#   base_url  Public base URL of the docs site, e.g. https://nvidia.github.io/cccl/
+#   site_root      Root of the site being published. The component's own pages
+#                  live under <site_root>/<component path>/<version>/.
+#   component      Component id from published_versions.json, e.g. cpp, python.
+#   version        The version directory that was just built, e.g. "unstable",
+#                  "3.4". Must match SPHINX_CCCL_VER, which conf.py turns into
+#                  the switcher's version_match.
+#   site_base_url  Public base URL of the whole site, e.g.
+#                  https://nvidia.github.io/cccl/
 #
-# Everything written here is derived from published_versions.json rather than
-# from the version being built, so any build publishes a complete and correct
-# set of root files. That is what lets the deployment be purely additive: a
-# 3.4 deploy and an unstable deploy write byte-identical root artifacts instead
-# of overwriting each other's version lists.
+# The C++ and Python libraries ship on independent release lines, so each is a
+# component with its own subtree, its own version list and its own switcher.
+# C++ sits at the site root (empty path) because it has been published there
+# since before versioning existed and moving it would break every working URL.
 #
-# This is split out of gen_docs.bash so it can be tested without a Doxygen and
-# Sphinx run; see test_assemble_site.bash.
+# Two things are written: the component's own root (switcher manifests, redirect,
+# /latest/ alias, objects.inv) and the shared site root (landing page, the single
+# 404 handler GitHub Pages allows, .nojekyll).
+#
+# Everything is derived from published_versions.json rather than from the version
+# being built, so any build publishes a complete and correct set of root files.
+# That is what lets deployment be purely additive.
+#
+# Split out of gen_docs.bash so it can be tested without a Doxygen and Sphinx
+# run; see test_assemble_site.bash.
 
 set -euo pipefail
 
-if [[ "$#" -ne 3 ]]; then
-    echo "usage: $0 <html_dir> <version> <base_url>" >&2
+if [[ "$#" -ne 4 ]]; then
+    echo "usage: $0 <site_root> <component> <version> <site_base_url>" >&2
     exit 1
 fi
 
 SCRIPT_PATH=$(cd "$(dirname "${BASH_SOURCE[0]}")"; pwd -P)
 
-HTML_DIR="$1"
-VERSION="$2"
-BASE_URL="${3%/}/"
+SITE_ROOT="$1"
+COMPONENT="$2"
+VERSION="$3"
+SITE_BASE_URL="${4%/}/"
 
-VERSIONED_HTML_DIR="${HTML_DIR}/${VERSION}"
+# Overridable so the test harness can exercise layouts that do not exist yet.
+VERSIONS_FILE="${CCCL_DOCS_VERSIONS_FILE:-${SCRIPT_PATH}/published_versions.json}"
+
+# The manifest owns where each component lives, so nothing else has to hardcode
+# it. Reading it here keeps the shell and the renderer agreeing on one answer.
+COMPONENT_PATH="$(python3 - "${VERSIONS_FILE}" "${COMPONENT}" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as f:
+    manifest = json.load(f)
+for component in manifest["components"]:
+    if component["id"] == sys.argv[2]:
+        print(component.get("path", ""))
+        break
+else:
+    known = ", ".join(c["id"] for c in manifest["components"])
+    sys.exit(f"error: no component '{sys.argv[2]}'. Known: {known}")
+PY
+)"
+
+if [[ -n "${COMPONENT_PATH}" ]]; then
+    COMPONENT_ROOT="${SITE_ROOT}/${COMPONENT_PATH}"
+    COMPONENT_BASE_URL="${SITE_BASE_URL}${COMPONENT_PATH}/"
+else
+    COMPONENT_ROOT="${SITE_ROOT}"
+    COMPONENT_BASE_URL="${SITE_BASE_URL}"
+fi
+
+VERSIONED_HTML_DIR="${COMPONENT_ROOT}/${VERSION}"
 
 if [[ ! -d "${VERSIONED_HTML_DIR}" ]]; then
     echo "Error: expected a built docs tree at ${VERSIONED_HTML_DIR}" >&2
     exit 1
 fi
-
-# Overridable so the test harness can exercise version layouts that do not exist
-# yet. Production builds always use the checked-in manifest.
-VERSIONS_FILE="${CCCL_DOCS_VERSIONS_FILE:-${SCRIPT_PATH}/published_versions.json}"
-
-# The version list is discovered rather than declared. Search this build first,
-# so the version being deployed is counted before it has been published, then
-# the already-published site if a checkout of it was provided.
-DISCOVER_ARGS=(--discover-from "${HTML_DIR}")
-if [[ -n "${CCCL_DOCS_PUBLISHED_SITE:-}" && -d "${CCCL_DOCS_PUBLISHED_SITE}" ]]; then
-    DISCOVER_ARGS+=(--discover-from "${CCCL_DOCS_PUBLISHED_SITE}")
-fi
-
-# Render nv-versions.json and versions.json, and read back the derived values.
-render_output="$(python3 "${SCRIPT_PATH}/render_versions.py" \
-    --manifest "${VERSIONS_FILE}" \
-    --base-url "${BASE_URL}" \
-    --out-dir "${HTML_DIR}" \
-    "${DISCOVER_ARGS[@]}")"
-mapfile -t render_lines <<< "${render_output}"
-
-DEFAULT_VERSION="${render_lines[0]}"
-SITE_BASE="${render_lines[1]}"
-LATEST_STABLE="${render_lines[2]:-}"
 
 # The switcher can only highlight the version the reader is on if the value
 # Sphinx stamped into the pages matches the directory they are served from.
@@ -86,63 +101,105 @@ if [[ -f "${INDEX_PAGE}" ]]; then
     fi
 fi
 
-echo "Assembling site root in ${HTML_DIR}"
+# Versions are discovered rather than declared. Search this build first, so the
+# version being deployed counts before it has been published, then the
+# already-published site if a checkout of it was provided.
+PUBLISHED_COMPONENT_ROOT=""
+if [[ -n "${CCCL_DOCS_PUBLISHED_SITE:-}" ]]; then
+    if [[ -n "${COMPONENT_PATH}" ]]; then
+        PUBLISHED_COMPONENT_ROOT="${CCCL_DOCS_PUBLISHED_SITE}/${COMPONENT_PATH}"
+    else
+        PUBLISHED_COMPONENT_ROOT="${CCCL_DOCS_PUBLISHED_SITE}"
+    fi
+fi
+
+DISCOVER_ARGS=(--discover-from "${COMPONENT_ROOT}")
+if [[ -n "${PUBLISHED_COMPONENT_ROOT}" && -d "${PUBLISHED_COMPONENT_ROOT}" ]]; then
+    DISCOVER_ARGS+=(--discover-from "${PUBLISHED_COMPONENT_ROOT}")
+fi
+
+render_output="$(python3 "${SCRIPT_PATH}/render_versions.py" \
+    --manifest "${VERSIONS_FILE}" \
+    --component "${COMPONENT}" \
+    --base-url "${COMPONENT_BASE_URL}" \
+    --out-dir "${COMPONENT_ROOT}" \
+    "${DISCOVER_ARGS[@]}")"
+mapfile -t render_lines <<< "${render_output}"
+
+DEFAULT_VERSION="${render_lines[0]}"
+SITE_BASE="${render_lines[1]}"
+LATEST_STABLE="${render_lines[2]:-}"
+
+echo "Assembling ${COMPONENT} in ${COMPONENT_ROOT}"
 echo "  version built:   ${VERSION}"
 echo "  default version: ${DEFAULT_VERSION}"
 echo "  latest stable:   ${LATEST_STABLE:-<none published>}"
 echo "  site base path:  ${SITE_BASE:-/}"
 
-# Root redirect and 404 handler. Both are templates so that the version scheme
-# lives in one place and so forks (which have a different base URL) route
-# correctly instead of hard-coding /cccl.
-sed -e "s|@DEFAULT_VERSION@|${DEFAULT_VERSION}|g" \
-    "${SCRIPT_PATH}/index.html" > "${HTML_DIR}/index.html"
-sed -e "s|@DEFAULT_VERSION@|${DEFAULT_VERSION}|g" \
-    -e "s|@SITE_BASE@|${SITE_BASE}|g" \
-    "${SCRIPT_PATH}/404.html" > "${HTML_DIR}/404.html"
+# A nested component gets its own entry point redirecting to its default
+# version. The component at the site root does not: that file is the landing
+# page, which links straight to this component's version instead.
+if [[ -n "${COMPONENT_PATH}" ]]; then
+    sed -e "s|@DEFAULT_VERSION@|${DEFAULT_VERSION}|g" \
+        "${SCRIPT_PATH}/component_index.html" > "${COMPONENT_ROOT}/index.html"
+fi
 
-# Provide a URL that always resolves to the newest release.
+# Provide a URL that always resolves to this component's newest release.
 #
-# Built as redirects rather than a copy: a full duplicate costs 100-300 MB
-# against a 1 GB GitHub Pages budget, and readers are better served landing on
-# a pinned version-scoped URL anyway.
+# Built as redirects rather than a copy: a full duplicate of the C++ docs costs
+# 100-300 MB against a 1 GB GitHub Pages budget, and readers are better served
+# landing on a pinned version-scoped URL anyway.
 #
 # Regenerated on EVERY deploy, not only on a deploy of latest_stable. Writing it
 # only when the stable version is rebuilt means that changing latest_stable
 # leaves the alias pointing at the previous release, so /latest/ silently serves
-# the wrong version while the switcher claims otherwise. To rebuild it during a
-# deploy of some other version, the stable version's pages are read from a
-# checkout of the already-published site.
+# the wrong version while the switcher claims otherwise.
 if [[ -n "${LATEST_STABLE}" ]]; then
     ALIAS_SOURCE=""
-    if [[ -d "${HTML_DIR}/${LATEST_STABLE}" ]]; then
-        ALIAS_SOURCE="${HTML_DIR}"
-    elif [[ -n "${CCCL_DOCS_PUBLISHED_SITE:-}" \
-            && -d "${CCCL_DOCS_PUBLISHED_SITE}/${LATEST_STABLE}" ]]; then
-        ALIAS_SOURCE="${CCCL_DOCS_PUBLISHED_SITE}"
+    if [[ -d "${COMPONENT_ROOT}/${LATEST_STABLE}" ]]; then
+        ALIAS_SOURCE="${COMPONENT_ROOT}"
+    elif [[ -n "${PUBLISHED_COMPONENT_ROOT}" \
+            && -d "${PUBLISHED_COMPONENT_ROOT}/${LATEST_STABLE}" ]]; then
+        ALIAS_SOURCE="${PUBLISHED_COMPONENT_ROOT}"
     fi
 
     if [[ -n "${ALIAS_SOURCE}" ]]; then
         python3 "${SCRIPT_PATH}/make_latest_alias.py" \
-            --site-root "${HTML_DIR}" \
+            --site-root "${COMPONENT_ROOT}" \
             --version "${LATEST_STABLE}" \
             --source-root "${ALIAS_SOURCE}"
     else
         # Refusing here would block the deploy of an unrelated version over a
         # stale alias, which is worse than saying so plainly.
-        echo "Warning: cannot rebuild latest/ -- no copy of ${LATEST_STABLE} available." >&2
-        echo "         /latest/ keeps whatever it pointed at before. Republish" >&2
-        echo "         ${LATEST_STABLE} to refresh it." >&2
+        echo "Warning: cannot rebuild ${COMPONENT} latest/ -- no copy of ${LATEST_STABLE}." >&2
+        echo "         It keeps whatever it pointed at before. Republish that" >&2
+        echo "         version to refresh it." >&2
     fi
 fi
 
 # The root objects.inv is what intersphinx consumers resolve against, so it has
-# to track the stable docs rather than whichever version happened to build last.
-# Until a stable version exists, publish the current build's so the URL works.
+# to track the stable docs rather than whichever version built last. Until a
+# stable version exists, publish the current build's so the URL works.
 if [[ -z "${LATEST_STABLE}" || "${VERSION}" == "${LATEST_STABLE}" ]]; then
     if [[ -f "${VERSIONED_HTML_DIR}/objects.inv" ]]; then
-        cp "${VERSIONED_HTML_DIR}/objects.inv" "${HTML_DIR}/objects.inv"
+        cp "${VERSIONED_HTML_DIR}/objects.inv" "${COMPONENT_ROOT}/objects.inv"
     fi
 fi
 
-touch "${HTML_DIR}/.nojekyll"
+# The shared site root: the landing page readers choose a component from, and
+# the single 404 handler GitHub Pages allows for the whole site. Both are
+# rendered from the manifest, so any component's deploy produces the same
+# correct files.
+SITE_ROOT_ARGS=()
+if [[ -n "${CCCL_DOCS_PUBLISHED_SITE:-}" && -d "${CCCL_DOCS_PUBLISHED_SITE}" ]]; then
+    SITE_ROOT_ARGS+=(--discover-from "${CCCL_DOCS_PUBLISHED_SITE}")
+fi
+
+python3 "${SCRIPT_PATH}/render_site_root.py" \
+    --manifest "${VERSIONS_FILE}" \
+    --site-root "${SITE_ROOT}" \
+    --site-base "${SITE_BASE}" \
+    --template-dir "${SCRIPT_PATH}" \
+    ${SITE_ROOT_ARGS[@]+"${SITE_ROOT_ARGS[@]}"}
+
+touch "${SITE_ROOT}/.nojekyll"

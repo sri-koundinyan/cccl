@@ -296,7 +296,7 @@ python -m sphinx.cmd.build -b html -d "${BUILDDIR}/doctrees" -j auto "." "${VERS
 # only visible effect is a misleading warning about being unable to rebuild the
 # /latest/ alias.
 if [[ "${CCCL_DOCS_SKIP_SITE_ASSEMBLY:-0}" != "1" ]]; then
-    ./assemble_site.bash "${HTML_DIR}" "${VERSION}" "${BASE_URL}"
+    ./assemble_site.bash "${HTML_DIR}" "${CCCL_DOCS_COMPONENT:-cpp}" "${VERSION}" "${BASE_URL}"
 fi
 
 echo "Documentation build complete! HTML output is in ${BUILDDIR}/html/"

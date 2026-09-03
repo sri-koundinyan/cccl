@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<!--
+  Template for a component's entry point, e.g. /cccl/ for C++ or /cccl/python/
+  for Python. @DEFAULT_VERSION@ is substituted by assemble_site.bash with that
+  component's latest_stable, falling back to "unstable" while it has no
+  published stable version.
+
+  The target is the concrete version directory rather than the /latest/ alias:
+  the alias is rebuilt from the published site and may lag, whereas this file is
+  re-rendered on every deploy and so always names a directory that exists.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="refresh" content="0; url=@DEFAULT_VERSION@/">
+  <link rel="canonical" href="@DEFAULT_VERSION@/">
+  <title>CUDA Core Compute Libraries</title>
+</head>
+<body>
+  <a href="@DEFAULT_VERSION@/">CUDA Core Compute Libraries documentation</a>
+</body>
+</html>

@@ -107,33 +107,57 @@ EOF
 }
 
 write_manifest() {
-    # <path> <latest_stable-or-null> [size_budget]
+    # <path> <cpp_latest_stable-or-null> [python_latest_stable-or-null]
     #
-    # The version list is discovered from the site rather than declared here,
-    # so trailing arguments naming versions are accepted and ignored: what a
-    # test publishes is decided by which directories it creates.
+    # Versions are discovered from the site rather than declared, so what a test
+    # publishes is decided by which directories it creates. Only the per
+    # component latest_stable is configuration.
     local path="$1"
-    local latest="$2"
+    local cpp_latest="$2"
+    local py_latest="${3:-null}"
     python3 -c '
 import json
 import sys
 
-path, latest = sys.argv[1], sys.argv[2]
-manifest = {"latest_stable": None if latest == "null" else latest}
+path, cpp_latest, py_latest = sys.argv[1], sys.argv[2], sys.argv[3]
+manifest = {
+    "size_budget_versions": 5,
+    "components": [
+        {
+            "id": "cpp",
+            "label": "C++",
+            "path": "",
+            "description": "Thrust, CUB, libcu++ and CUDA Experimental",
+            "latest_stable": None if cpp_latest == "null" else cpp_latest,
+        },
+        {
+            "id": "python",
+            "label": "Python",
+            "path": "python",
+            "description": "cuda.compute and cuda.coop",
+            "latest_stable": None if py_latest == "null" else py_latest,
+        },
+    ],
+}
 with open(path, "w", encoding="utf-8") as f:
     json.dump(manifest, f, indent=2)
-' "${path}" "${latest}"
+' "${path}" "${cpp_latest}" "${py_latest}"
 }
 
 assemble() {
-    # <site_root> <version> <manifest> [published_site]
+    # <site_root> <version> <manifest> [published_site]  -- the cpp component
+    assemble_component "$1" cpp "$2" "$3" "${4:-}"
+}
+
+assemble_component() {
+    # <site_root> <component> <version> <manifest> [published_site]
     #
     # published_site stands in for the checkout of the already-deployed site
     # that the workflow provides, which is where versions other than the one
     # being built are discovered from.
-    CCCL_DOCS_VERSIONS_FILE="$3" CCCL_DOCS_PUBLISHED_SITE="${4:-}" \
+    CCCL_DOCS_VERSIONS_FILE="$4" CCCL_DOCS_PUBLISHED_SITE="${5:-}" \
         "${SCRIPT_PATH}/assemble_site.bash" \
-        "$1" "$2" "https://nvidia.github.io/cccl/" > /dev/null
+        "$1" "$2" "$3" "https://nvidia.github.io/cccl/" > /dev/null
 }
 
 # ---------------------------------------------------------------------------
@@ -143,7 +167,7 @@ start_case "Day one: only unstable published, no stable release yet"
 
 ROOT="${WORK_DIR}/case_a"
 MANIFEST="${WORK_DIR}/manifest_a.json"
-write_manifest "${MANIFEST}" null unstable
+write_manifest "${MANIFEST}" null
 make_version_build "${ROOT}" unstable
 assemble "${ROOT}" unstable "${MANIFEST}"
 
@@ -154,10 +178,10 @@ assert_eq "that version is unstable" \
 assert_eq "no version is marked preferred while none is stable" \
     "0" "$(json_query "${ROOT}/nv-versions.json" 'sum("preferred" in e for e in data)')"
 
-if grep -q 'url=unstable/' "${ROOT}/index.html"; then
-    pass "site root still redirects to unstable/ (today's behavior preserved)"
+if grep -q 'href="/cccl/unstable/"' "${ROOT}/index.html"; then
+    pass "landing page sends C++ readers to unstable/ when no stable exists"
 else
-    fail "site root should redirect to unstable/ when no stable version exists"
+    fail "landing page should link C++ to unstable/ when no stable exists"
 fi
 
 assert_no_dir "no latest/ alias is created before a stable release" "${ROOT}/latest"
@@ -203,17 +227,17 @@ assert_eq "release URLs are absolute and version-scoped" \
 # The root must target the concrete version, not the latest/ alias: the alias is
 # only written by a build of latest_stable, so a root pointing at it would 404
 # for every deploy between naming a new latest_stable and rebuilding it.
-if grep -q 'url=3.4/' "${ROOT}/index.html"; then
-    pass "site root redirects to the concrete stable version"
+if grep -q 'href="/cccl/3.4/"' "${ROOT}/index.html"; then
+    pass "landing page links C++ to the concrete stable version"
 else
-    fail "site root should redirect to 3.4/, not to the latest/ alias"
+    fail "landing page should link C++ to 3.4/, not to the latest/ alias"
 fi
-if grep -q 'url=latest/' "${ROOT}/index.html"; then
-    fail "site root must not depend on the latest/ alias existing"
+if grep -q 'href="/cccl/latest/"' "${ROOT}/index.html"; then
+    fail "the landing page must not depend on the latest/ alias existing"
 else
-    pass "site root does not depend on the alias"
+    pass "the landing page does not depend on the alias"
 fi
-if grep -q 'DEFAULT_VERSION = "3.4"' "${ROOT}/404.html"; then
+if grep -q '"default": "3.4"' "${ROOT}/404.html"; then
     pass "the 404 handler falls back to the concrete stable version"
 else
     fail "the 404 handler should fall back to 3.4, not to the alias"
@@ -267,10 +291,10 @@ else
 fi
 assert_eq "root objects.inv still points at the stable build" \
     "objects-inv-for-3.4" "$(cat "${ROOT}/objects.inv")"
-if grep -q 'url=3.4/' "${ROOT}/index.html"; then
-    pass "site root still points at the stable version after an unstable deploy"
+if grep -q 'href="/cccl/3.4/"' "${ROOT}/index.html"; then
+    pass "landing page still points C++ at the stable version after an unstable deploy"
 else
-    fail "an unstable deploy changed the site root redirect"
+    fail "an unstable deploy changed where the landing page sends C++ readers"
 fi
 
 # The regression the live fork deploy caught: publishing a version other than
@@ -281,7 +305,8 @@ if [[ ! -d "${ROOT}/latest" ]]; then
 else
     rm -rf "${ROOT}/latest"
     assemble "${ROOT}" unstable "${MANIFEST}"
-    target="$(grep -o 'url=[^"]*' "${ROOT}/index.html" | head -1 | sed 's|url=||;s|/$||')"
+    target="$(grep -oE 'href="/cccl/[^"/]+/"' "${ROOT}/index.html" | head -1 \
+        | sed 's|href="/cccl/||;s|/"$||')"
     if [[ -d "${ROOT}/${target}" ]]; then
         pass "root redirect resolves even when the alias is absent"
     else
@@ -325,6 +350,74 @@ assert_eq "a version being deployed is listed alongside published ones" \
        '",".join(e["version"] for e in data if e["version"] != "latest")')"
 
 # ---------------------------------------------------------------------------
+start_case "C++ and Python are versioned independently"
+# They ship on separate release lines, so each needs its own subtree, its own
+# version list and its own switcher. C++ stays at the site root so that no
+# existing documentation URL moves.
+
+TWO="${WORK_DIR}/two_components"
+TWO_MANIFEST="${WORK_DIR}/two_components.json"
+write_manifest "${TWO_MANIFEST}" 3.4 1.1
+
+make_version_build "${TWO}" unstable
+make_version_build "${TWO}" 3.4
+make_version_build "${TWO}/python" unstable
+make_version_build "${TWO}/python" 1.1
+
+assemble_component "${TWO}" cpp 3.4 "${TWO_MANIFEST}"
+assemble_component "${TWO}" python 1.1 "${TWO_MANIFEST}"
+
+assert_eq "C++ versions live at the site root" \
+    "latest,unstable,3.4" \
+    "$(json_query "${TWO}/nv-versions.json" '",".join(e["version"] for e in data)')"
+assert_eq "Python versions live under python/" \
+    "latest,unstable,1.1" \
+    "$(json_query "${TWO}/python/nv-versions.json" '",".join(e["version"] for e in data)')"
+assert_eq "the C++ switcher offers no Python version" \
+    "0" "$(json_query "${TWO}/nv-versions.json" 'sum(e["version"] == "1.1" for e in data)')"
+assert_eq "the Python switcher offers no C++ version" \
+    "0" "$(json_query "${TWO}/python/nv-versions.json" 'sum(e["version"] == "3.4" for e in data)')"
+assert_eq "Python switcher URLs are scoped to the component" \
+    "https://nvidia.github.io/cccl/python/1.1/" \
+    "$(json_query "${TWO}/python/nv-versions.json" '[e["url"] for e in data if e["version"]=="1.1"][0]')"
+assert_eq "each component marks its own preferred version" \
+    "3.4|1.1" \
+    "$(json_query "${TWO}/nv-versions.json" '[e["version"] for e in data if e.get("preferred")][0]')|$(json_query "${TWO}/python/nv-versions.json" '[e["version"] for e in data if e.get("preferred")][0]')"
+
+assert_file "Python gets its own /latest/ alias" "${TWO}/python/latest/index.html"
+if grep -q '1.1/index.html' "${TWO}/python/latest/index.html"; then
+    pass "the Python alias points at the Python stable version"
+else
+    fail "the Python alias should point at 1.1"
+fi
+
+# The landing page is the only thing at the site root that is not C++ content.
+if grep -q 'href="/cccl/3.4/"' "${TWO}/index.html" \
+   && grep -q 'href="/cccl/python/1.1/"' "${TWO}/index.html"; then
+    pass "the landing page links to both components' current versions"
+else
+    fail "the landing page should link to both components"
+fi
+
+# One 404 handler serves the whole site, so it must know both namespaces, and
+# must try the nested component before the one at the root.
+assert_eq "the 404 router tries the nested component first" \
+    "python" \
+    "$(python3 -c "
+import json, re, sys
+html = open('${TWO}/404.html', encoding='utf-8').read()
+routes = json.loads(re.search(r'COMPONENT_ROUTES = (\[.*?\]);', html, re.S).group(1))
+print(routes[0]['path'])")"
+assert_eq "the 404 router knows each component's fallback version" \
+    "3.4,1.1" \
+    "$(python3 -c "
+import json, re
+html = open('${TWO}/404.html', encoding='utf-8').read()
+routes = json.loads(re.search(r'COMPONENT_ROUTES = (\[.*?\]);', html, re.S).group(1))
+by_path = {r['path']: r['default'] for r in routes}
+print(f\"{by_path['']},{by_path['python']}\")")"
+
+# ---------------------------------------------------------------------------
 start_case "Bad input is rejected instead of silently publishing broken links"
 
 ROOT="${WORK_DIR}/case_e"
@@ -342,8 +435,8 @@ if assemble "${ROOT_MISSING}" unstable "${BAD}"; then
 else
     fail "an unpublished latest_stable should warn, not block the deploy"
 fi
-if grep -q 'url=unstable/' "${ROOT_MISSING}/index.html"; then
-    pass "the site root falls back to a version that exists"
+if grep -q 'href="/cccl/unstable/"' "${ROOT_MISSING}/index.html"; then
+    pass "the landing page falls back to a version that exists"
 else
     fail "the site root should fall back rather than point at an absent version"
 fi
@@ -400,17 +493,27 @@ ROOT="${WORK_DIR}/case_f"
 make_version_build "${ROOT}" unstable
 CHECKED_IN="${SCRIPT_PATH}/published_versions.json"
 if CCCL_DOCS_VERSIONS_FILE="${CHECKED_IN}" "${SCRIPT_PATH}/assemble_site.bash" \
-        "${ROOT}" unstable "https://nvidia.github.io/cccl/" > /dev/null; then
+        "${ROOT}" cpp unstable "https://nvidia.github.io/cccl/" > /dev/null; then
     pass "published_versions.json renders without error"
 else
     fail "published_versions.json is not valid"
 fi
 
-for entry_dir in $(json_query "${CHECKED_IN}" '" ".join(v["dir"] for v in data["versions"])'); do
+assert_eq "the checked-in manifest declares both language components" \
+    "cpp,python" \
+    "$(json_query "${CHECKED_IN}" '",".join(c["id"] for c in data["components"])')"
+
+# C++ must stay at the site root: it has been published there since before
+# versioning existed, and moving it would break every working documentation URL.
+assert_eq "C++ stays at the site root" \
+    "" "$(json_query "${CHECKED_IN}" '[c["path"] for c in data["components"] if c["id"]=="cpp"][0]')"
+
+for entry_dir in $(json_query "${CHECKED_IN}" \
+        '" ".join(c.get("latest_stable") or "" for c in data["components"])'); do
     if [[ "${entry_dir}" =~ ^(unstable|[0-9]+\.[0-9]+)$ ]]; then
-        pass "version directory '${entry_dir}' matches the published URL scheme"
+        pass "latest_stable '${entry_dir}' matches the published URL scheme"
     else
-        fail "version directory '${entry_dir}' is not 'unstable' or MAJOR.MINOR"
+        fail "latest_stable '${entry_dir}' is not 'unstable' or MAJOR.MINOR"
     fi
 done
 
@@ -544,7 +647,7 @@ make_version_build "${PROMO}" 3.5
 make_version_build "${PROMO}" unstable
 
 M_OLD="${WORK_DIR}/promo_old.json"
-write_manifest "${M_OLD}" 3.4 unstable 3.5 3.4
+write_manifest "${M_OLD}" 3.4
 assemble "${PROMO}" 3.4 "${M_OLD}"
 if grep -q '3.4/index.html' "${PROMO}/latest/index.html"; then
     pass "latest/ points at the stable version it was built for"
@@ -556,10 +659,10 @@ fi
 # something unrelated -- the sequence that used to leave the alias stale.
 rm -rf "${PUBLISHED}"; cp -r "${PROMO}" "${PUBLISHED}"
 M_NEW="${WORK_DIR}/promo_new.json"
-write_manifest "${M_NEW}" 3.5 unstable 3.5 3.4
+write_manifest "${M_NEW}" 3.5
 
 CCCL_DOCS_PUBLISHED_SITE="${PUBLISHED}" CCCL_DOCS_VERSIONS_FILE="${M_NEW}" \
-    "${SCRIPT_PATH}/assemble_site.bash" "${PROMO}" unstable "https://nvidia.github.io/cccl/" \
+    "${SCRIPT_PATH}/assemble_site.bash" "${PROMO}" cpp unstable "https://nvidia.github.io/cccl/" \
     > /dev/null
 
 if grep -q '3.5/index.html' "${PROMO}/latest/index.html"; then
@@ -582,7 +685,7 @@ fi
 NOCOPY="${WORK_DIR}/promotion_nocopy"
 make_version_build "${NOCOPY}" unstable
 if CCCL_DOCS_VERSIONS_FILE="${M_NEW}" \
-        "${SCRIPT_PATH}/assemble_site.bash" "${NOCOPY}" unstable \
+        "${SCRIPT_PATH}/assemble_site.bash" "${NOCOPY}" cpp unstable \
         "https://nvidia.github.io/cccl/" > /dev/null 2>&1; then
     pass "a deploy proceeds when the stable version is not available to mirror"
 else
@@ -702,7 +805,7 @@ start_case "A published site is verified before history is compacted"
 VERIFY="${SCRIPT_PATH}/verify_published_site.py"
 VROOT="${WORK_DIR}/verify"
 VMANIFEST="${WORK_DIR}/verify_manifest.json"
-write_manifest "${VMANIFEST}" 3.4 unstable 3.4
+write_manifest "${VMANIFEST}" 3.4
 make_version_build "${VROOT}" 3.4
 make_version_build "${VROOT}" unstable
 assemble "${VROOT}" 3.4 "${VMANIFEST}"
@@ -734,7 +837,7 @@ assert_fails "a missing switcher manifest is caught" \
 
 rm -rf "${WORK_DIR}/verify_broken"
 cp -r "${VROOT}" "${WORK_DIR}/verify_broken"
-cp "${SCRIPT_PATH}/index.html" "${WORK_DIR}/verify_broken/index.html"
+cp "${SCRIPT_PATH}/landing.html" "${WORK_DIR}/verify_broken/index.html"
 assert_fails "an unrendered template is caught" \
     python3 "${VERIFY}" --site-root "${WORK_DIR}/verify_broken" --manifest "${VMANIFEST}"
 

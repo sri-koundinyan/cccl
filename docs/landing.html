@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<!--
+  Template for the site landing page. @COMPONENTS@ is substituted by
+  render_site_root.py from published_versions.json.
+
+  The C++ and Python libraries ship on independent release lines, so neither can
+  own the site root: a reader picks one here and lands in that component's own
+  versioned documentation, with its own version switcher.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CUDA Core Compute Libraries</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.5;
+      margin: 0 auto;
+      max-width: 34rem;
+      padding: 4rem 1.5rem;
+    }
+    h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
+    p.lede { margin-top: 0; opacity: 0.75; }
+    ul { list-style: none; margin: 2rem 0 0; padding: 0; }
+    li { margin: 0 0 0.75rem; }
+    li a {
+      border: 1px solid currentColor;
+      border-radius: 0.4rem;
+      display: block;
+      font-size: 1.15rem;
+      font-weight: 600;
+      padding: 0.9rem 1.1rem 0.5rem;
+      text-decoration: none;
+    }
+    li a:hover, li a:focus { background: rgba(118, 185, 0, 0.12); }
+    .description {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 400;
+      opacity: 0.75;
+      padding: 0 1.1rem 0.9rem;
+      margin-top: -0.4rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>CUDA Core Compute Libraries</h1>
+  <p class="lede">Making CUDA C++ and Python more delightful.</p>
+  <ul>
+@COMPONENTS@
+  </ul>
+</body>
+</html>
