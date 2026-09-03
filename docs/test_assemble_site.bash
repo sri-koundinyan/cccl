@@ -856,7 +856,7 @@ CUDA Core Compute Libraries
    python/index
    maintainers/index
 
-Welcome.
+Welcome to CCCL where our mission is to make CUDA C++ and Python more delightful.
 
 - :ref:`cccl-cpp-libraries`
 
@@ -887,12 +887,13 @@ if grep -qE '^\s*"python",' "${REL}/conf.py"; then
 else
     fail "conf.py should exclude the python directory"
 fi
-# The two are separate sites, reached from the landing page; the C++ docs make
-# no mention of Python at all.
-if grep -qi "python" "${REL}/index.rst"; then
-    fail "the C++ index should not mention Python once unbundled"
+# The two are separate sites, reached from the landing page, so nothing should
+# navigate from the C++ docs into the Python ones. Prose that merely mentions
+# Python -- the project's own mission statement does -- is not a link.
+if grep -qE "python/index|<\.\./python/>|href=.*python" "${REL}/index.rst"; then
+    fail "the C++ index should not link to the Python docs once unbundled"
 else
-    pass "no reference to Python is left in the C++ index"
+    pass "no link into the Python docs is left in the C++ index"
 fi
 
 # Running twice must not duplicate the exclusion.
