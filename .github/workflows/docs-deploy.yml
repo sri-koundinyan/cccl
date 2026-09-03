@@ -30,6 +30,12 @@ on:
         description: "Directory under docs/ to publish to (e.g. unstable, 3.4)"
         required: false
         type: string
+      component:
+        description: "Which documentation component to publish"
+        required: false
+        default: cpp
+        type: choice
+        options: [cpp, python]
       source_ref:
         description: >-
           Ref to build the documentation content from (e.g. branch/3.4.x).
@@ -74,6 +80,7 @@ jobs:
         env:
           DESTINATION_OVERRIDE: ${{ github.event.inputs.destination_override }}
           SOURCE_REF: ${{ github.event.inputs.source_ref }}
+          COMPONENT: ${{ github.event.inputs.component || 'cpp' }}
         run: |
           should_deploy="true"
           dest_dir=""
@@ -84,11 +91,23 @@ jobs:
           # Anchored, so that pre-release refs such as v3.5.0-rc0 and v3.6.0.dev
           # resolve to nothing and are skipped rather than published as releases.
           version_dir_for_ref() {
-            if [[ "$1" =~ ^v([0-9]+\.[0-9]+)\.[0-9]+$ ]]; then
-              printf '%s' "${BASH_REMATCH[1]}"
-            elif [[ "$1" =~ ^branch/([0-9]+\.[0-9]+)\.x$ ]]; then
-              printf '%s' "${BASH_REMATCH[1]}"
-            fi
+            case "${COMPONENT}" in
+              python)
+                # cuda-cccl ships on its own line, tagged python-X.Y.Z.
+                if [[ "$1" =~ ^python-([0-9]+\.[0-9]+)\.[0-9]+$ ]]; then
+                  printf '%s' "${BASH_REMATCH[1]}"
+                elif [[ "$1" =~ ^python-([0-9]+\.[0-9]+)\.[0-9]+-release$ ]]; then
+                  printf '%s' "${BASH_REMATCH[1]}"
+                fi
+                ;;
+              *)
+                if [[ "$1" =~ ^v([0-9]+\.[0-9]+)\.[0-9]+$ ]]; then
+                  printf '%s' "${BASH_REMATCH[1]}"
+                elif [[ "$1" =~ ^branch/([0-9]+\.[0-9]+)\.x$ ]]; then
+                  printf '%s' "${BASH_REMATCH[1]}"
+                fi
+                ;;
+            esac
           }
 
           if [ -n "${DESTINATION_OVERRIDE}" ]; then
@@ -119,6 +138,7 @@ jobs:
 
           echo "should_deploy=${should_deploy}" >> "${GITHUB_OUTPUT}"
           echo "destination_dir=${dest_dir}" >> "${GITHUB_OUTPUT}"
+          echo "component=${COMPONENT}" >> "${GITHUB_OUTPUT}"
 
       # Only used when publishing a release's docs. Its tooling builds the
       # version's own pages; it is deliberately not allowed to write the site
@@ -141,8 +161,8 @@ jobs:
         shell: bash --noprofile --norc -euo pipefail {0}
         run: ./docs/backport_switcher_config.py --conf-py docs-source/docs/conf.py
 
-      - name: Build docs
-        if: ${{ steps.destination.outputs.should_deploy == 'true' }}
+      - name: Build C++ docs
+        if: ${{ steps.destination.outputs.should_deploy == 'true' && steps.destination.outputs.component == 'cpp' }}
         uses: ./.github/actions/docs-build
         with:
           upload_workflow_artifact: "false"
@@ -153,6 +173,27 @@ jobs:
           # The "Assemble site root" step below does this properly, with the
           # published site available to rebuild the /latest/ alias from.
           CCCL_DOCS_SKIP_SITE_ASSEMBLY: "1"
+
+      # Nothing under docs/python documents C++, so this needs no Doxygen and
+      # takes a couple of minutes rather than twenty. The output is nested under
+      # the component's path so the assembly step finds it where it expects.
+      - name: Build Python docs
+        if: ${{ steps.destination.outputs.should_deploy == 'true' && steps.destination.outputs.component == 'python' }}
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          SPHINX_CCCL_VER: ${{ steps.destination.outputs.destination_dir }}
+          CCCL_DOCS_BASE_URL: ${{ steps.base_url.outputs.base }}python/
+          CCCL_PYTHON_DOCS_SOURCE: ${{ github.event.inputs.source_ref != '' && 'docs-source/docs/python' || 'docs/python' }}
+          # Docstrings cross-reference labels in the C++ docs; intersphinx keeps
+          # those links working now that the two are separate Sphinx projects.
+          CCCL_CPP_DOCS_URL: ${{ steps.base_url.outputs.base }}latest/
+        run: |
+          # conf.py resolves the package to document relative to the source dir.
+          CCCL_PYTHON_DOCS_SOURCE="$(realpath "${CCCL_PYTHON_DOCS_SOURCE}")" \
+            ./docs/gen_python_docs.bash
+          mkdir -p "_site/python"
+          cp -rf ./docs/_build/python/html/* "_site/python/"
+          touch _site/.nojekyll
 
       # A patched conf.py that does not reach the output is exactly how a run
       # goes green having achieved nothing: the step order was wrong once
@@ -193,7 +234,13 @@ jobs:
         shell: bash --noprofile --norc -euo pipefail {0}
         env:
           VERSION: ${{ steps.destination.outputs.destination_dir }}
-        run: ./docs/normalize_build_layout.bash _site "${VERSION}"
+          COMPONENT: ${{ steps.destination.outputs.component }}
+        run: |
+          if [ "${COMPONENT}" = "cpp" ]; then
+            ./docs/normalize_build_layout.bash _site "${VERSION}"
+          else
+            ./docs/normalize_build_layout.bash "_site/python" "${VERSION}"
+          fi
 
       # Re-assemble the site root from this ref's tooling and version manifest,
       # discarding whatever the build produced. For a build of main this is a
@@ -205,12 +252,22 @@ jobs:
         env:
           CCCL_DOCS_BASE_URL: ${{ steps.base_url.outputs.base }}
           VERSION: ${{ steps.destination.outputs.destination_dir }}
+          COMPONENT: ${{ steps.destination.outputs.component }}
           CCCL_DOCS_PUBLISHED_SITE: published-site/docs
         run: |
-          rm -f _site/nv-versions.json _site/versions.json \
-                _site/index.html _site/404.html _site/objects.inv
-          rm -rf _site/latest
-          ./docs/assemble_site.bash _site "${VERSION}" "${CCCL_DOCS_BASE_URL}"
+          # Discard whatever the build left at the component root; it is
+          # rebuilt from this ref's manifest so one component's deploy cannot
+          # publish a stale view of the other.
+          if [ "${COMPONENT}" = "cpp" ]; then
+            root="_site"
+          else
+            root="_site/python"
+          fi
+          rm -f "${root}/nv-versions.json" "${root}/versions.json" \
+                "${root}/index.html" "${root}/objects.inv"
+          rm -f _site/404.html
+          rm -rf "${root}/latest"
+          ./docs/assemble_site.bash _site "${COMPONENT}" "${VERSION}" "${CCCL_DOCS_BASE_URL}"
 
       - name: Prepare deployment artifacts
         if: ${{ steps.destination.outputs.should_deploy == 'true' }}
