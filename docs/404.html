@@ -2,7 +2,7 @@
 
 <!--
   Site-wide 404 handler. GitHub Pages allows exactly one per site, so this file
-  routes misses for every component. /cccl and [{"path": "python", "label": "Python", "default": "unstable"}, {"path": "", "label": "C++", "default": "3.4"}] are
+  routes misses for every component. /cccl and [{"path": "python", "label": "Python", "default": "1.1"}, {"path": "", "label": "C++", "default": "3.4"}] are
   substituted by render_site_root.py, so nothing here hardcodes /cccl and the
   handler works unchanged on a fork.
 
@@ -21,7 +21,7 @@
         var SITE_BASE = "/cccl";
         // Longest path first, so a nested component is matched before the one
         // living at the site root, which would otherwise swallow every path.
-        var COMPONENT_ROUTES = [{"path": "python", "label": "Python", "default": "unstable"}, {"path": "", "label": "C++", "default": "3.4"}];
+        var COMPONENT_ROUTES = [{"path": "python", "label": "Python", "default": "1.1"}, {"path": "", "label": "C++", "default": "3.4"}];
 
         // Directories that are a documentation version rather than page content:
         // the development docs, the stable alias, and MAJOR.MINOR releases.
