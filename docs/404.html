@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 
 <!--
-  Site-root 404 handler. /cccl and 3.4 are substituted by
-  assemble_site.bash so this file does not hard-code /cccl and works unchanged
-  on forks, where the docs live under a different repository path.
+  Site-wide 404 handler. GitHub Pages allows exactly one per site, so this file
+  routes misses for every component. /cccl and [{"path": "python", "label": "Python", "default": "1.1"}, {"path": "", "label": "C++", "default": "3.4"}] are
+  substituted by render_site_root.py, so nothing here hardcodes /cccl and the
+  handler works unchanged on a fork.
 
-  Its job is to figure out which versioned subtree the reader was aiming for and
-  hand off to that subtree's 404_helper.html, which does the fuzzy page match
-  against that version's pagelist.txt.
+  Its job is to work out which component and which version the reader was aiming
+  for, and hand off to that version's own 404_helper.html, which fuzzy-matches
+  the path against that version's page list.
 -->
 <html lang="en" data-content_root="./" >
     <head>
@@ -18,10 +19,12 @@
     </ul>
     <script type="module">
         var SITE_BASE = "/cccl";
-        var DEFAULT_VERSION = "3.4";
+        // Longest path first, so a nested component is matched before the one
+        // living at the site root, which would otherwise swallow every path.
+        var COMPONENT_ROUTES = [{"path": "python", "label": "Python", "default": "1.1"}, {"path": "", "label": "C++", "default": "3.4"}];
 
         // Directories that are a documentation version rather than page content:
-        // the development docs, the stable alias, and MAJOR.MINOR release dirs.
+        // the development docs, the stable alias, and MAJOR.MINOR releases.
         var VERSION_DIR = /^(?:unstable|latest|\d+\.\d+)$/;
 
         var localUri = window.location.pathname;
@@ -32,33 +35,71 @@
         var relativeUri = localUri.indexOf(SITE_BASE) === 0
             ? localUri.slice(SITE_BASE.length)
             : localUri;
-        var segments = relativeUri.replace(/^\//, "").split("/");
 
-        var version;
-        var searchPath;
+        // Which component does this path fall under?
+        var component = null;
+        var withinComponent = null;
+        for (var i = 0; i < COMPONENT_ROUTES.length; i++) {
+            var candidate = COMPONENT_ROUTES[i];
+            if (!candidate.path) {
+                component = candidate;
+                withinComponent = relativeUri;
+                break;
+            }
+            var prefix = "/" + candidate.path;
+            if (relativeUri === prefix || relativeUri.indexOf(prefix + "/") === 0) {
+                component = candidate;
+                withinComponent = relativeUri.slice(prefix.length);
+                break;
+            }
+        }
 
-        if (VERSION_DIR.test(segments[0])) {
-            version = segments[0];
-            searchPath = "/" + segments.slice(1).join("/");
+        // No component owns the site root, so an unrecognised path can only go
+        // back to the landing page for the reader to choose.
+        if (component === null) {
+            window.location.href = hostUrl + SITE_BASE + "/";
         } else {
-            // No version in the path. This is a link that predates versioned
-            // docs, e.g. /cccl/thrust/api.html. Look it up in the default
-            // version rather than dropping the reader on an error page.
-            version = DEFAULT_VERSION;
-            searchPath = relativeUri;
-        }
+            var componentBase = component.path
+                ? SITE_BASE + "/" + component.path
+                : SITE_BASE;
 
-        var rootPath = SITE_BASE + "/" + version
+            var segments = withinComponent.replace(/^\//, "").split("/");
+            var version;
+            var searchPath;
 
-        // User was trying to reach a path, forward to appropriate 404 helper
-        if (searchPath && searchPath !== "/") {
-            // Redirect to the helper page, including the query
-            window.location.href =
-                hostUrl + rootPath + "/404_helper.html?path=" + encodeURIComponent(searchPath)
-        }
-        // Redirect to index otherwise
-        else {
-            window.location.href = hostUrl + rootPath
+            if (VERSION_DIR.test(segments[0])) {
+                version = segments[0];
+                searchPath = "/" + segments.slice(1).join("/");
+            } else if (segments[0] === "") {
+                // The component root itself; its own index redirects onwards.
+                window.location.href = hostUrl + componentBase + "/";
+                version = null;
+            } else if (component.default) {
+                // No version in the path. This is a link that predates versioned
+                // docs, e.g. /cccl/thrust/api.html. Look it up in the component's
+                // default version rather than dropping the reader on an error.
+                version = component.default;
+                searchPath = withinComponent;
+            } else {
+                // Nothing published for this component yet.
+                window.location.href = hostUrl + componentBase + "/";
+                version = null;
+            }
+
+            if (version !== null) {
+                var rootPath = componentBase + "/" + version
+
+                // User was trying to reach a page; forward to the helper for
+                // that version, which searches its page list.
+                if (searchPath && searchPath !== "/") {
+                    window.location.href =
+                        hostUrl + rootPath + "/404_helper.html?path=" + encodeURIComponent(searchPath)
+                }
+                // Otherwise just land on the version's index.
+                else {
+                    window.location.href = hostUrl + rootPath
+                }
+            }
         }
     </script>
 </html>
