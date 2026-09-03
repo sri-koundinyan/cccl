@@ -1,5 +1,10 @@
 [
   {
+    "name": "unstable (main)",
+    "version": "unstable",
+    "url": "https://sri-koundinyan.github.io/cccl/python/unstable/"
+  },
+  {
     "name": "1.1",
     "version": "1.1",
     "url": "https://sri-koundinyan.github.io/cccl/python/1.1/"
