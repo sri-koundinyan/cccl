@@ -24,9 +24,16 @@ _source_dir = os.environ.get(
 )
 _repo_root = os.path.abspath(os.path.join(_source_dir, "..", ".."))
 
-# autodoc imports the package, so it has to be importable. The heavy CUDA
+# autodoc imports the packages, so they have to be importable. The heavy CUDA
 # dependencies are mocked below instead of installed.
-sys.path.insert(0, os.path.join(_repo_root, "python", "cuda_cccl"))
+#
+# cuda-cccl and cuda-stf are separate distributions that both contribute to the
+# shared `cuda` namespace, so both have to be on the path. A release that
+# predates one of them simply has no such directory, which is harmless.
+for _package in ("cuda_cccl", "cuda_stf"):
+    _package_path = os.path.join(_repo_root, "python", _package)
+    if os.path.isdir(_package_path):
+        sys.path.insert(0, _package_path)
 
 # -- Project information -----------------------------------------------------
 
