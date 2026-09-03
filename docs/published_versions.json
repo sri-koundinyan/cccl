@@ -51,7 +51,7 @@
       "label": "Python",
       "path": "python",
       "description": "cuda.compute and cuda.coop",
-      "latest_stable": null
+      "latest_stable": "1.1"
     }
   ]
 }
