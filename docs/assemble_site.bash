@@ -186,6 +186,62 @@ if [[ -z "${LATEST_STABLE}" || "${VERSION}" == "${LATEST_STABLE}" ]]; then
     fi
 fi
 
+# Every other component's root artifacts are refreshed too, from the copy of it
+# on the published site. Without this, changing one component's latest_stable
+# and then deploying a different component leaves the first advertising an alias
+# that was never built -- the same failure as a stale /latest/, across
+# components rather than within one. Only the small root files and alias stubs
+# are written; the version content itself stays where it already is.
+if [[ -n "${PUBLISHED_SITE_ROOT:=${CCCL_DOCS_PUBLISHED_SITE:-}}" \
+      && -d "${PUBLISHED_SITE_ROOT}" ]]; then
+    while read -r other_id other_path; do
+        [[ "${other_id}" == "${COMPONENT}" ]] && continue
+
+        if [[ -n "${other_path}" ]]; then
+            other_root="${SITE_ROOT}/${other_path}"
+            other_published="${PUBLISHED_SITE_ROOT}/${other_path}"
+            other_base_url="${SITE_BASE_URL}${other_path}/"
+        else
+            other_root="${SITE_ROOT}"
+            other_published="${PUBLISHED_SITE_ROOT}"
+            other_base_url="${SITE_BASE_URL}"
+        fi
+
+        # Nothing published for it yet; there is nothing to refresh.
+        [[ -d "${other_published}" ]] || continue
+
+        echo "Refreshing ${other_id} from the published site"
+        other_output="$(python3 "${SCRIPT_PATH}/render_versions.py" \
+            --manifest "${VERSIONS_FILE}" \
+            --component "${other_id}" \
+            --base-url "${other_base_url}" \
+            --out-dir "${other_root}" \
+            --discover-from "${other_published}")" || continue
+        mapfile -t other_lines <<< "${other_output}"
+
+        if [[ -n "${other_path}" ]]; then
+            sed -e "s|@DEFAULT_VERSION@|${other_lines[0]}|g" \
+                "${SCRIPT_PATH}/component_index.html" > "${other_root}/index.html"
+        fi
+
+        other_latest="${other_lines[2]:-}"
+        if [[ -n "${other_latest}" && -d "${other_published}/${other_latest}" ]]; then
+            python3 "${SCRIPT_PATH}/make_latest_alias.py" \
+                --site-root "${other_root}" \
+                --version "${other_latest}" \
+                --source-root "${other_published}"
+        fi
+    done < <(python3 - "${VERSIONS_FILE}" <<'PY_INNER'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as f:
+    for component in json.load(f)["components"]:
+        print(component["id"], component.get("path", ""))
+PY_INNER
+)
+fi
+
 # The shared site root: the landing page readers choose a component from, and
 # the single 404 handler GitHub Pages allows for the whole site. Both are
 # rendered from the manifest, so any component's deploy produces the same

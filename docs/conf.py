@@ -112,6 +112,9 @@ templates_path = ["_templates"]
 # Exclude patterns
 exclude_patterns = [
     "_build",
+    # Built separately by python_conf/, because the Python libraries ship on
+    # their own release line and are published under their own version tree.
+    "python",
     "_repo",
     "tools",
     "VERSION.md",

@@ -418,6 +418,45 @@ by_path = {r['path']: r['default'] for r in routes}
 print(f\"{by_path['']},{by_path['python']}\")")"
 
 # ---------------------------------------------------------------------------
+start_case "Deploying one component refreshes the other's root"
+# Setting a component's latest_stable and then deploying a *different* component
+# used to leave the first advertising a /latest/ that was never built. A live
+# deploy hit exactly this, and the post-deploy verification caught it.
+
+CROSS_PUB="${WORK_DIR}/cross_published"
+CROSS="${WORK_DIR}/cross"
+CROSS_MANIFEST="${WORK_DIR}/cross.json"
+
+# The published site: both components live, Python not yet marked stable.
+write_manifest "${CROSS_MANIFEST}" 3.4
+make_version_build "${CROSS_PUB}" 3.4
+make_version_build "${CROSS_PUB}/python" 1.1
+make_version_build "${CROSS_PUB}" unstable
+
+# Now Python 1.1 is marked stable, and the next deploy is of C++.
+write_manifest "${CROSS_MANIFEST}" 3.4 1.1
+make_version_build "${CROSS}" unstable
+assemble_component "${CROSS}" cpp unstable "${CROSS_MANIFEST}" "${CROSS_PUB}"
+
+assert_file "the other component's alias is built from the published copy" \
+    "${CROSS}/python/latest/index.html"
+if grep -q '1.1/index.html' "${CROSS}/python/latest/index.html"; then
+    pass "that alias points at the newly stable Python version"
+else
+    fail "the Python alias should point at 1.1"
+fi
+assert_file "the other component's switcher is refreshed" \
+    "${CROSS}/python/nv-versions.json"
+assert_eq "the refreshed switcher offers the published Python versions" \
+    "latest,1.1" \
+    "$(json_query "${CROSS}/python/nv-versions.json" '",".join(e["version"] for e in data)')"
+
+# Refreshing must not drag the other component's page content into this deploy;
+# only its small root files and alias stubs belong here.
+assert_no_dir "the other component's version content is not copied in" \
+    "${CROSS}/python/1.1"
+
+# ---------------------------------------------------------------------------
 start_case "Bad input is rejected instead of silently publishing broken links"
 
 ROOT="${WORK_DIR}/case_e"
