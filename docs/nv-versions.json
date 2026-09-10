@@ -1,5 +1,12 @@
 [
   {
+    "name": "unstable",
+    "version": "unstable",
+    "url": "https://sri-koundinyan.github.io/cccl/unstable/",
+    "latest": false,
+    "preferred": false
+  },
+  {
     "name": "3.6.0",
     "version": "3.6",
     "url": "https://sri-koundinyan.github.io/cccl/3.6/",
