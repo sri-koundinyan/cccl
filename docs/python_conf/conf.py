@@ -133,7 +133,6 @@ autodoc_default_options = {
     "undoc-members": False,
     "show-inheritance": True,
 }
-autodoc_typehints = "description"
 autosummary_generate = True
 autosummary_imported_members = False
 
@@ -177,5 +176,86 @@ autodoc_mock_imports = [
     "cuda.stf._experimental._stf_bindings_impl",
 ]
 
+# -- Settings shared with the C++ configuration -------------------------------
+#
+# Taken verbatim from docs/conf.py. These control how every docstring renders --
+# the napoleon_* block especially -- so omitting any of them would make the
+# Python pages look different after the split than they do today: a regression
+# disguised as a reorganisation.
+#
+# Note that docs/conf.py also sets `autodoc_type_hints`, which is not a Sphinx
+# option; the real name is `autodoc_typehints`. It is a no-op there, so type
+# hints render in the signature today. Spelling it correctly here would quietly
+# change every signature relative to what is published, so it is left unset.
+# Fixing the typo upstream is a separate decision that also moves the C++ pages.
+
+toc_object_entries_show_parents = "hide"
+
+maximum_signature_line_length = 70
+
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+}
+
+myst_enable_extensions = [
+    "colon_fence",
+    "deflist",
+    "html_image",
+]
+
 napoleon_google_docstring = True
+
 napoleon_numpy_docstring = True
+
+napoleon_include_init_with_doc = False
+
+napoleon_include_private_with_doc = False
+
+napoleon_include_special_with_doc = True
+
+napoleon_use_admonition_for_examples = False
+
+napoleon_use_admonition_for_notes = False
+
+napoleon_use_admonition_for_references = False
+
+napoleon_use_ivar = False
+
+napoleon_use_param = True
+
+napoleon_use_rtype = True
+
+napoleon_preprocess_types = False
+
+napoleon_type_aliases = None
+
+autodoc_type_aliases = {
+    "Operator": "Operator",
+}
+
+primary_domain = "py"
+
+extlinks = {
+    "github": ("https://github.com/NVIDIA/cccl/blob/main/%s", "%s"),
+}
+
+suppress_warnings = [
+    # Breathe walks each Doxygen XML file independently.  When a symbol appears
+    # in both a namespace XML and a class/group XML (which is normal for Doxygen),
+    # breathe emits the C++ declaration twice, triggering a duplicate-declaration
+    # warning.  There is no way to control this from our side without patching
+    # breathe's XML traversal.
+    "cpp.duplicate_declaration",
+    # When breathe expands doxygenfunction/doxygenvariable directives, it writes
+    # the resolved C++ signature into RST.  Signatures containing default argument
+    # values (e.g. ``= {}``) or complex SFINAE expressions produce RST that the
+    # docutils parser cannot handle (mismatched inline-literal markers, unexpected
+    # braces, etc.).  The source C++ is valid; the issue is that what breathe
+    # emits as RST is not valid RST.
+    "docutils",
+]
+
+copybutton_prompt_text = ">>> |$ |# "
+
+autoclass_content = "class"
