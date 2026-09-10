@@ -16,7 +16,7 @@ abstractions for CUDA Python developers.
   and data movement.
 
 These libraries expose the generic, highly-optimized algorithms from the
-:doc:`CCCL C++ libraries </cccl/index>`,
+:external+cccl:doc:`CCCL C++ libraries </cccl/index>`,
 which have been tuned to provide optimal performance across GPU architectures.
 
 Who is this for?

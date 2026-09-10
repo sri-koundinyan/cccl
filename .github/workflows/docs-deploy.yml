@@ -1,10 +1,17 @@
 # Usage:
-#   - Automatic deploys run on pushes to main and publish docs under docs/unstable/.
-#   - Manual workflow_dispatch accepts:
-#       * destination_override: publish into a custom docs/<dir> (e.g. for fork testing)
-#       * latest_override: optional, override the "latest" flag (kept for compatibility)
-#   - Root assets (index.html redirect, nv-versions.json, objects.inv, .nojekyll) are produced during the doc build.
-#   - Base URL is computed from GITHUB_REPOSITORY (owner/repo) for both push and manual runs.
+#   - Pushes to main publish the development docs under docs/unstable/.
+#   - Manual workflow_dispatch publishes a release:
+#       gh workflow run docs-deploy.yml -f component=cpp -f source_ref=v3.5.0
+#
+# The version directory is derived from the source tree being published, never
+# from the ref name -- see docs/release_version.py. That makes it structurally
+# impossible to publish one release's documentation under another's number.
+#
+# Deploys are additive across versions and destructive within one: the published
+# site is checked out first, the single version being rebuilt is replaced, and
+# the whole tree is published back. docs/publish_site.py then makes that tree
+# self-consistent -- switcher manifests, /latest/ alias, landing page, 404
+# routing -- from the directories that actually exist.
 name: Deploy CCCL Documentation
 
 on:
@@ -13,28 +20,98 @@ on:
       - main
   workflow_dispatch:
     inputs:
-      destination_override:
-        description: "Directory under docs/ to publish to (e.g. unstable, 3.0)"
+      component:
+        description: "Which component's docs to build"
         required: false
+        default: "cpp"
+        type: choice
+        options:
+          - cpp
+          - python
+      source_ref:
+        description: "Ref to build from: a release tag (vX.Y.Z) or a branch. Blank builds main."
+        required: false
+        default: ""
         type: string
-      latest_override:
-        description: "Mark this build as the latest version (true/false)"
+      docs_branch:
+        description: "Publish target. Use a gh-pages-* branch to rehearse without touching production."
         required: false
-        type: boolean
+        default: "gh-pages"
+        type: string
 
 permissions:
   contents: write
   pages: write
+
+# Publishing is read-modify-write: the live site is checked out, one version is
+# replaced, and the whole tree is written back. Two deploys running at once
+# would silently lose one of them.
+concurrency:
+  group: docs-deploy-${{ github.event.inputs.docs_branch || 'gh-pages' }}
+  cancel-in-progress: false
 
 jobs:
   deploy:
     name: Build and deploy documentation
     runs-on: ${{ github.repository == 'NVIDIA/cccl' && 'linux-amd64-cpu32' || 'ubuntu-latest' }}
     steps:
-      - name: Checkout
+      # main's copy of the publishing tools. The docs themselves are built from
+      # source_ref, which may be an older release whose tooling predates this.
+      - name: Checkout publishing tools
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
         with:
           persist-credentials: false
+
+      - name: Validate inputs
+        id: inputs
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          SOURCE_REF: ${{ github.event.inputs.source_ref }}
+          DOCS_BRANCH: ${{ github.event.inputs.docs_branch }}
+          COMPONENT: ${{ github.event.inputs.component }}
+        run: |
+          component="${COMPONENT:-cpp}"
+          docs_branch="${DOCS_BRANCH:-gh-pages}"
+          source_ref="${SOURCE_REF:-}"
+
+          # Rehearsals must not be able to target production by typo.
+          if [[ "${docs_branch}" != "gh-pages" && "${docs_branch}" != gh-pages-* ]]; then
+            echo "error: docs_branch must be gh-pages or a gh-pages-* branch," \
+                 "got '${docs_branch}'" >&2
+            exit 1
+          fi
+
+          # A push to main, or a dispatch with no ref, publishes the tip.
+          if [[ -z "${source_ref}" || "${source_ref}" == "main" ]]; then
+            source_ref="main"
+            is_tip="true"
+          else
+            is_tip="false"
+            # Classify the ref rather than pattern-match a version string. A tag
+            # is an immutable release marker and must look like one; a branch is
+            # deliberate and human-created, which is how the one-time 3.4
+            # backfill is published from a patched branch.
+            if git ls-remote --exit-code --tags origin "refs/tags/${source_ref}" >/dev/null 2>&1; then
+              if [[ ! "${source_ref}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                echo "error: '${source_ref}' is a tag but not a release tag." >&2
+                echo "       Pre-release tags (v3.5.0-rc0, v3.6.0.dev, v3.4.2-ctk0)" >&2
+                echo "       must not be published as the release they precede." >&2
+                exit 1
+              fi
+            elif ! git ls-remote --exit-code --heads origin "refs/heads/${source_ref}" >/dev/null 2>&1; then
+              echo "error: '${source_ref}' is neither a tag nor a branch on origin." >&2
+              exit 1
+            fi
+          fi
+
+          {
+            echo "component=${component}"
+            echo "docs_branch=${docs_branch}"
+            echo "source_ref=${source_ref}"
+            echo "is_tip=${is_tip}"
+          } >> "${GITHUB_OUTPUT}"
+
+          echo "Publishing ${component} from ${source_ref} to ${docs_branch}"
 
       - name: Compute base URL
         id: base_url
@@ -51,73 +128,165 @@ jobs:
           fi
           echo "base=https://${owner}.github.io/${repo_name}/" >> "${GITHUB_OUTPUT}"
 
-      - name: Determine deployment destination
-        id: destination
-        shell: bash --noprofile --norc -euo pipefail {0}
-        env:
-          DESTINATION_OVERRIDE: ${{ github.event.inputs.destination_override }}
-          LATEST_OVERRIDE: ${{ github.event.inputs.latest_override }}
-        run: |
-          if [ -n "${DESTINATION_OVERRIDE}" ]; then
-            dest_dir="${DESTINATION_OVERRIDE}"
-          else
-            ref="${GITHUB_REF#refs/heads/}"
-            if [ "$ref" = "main" ]; then
-              dest_dir="unstable"
-            elif [[ "$ref" == branch/* ]]; then
-              version="${ref#branch/}"
-              if [ -z "$version" ]; then
-                echo "Unable to determine version directory from branch '${ref}'." >&2
-                exit 1
-              fi
-              dest_dir="${version}"
-            else
-              echo "Branch '${ref}' is not configured for docs deployment." >&2
-              exit 1
-            fi
-          fi
-
-          is_latest="false"
-          if [ "${dest_dir}" = "unstable" ]; then
-            is_latest="true"
-          fi
-
-          if [ -n "${LATEST_OVERRIDE}" ]; then
-            case "${LATEST_OVERRIDE}" in
-              true|TRUE|True)
-                is_latest="true"
-                ;;
-              false|FALSE|False)
-                is_latest="false"
-                ;;
-            esac
-          fi
-
-          echo "destination_dir=${dest_dir}" >> "${GITHUB_OUTPUT}"
-          echo "is_latest=${is_latest}" >> "${GITHUB_OUTPUT}"
-
-      - name: Build docs
-        uses: ./.github/actions/docs-build
+      - name: Checkout the source being documented
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
         with:
-          upload_workflow_artifact: "false"
+          ref: ${{ steps.inputs.outputs.source_ref }}
+          path: source
+          # The Python component is versioned from its own python-* release
+          # tags, so its history has to be there to describe against.
+          fetch-depth: ${{ steps.inputs.outputs.component == 'python' && 0 || 1 }}
+          persist-credentials: false
+
+      # Read the version out of the tree rather than the ref. cuda-python does
+      # the same thing, deriving it from the built artifact rather than from a
+      # workflow input.
+      - name: Derive the published version
+        id: version
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: |
+          python3 docs/release_version.py source \
+            --component "${{ steps.inputs.outputs.component }}" \
+            ${{ steps.inputs.outputs.is_tip == 'true' && '--tip' || '' }}
+
+      - name: Build C++ docs
+        if: ${{ steps.inputs.outputs.component == 'cpp' }}
+        shell: bash --noprofile --norc -euo pipefail {0}
+        working-directory: source
         env:
           CCCL_DOCS_BASE_URL: ${{ steps.base_url.outputs.base }}
-          CCCL_DOCS_IS_LATEST: ${{ steps.destination.outputs.is_latest }}
-          SPHINX_CCCL_VER: ${{ steps.destination.outputs.destination_dir }}
+          # Passed explicitly so that an older release's gen_docs.bash -- which
+          # predates the export added for local builds -- still stamps the pages
+          # with the directory they will be served from.
+          SPHINX_CCCL_VER: ${{ steps.version.outputs.version_dir }}
+        run: ./docs/gen_docs.bash --allow-dep-install
 
-      - name: Prepare deployment artifacts
+      - name: Build Python docs
+        if: ${{ steps.inputs.outputs.component == 'python' }}
+        shell: bash --noprofile --norc -euo pipefail {0}
+        working-directory: source
+        env:
+          # This component is served from /python/, so its switcher manifest and
+          # canonical URLs hang off that rather than off the site root.
+          CCCL_DOCS_BASE_URL: ${{ steps.base_url.outputs.base }}python/
+          SPHINX_CCCL_VER: ${{ steps.version.outputs.version_dir }}
+          # Docstrings carry :ref:s into C++ labels. They resolve through the
+          # published C++ inventory, so the split needs no docstring edits.
+          CCCL_CPP_DOCS_URL: ${{ steps.base_url.outputs.base }}latest/
+        run: |
+          # A release ref predates this script, so use main's copy against that
+          # ref's sources -- the same reason publish_site.py is checked out
+          # separately.
+          cp "${GITHUB_WORKSPACE}/docs/gen_python_docs.bash" docs/
+          cp -r "${GITHUB_WORKSPACE}/docs/python_conf" docs/
+          ./docs/gen_python_docs.bash --allow-dep-install
+
+      # Determined before anything can fail ambiguously. A transient checkout
+      # failure must never be readable as "the site is empty", because the
+      # publish below is destructive within its destination.
+      - name: Check whether the docs branch exists
+        id: pages
         shell: bash --noprofile --norc -euo pipefail {0}
         run: |
-          root_dir="deploy/docs"
-          mkdir -p "${root_dir}"
+          if git ls-remote --exit-code --heads origin \
+               "refs/heads/${{ steps.inputs.outputs.docs_branch }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "exists=false" >> "${GITHUB_OUTPUT}"
+            echo "::notice::${{ steps.inputs.outputs.docs_branch }} does not exist yet; this deploy creates it"
+          fi
 
-          cp -a _site/. "${root_dir}/"
+      # Deliberately no continue-on-error: if the branch exists and this fails,
+      # the job must fail.
+      - name: Seed from the published site
+        if: ${{ steps.pages.outputs.exists == 'true' }}
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
+        with:
+          ref: ${{ steps.inputs.outputs.docs_branch }}
+          path: published
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Replace the version being published
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          COMPONENT: ${{ steps.inputs.outputs.component }}
+          VERSION_DIR: ${{ steps.version.outputs.version_dir }}
+          RELEASE_LABEL: ${{ steps.version.outputs.release_label }}
+          PAGES_EXISTS: ${{ steps.pages.outputs.exists }}
+        run: |
+          # The tree that becomes gh-pages:/docs. Seeded from what is live, so
+          # it is the complete desired state and can be published cleanly.
+          mkdir -p _publish
+          if [[ "${PAGES_EXISTS}" == "true" && -d published/docs ]]; then
+            cp -a published/docs/. _publish/
+          fi
+
+          case "${COMPONENT}" in
+            cpp)
+              component_root="_publish"
+              build="source/docs/_build/html"
+              ;;
+            python)
+              component_root="_publish/python"
+              build="source/docs/_build/python-html"
+              ;;
+            *)
+              echo "error: unknown component '${COMPONENT}'" >&2; exit 1 ;;
+          esac
+          mkdir -p "${component_root}"
+
+          if [[ ! -d "${build}/${VERSION_DIR}" ]]; then
+            echo "error: no build output at ${build}/${VERSION_DIR}" >&2
+            exit 1
+          fi
+
+          # Replace this one version wholesale. Everything else is carried over
+          # by the seed, so the publish below deletes exactly the files that
+          # this build no longer produces -- and nothing in any other version.
+          rm -rf "${component_root:?}/${VERSION_DIR:?}"
+          mkdir -p "${component_root}/${VERSION_DIR}"
+          cp -a "${build}/${VERSION_DIR}/." "${component_root}/${VERSION_DIR}/"
+
+          # The exact release that produced this directory. The switcher shows
+          # it while matching on the directory name, which is how /3.4/ can be
+          # labelled 3.4.2 without a directory per patch release.
+          if [[ -n "${RELEASE_LABEL}" ]]; then
+            printf '%s' "${RELEASE_LABEL}" > "${component_root}/${VERSION_DIR}/.release"
+          fi
+
+      - name: Assemble the site
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: |
+          python3 docs/publish_site.py _publish \
+            --base-url "${{ steps.base_url.outputs.base }}" \
+            --verify
+
+      # Belt and braces: publishing is destructive within docs/, so refuse to
+      # push a tree that lost the versions we seeded from.
+      - name: Confirm the tree is not empty
+        if: ${{ steps.pages.outputs.exists == 'true' }}
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: |
+          before=$(find published/docs -maxdepth 2 -name index.html | wc -l)
+          after=$(find _publish -maxdepth 2 -name index.html | wc -l)
+          echo "index.html count: published=${before} assembled=${after}"
+          if (( after < before )); then
+            echo "error: the assembled site has fewer versions than the published one." >&2
+            echo "       Refusing to publish; this would delete live documentation." >&2
+            exit 1
+          fi
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453  # v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./deploy
-          publish_branch: gh-pages
-          keep_files: true
-          force_orphan: true
+          publish_dir: ./_publish
+          publish_branch: ${{ steps.inputs.outputs.docs_branch }}
+          destination_dir: docs
+          # _publish was seeded from the live site and is the complete desired
+          # state of docs/, so cleaning is correct: it removes exactly the files
+          # this build dropped. Without the seed this would destroy the archive.
+          keep_files: false
+          # Preserve history, so there is a prior state to roll back to.
+          force_orphan: false

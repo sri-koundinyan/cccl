@@ -111,6 +111,11 @@ templates_path = ["_templates"]
 
 # Exclude patterns
 exclude_patterns = [
+    # The Python libraries ship on their own release line (cuda-cccl 1.x) and
+    # are published as their own versioned site under /python/. Building them
+    # here would label Python pages with a C++ version they never shipped under.
+    # See docs/python_conf/conf.py.
+    "python",
     "_build",
     "_repo",
     "tools",

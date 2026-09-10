@@ -134,6 +134,19 @@ repos:
         files: ^(cub/test/.*\.(cu|cuh|h)|ci/util/pre-commit/check_cub_test_macros\.py)$
         types: [file]
 
+      # The documentation site's versioning behaviour fails silently when it
+      # breaks -- a switcher that never highlights the current page, an alias
+      # still serving the previous release, a version listed but not published.
+      # None of those break a build, so they are covered by tests here rather
+      # than in the docs build. No Doxygen or Sphinx; about a second.
+      - id: docs-publish-site
+        name: docs site assembly tests
+        entry: python -m pytest -q docs/test_publish_site.py
+        language: python
+        additional_dependencies: [pytest]
+        files: ^docs/(publish_site|release_version|test_publish_site)\.py$
+        pass_filenames: false
+
       - id: unprintable-unicode
         name: unprintable-unicode
         entry: ci/util/pre-commit/strip_unprintable.py

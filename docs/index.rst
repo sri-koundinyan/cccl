@@ -6,7 +6,6 @@ CUDA Core Compute Libraries
    :maxdepth: 3
 
    cccl/index
-   python/index
    contributors/index
    maintainers/index
    infrastructure/index
@@ -15,8 +14,6 @@ Welcome to the CUDA Core Compute Libraries (CCCL) where our mission is to
 make CUDA C++ and Python more delightful.
 
 - :ref:`cccl-cpp-libraries`
-
-- :doc:`Python Libraries <python/index>`
 
 - :doc:`Contributor Docs <contributors/index>`
 

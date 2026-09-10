@@ -260,6 +260,12 @@ else
 fi
 
 VERSION="${SPHINX_CCCL_VER:-unstable}"
+# Export it so conf.py resolves `release` from the same value used for the
+# output directory. Without this an unset SPHINX_CCCL_VER makes conf.py fall
+# back to VERSION.md, and pages built into unstable/ get stamped with a
+# version_match (3.6) that no switcher entry (unstable) can ever match. The
+# deploy workflow passes this in already; this is for local and PR builds.
+export SPHINX_CCCL_VER="${VERSION}"
 BASE_URL="${CCCL_DOCS_BASE_URL:-https://nvidia.github.io/cccl/}"
 BASE_URL="${BASE_URL%/}/"
 IS_LATEST="${CCCL_DOCS_IS_LATEST:-true}"
