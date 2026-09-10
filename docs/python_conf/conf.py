@@ -138,16 +138,11 @@ autosummary_generate = True
 autosummary_imported_members = False
 
 # Heavy or CUDA-dependent imports that cannot be satisfied on a docs runner.
-# Kept in step with docs/conf.py; anything importable at build time should be
-# removed from here so its signatures are documented properly.
+# Copied verbatim from docs/conf.py rather than curated: the entries that matter
+# most are the least obvious ones. cuda.compute._bindings loads CUDA libraries
+# and reads cuda.bindings.__version__ at import time, so leaving it real makes
+# every cuda.compute page fail to document.
 autodoc_mock_imports = [
-    # cuda.coop's type machinery builds LLVM IR at import time. llvmlite comes
-    # in with numba, which is mocked here, so it has to be mocked too --
-    # otherwise every module that imports from cuda.coop._experimental._types
-    # fails to import and autodoc documents nothing.
-    "llvmlite",
-    "llvmlite.binding",
-    "llvmlite.ir",
     "numba",
     "numba.core",
     "numba.core.cgutils",
@@ -168,6 +163,18 @@ autodoc_mock_imports = [
     "cuda.core.experimental._utils",
     "cuda.core.experimental._utils.cuda_utils",
     "cuda.pathfinder",
+    "llvmlite",
+    "llvmlite.ir",
+    # numpy is installed as a real dependency (see requirements.txt)
+    "numpydoc_test_module",  # Mock to avoid import errors
+    "cupy",
+    "cuda.compute._bindings",
+    "cuda.compute._bindings_impl",
+    # STF's public API lives in a compiled Cython extension that is not built
+    # at docs time; mock it so the pure-Python helper layers in stf_api.rst
+    # (task_graph, interop.numba, interop.pytorch) can still be imported by autodoc.
+    "cuda.stf._experimental._stf_bindings",
+    "cuda.stf._experimental._stf_bindings_impl",
 ]
 
 napoleon_google_docstring = True
