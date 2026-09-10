@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+    <head>
+        <meta charset="utf-8">
+        <title>404 &#8212; CUDA Core Compute Libraries</title>
+    </head>
+    <body>
+        <p>Looking for that page&hellip;</p>
+
+        <!--
+          GitHub Pages allows exactly one 404 handler for a whole site, so this
+          file has to route a miss in any component to that component's own
+          per-version helper, which does the fuzzy search against its page list.
+
+          The block below is rewritten by docs/publish_site.py at publish time from the
+          directories that actually exist. The values checked in here are the
+          single-component fallback, so a local or PR-preview build still gets a
+          working handler without publish_site.py having run.
+        -->
+        <script type="application/json" id="site-routing">
+{
+    "sitePath": "/cccl/",
+    "components": [
+        {
+            "path": "",
+            "default": "3.6",
+            "versions": [
+                "3.6"
+            ]
+        }
+    ],
+    "pythonPath": null,
+    "pythonDefault": null
+}
+</script>
+
+        <script>
+            // Kept as a pure function of (routing, pathname) so it can be
+            // exercised directly; the only side effect is the final redirect.
+            function resolveMiss(routing, pathname) {
+                const base = routing.sitePath;
+
+                // Everything below the site root, e.g. "3.4/thrust/vector.html".
+                const rest = pathname.startsWith(base)
+                    ? pathname.slice(base.length)
+                    : pathname.replace(/^\//, "");
+
+                // Pick the component whose path is the longest prefix of the
+                // miss. Nested components win over the one at the site root,
+                // which matches everything by construction.
+                let component = null;
+                let within = rest;
+                for (const candidate of routing.components) {
+                    if (!candidate.path) continue;
+                    if (rest === candidate.path || rest.startsWith(candidate.path + "/")) {
+                        if (!component || candidate.path.length > component.path.length) {
+                            component = candidate;
+                            within = rest.slice(candidate.path.length).replace(/^\//, "");
+                        }
+                    }
+                }
+                if (!component) {
+                    component = routing.components.find((c) => !c.path) || null;
+                    within = rest;
+                }
+                if (!component) return base;
+
+                // A leading segment naming a published version scopes the search
+                // to that version; anything else is part of the path the reader
+                // was actually after. "latest" is an alias for the default, and
+                // is stripped so the search runs against real pages.
+                const parts = within.split("/");
+                let version = component.default;
+                let remainder = within;
+                if (parts.length) {
+                    if (component.versions.includes(parts[0])) {
+                        version = parts[0];
+                        remainder = parts.slice(1).join("/");
+                    } else if (parts[0] === "latest") {
+                        remainder = parts.slice(1).join("/");
+                    }
+                }
+
+                // The Python docs used to be published inside the C++ tree, and
+                // those URLs are live today. They no longer exist there, and the
+                // C++ page list no longer contains them, so searching that tree
+                // would find nothing. Send them to the Python component instead.
+                if (
+                    !component.path &&
+                    routing.pythonPath &&
+                    /^python(\/|$)/.test(remainder)
+                ) {
+                    const tail = remainder.replace(/^python\/?/, "");
+                    return (
+                        base +
+                        routing.pythonPath +
+                        "/" +
+                        routing.pythonDefault +
+                        "/404_helper.html?path=/" +
+                        tail
+                    );
+                }
+
+                const prefix = component.path ? component.path + "/" : "";
+                return base + prefix + version + "/404_helper.html?path=/" + remainder;
+            }
+
+            if (typeof window !== "undefined" && window.location) {
+                const routing = JSON.parse(
+                    document.getElementById("site-routing").textContent
+                );
+                const host =
+                    window.location.protocol + "//" + window.location.host;
+                window.location.replace(
+                    host + resolveMiss(routing, window.location.pathname)
+                );
+            }
+        </script>
+    </body>
+</html>
