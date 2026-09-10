@@ -141,6 +141,13 @@ autosummary_imported_members = False
 # Kept in step with docs/conf.py; anything importable at build time should be
 # removed from here so its signatures are documented properly.
 autodoc_mock_imports = [
+    # cuda.coop's type machinery builds LLVM IR at import time. llvmlite comes
+    # in with numba, which is mocked here, so it has to be mocked too --
+    # otherwise every module that imports from cuda.coop._experimental._types
+    # fails to import and autodoc documents nothing.
+    "llvmlite",
+    "llvmlite.binding",
+    "llvmlite.ir",
     "numba",
     "numba.core",
     "numba.core.cgutils",
