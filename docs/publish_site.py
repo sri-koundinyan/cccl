@@ -75,10 +75,26 @@ COMPONENTS = [
 # rather than pointing readers at a 404.
 LATEST_STABLE_OVERRIDE = None
 
-# GitHub Pages refuses to publish a site larger than 1 GB. Failing here, with a
-# message naming the offending version, is far more actionable than letting the
-# upload be rejected. A built C++ version measures 110-290 MB, so this leaves
-# room for roughly five.
+# How many release directories to keep per component, newest first. The
+# development tip is always kept and does not count.
+#
+# This is the real constraint on the whole scheme. A built C++ version measures
+# roughly 170 MB against GitHub Pages' 1 GB limit, and CCCL ships minor releases
+# several times a year, so without a bound the site fills up in about a year and
+# every release after that fails until someone intervenes. Retiring the oldest
+# automatically keeps that from becoming a decision forced at release time.
+#
+# Python builds are ~1.5 MB, so its history is effectively free; the number is
+# generous there for the same reason it is tight for C++.
+KEEP_RELEASES = {
+    "cpp": int(os.environ.get("CCCL_KEEP_RELEASES_CPP", "3")),
+    "python": int(os.environ.get("CCCL_KEEP_RELEASES_PYTHON", "8")),
+}
+DEFAULT_KEEP_RELEASES = 3
+
+# GitHub Pages refuses to publish a site larger than 1 GB. With retirement doing
+# the real work this is a backstop, not the mechanism: it catches the case where
+# versions are unusually large rather than unusually numerous.
 SIZE_BUDGET_BYTES = 900 * 1024 * 1024
 
 # A published version directory: the development tip, or a release line. Release
@@ -140,6 +156,36 @@ def discover_versions(component_root):
         and (entry / "index.html").is_file()
     ]
     return sorted(found, key=sort_key)
+
+
+def retire_old_releases(component_root, component_id, versions):
+    """Delete release directories beyond the keep-count, oldest first.
+
+    Deleting here rather than on the published branch is what makes retirement
+    work at all: the tree being assembled is the complete desired state of the
+    site, so a directory removed from it is removed from the published site by
+    the same deploy that adds the new release. There is no separate cleanup
+    step to run, forget, or get wrong.
+
+    Only releases are considered. The development tip is never retired.
+    """
+    keep = KEEP_RELEASES.get(component_id, DEFAULT_KEEP_RELEASES)
+    releases = [v for v in versions if v != "unstable"]
+
+    if len(releases) <= keep:
+        return versions
+
+    # `versions` is already newest-first, so the tail is the oldest.
+    retire = releases[keep:]
+    for version in retire:
+        directory = component_root / version
+        print(
+            f"  retiring {component_id} {version} (keeping the newest {keep} releases)"
+        )
+        if directory.is_dir():
+            shutil.rmtree(directory)
+
+    return [v for v in versions if v not in set(retire)]
 
 
 def release_label(version_dir):
@@ -518,6 +564,7 @@ def main(argv=None):
 
         print(f"\n{component['id']} in {component_root}")
         check_version_match(component_root, versions)
+        versions = retire_old_releases(component_root, component["id"], versions)
 
         stable = latest_stable(component["id"], versions)
         default_version = stable or "unstable"

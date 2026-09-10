@@ -33,6 +33,11 @@ on:
         required: false
         default: ""
         type: string
+      publish_as:
+        description: "Required for branch refs: the directory to publish into (unstable, or MAJOR.MINOR)."
+        required: false
+        default: ""
+        type: string
       docs_branch:
         description: "Publish target. Use a gh-pages-* branch to rehearse without touching production."
         required: false
@@ -69,6 +74,7 @@ jobs:
           SOURCE_REF: ${{ github.event.inputs.source_ref }}
           DOCS_BRANCH: ${{ github.event.inputs.docs_branch }}
           COMPONENT: ${{ github.event.inputs.component }}
+          PUBLISH_AS: ${{ github.event.inputs.publish_as }}
         run: |
           component="${COMPONENT:-cpp}"
           docs_branch="${DOCS_BRANCH:-gh-pages}"
@@ -81,10 +87,16 @@ jobs:
             exit 1
           fi
 
+          expect=""
+
           # A push to main, or a dispatch with no ref, publishes the tip.
           if [[ -z "${source_ref}" || "${source_ref}" == "main" ]]; then
             source_ref="main"
             is_tip="true"
+            if [[ -n "${PUBLISH_AS}" && "${PUBLISH_AS}" != "unstable" ]]; then
+              echo "error: main always publishes to unstable; drop publish_as." >&2
+              exit 1
+            fi
           else
             is_tip="false"
             # Classify the ref rather than pattern-match a version string. A tag
@@ -108,7 +120,30 @@ jobs:
                 echo "       components must not be published under each other's numbers." >&2
                 exit 1
               fi
-            elif ! git ls-remote --exit-code --heads origin "refs/heads/${source_ref}" >/dev/null 2>&1; then
+            elif git ls-remote --exit-code --heads origin "refs/heads/${source_ref}" >/dev/null 2>&1; then
+              # A branch is not self-describing: one cut from main carries
+              # main's version, so publishing it as a release would create a
+              # directory for a version that was never released. Make the
+              # caller say which directory they mean; publish_as is then
+              # checked against what the tree actually derives, so it can
+              # acknowledge the version but never invent one.
+              if [[ -z "${PUBLISH_AS}" ]]; then
+                echo "error: '${source_ref}' is a branch, so publish_as is required." >&2
+                echo "       Use publish_as=unstable to preview it as the development" >&2
+                echo "       docs, or publish_as=MAJOR.MINOR to publish a release built" >&2
+                echo "       from a patched release branch (e.g. the 3.4 backfill)." >&2
+                exit 1
+              fi
+              if [[ "${PUBLISH_AS}" == "unstable" ]]; then
+                is_tip="true"
+              elif [[ "${PUBLISH_AS}" =~ ^[0-9]+\.[0-9]+$ ]]; then
+                expect="${PUBLISH_AS}"
+              else
+                echo "error: publish_as must be 'unstable' or MAJOR.MINOR," \
+                     "got '${PUBLISH_AS}'." >&2
+                exit 1
+              fi
+            else
               echo "error: '${source_ref}' is neither a tag nor a branch on origin." >&2
               exit 1
             fi
@@ -119,6 +154,7 @@ jobs:
             echo "docs_branch=${docs_branch}"
             echo "source_ref=${source_ref}"
             echo "is_tip=${is_tip}"
+            echo "expect=${expect}"
           } >> "${GITHUB_OUTPUT}"
 
           echo "Publishing ${component} from ${source_ref} to ${docs_branch}"
@@ -157,7 +193,8 @@ jobs:
         run: |
           python3 docs/release_version.py source \
             --component "${{ steps.inputs.outputs.component }}" \
-            ${{ steps.inputs.outputs.is_tip == 'true' && '--tip' || '' }}
+            ${{ steps.inputs.outputs.is_tip == 'true' && '--tip' || '' }} \
+            ${{ steps.inputs.outputs.expect != '' && format('--expect {0}', steps.inputs.outputs.expect) || '' }}
 
       - name: Build C++ docs
         if: ${{ steps.inputs.outputs.component == 'cpp' }}
@@ -232,6 +269,22 @@ jobs:
             cp -a published/docs/. _publish/
           fi
 
+          # Publishing is destructive within docs/, so confirm the seed carried
+          # the live site across before anything is built on top of it. Checked
+          # here rather than after assembly because assembly legitimately
+          # removes directories when it retires old releases -- comparing counts
+          # at the end would make routine retirement look like data loss.
+          if [[ "${PAGES_EXISTS}" == "true" ]]; then
+            seeded=$(find _publish -maxdepth 2 -name index.html | wc -l)
+            live=$(find published/docs -maxdepth 2 -name index.html | wc -l)
+            echo "seed check: live=${live} seeded=${seeded}"
+            if (( seeded < live )); then
+              echo "error: the seed lost content from the live site." >&2
+              echo "       Refusing to continue; publishing would delete it." >&2
+              exit 1
+            fi
+          fi
+
           case "${COMPONENT}" in
             cpp)
               component_root="_publish"
@@ -271,21 +324,6 @@ jobs:
           python3 docs/publish_site.py _publish \
             --base-url "${{ steps.base_url.outputs.base }}" \
             --verify
-
-      # Belt and braces: publishing is destructive within docs/, so refuse to
-      # push a tree that lost the versions we seeded from.
-      - name: Confirm the tree is not empty
-        if: ${{ steps.pages.outputs.exists == 'true' }}
-        shell: bash --noprofile --norc -euo pipefail {0}
-        run: |
-          before=$(find published/docs -maxdepth 2 -name index.html | wc -l)
-          after=$(find _publish -maxdepth 2 -name index.html | wc -l)
-          echo "index.html count: published=${before} assembled=${after}"
-          if (( after < before )); then
-            echo "error: the assembled site has fewer versions than the published one." >&2
-            echo "       Refusing to publish; this would delete live documentation." >&2
-            exit 1
-          fi
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453  # v4

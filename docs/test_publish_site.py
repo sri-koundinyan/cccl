@@ -487,3 +487,109 @@ def test_python_tip_publishes_as_unstable(tmp_path):
         "unstable",
         "",
     )
+
+
+# --------------------------------------------------------------------------
+# Retirement: the site is bounded, so releases age out automatically
+# --------------------------------------------------------------------------
+
+
+def test_oldest_releases_are_retired_beyond_the_keep_count(tmp_path, monkeypatch):
+    monkeypatch.setitem(publish_site.KEEP_RELEASES, "cpp", 2)
+    for name in ("unstable", "3.3", "3.4", "3.5"):
+        make_version(tmp_path, name)
+
+    assemble(tmp_path)
+
+    assert (tmp_path / "3.5").is_dir()
+    assert (tmp_path / "3.4").is_dir()
+    assert not (tmp_path / "3.3").exists()  # oldest, retired
+    assert (tmp_path / "unstable").is_dir()  # the tip never counts or retires
+
+
+def test_retired_leave_switcher(tmp_path, monkeypatch):
+    """The manifest must describe the site after retirement, not before."""
+    monkeypatch.setitem(publish_site.KEEP_RELEASES, "cpp", 1)
+    for name in ("unstable", "3.4", "3.5"):
+        make_version(tmp_path, name)
+
+    assemble(tmp_path)
+
+    listed = {e["version"] for e in manifest(tmp_path)}
+    assert listed == {"unstable", "3.5"}
+
+
+def test_nothing_is_retired_below_the_keep_count(tmp_path, monkeypatch):
+    monkeypatch.setitem(publish_site.KEEP_RELEASES, "cpp", 5)
+    for name in ("unstable", "3.4", "3.5"):
+        make_version(tmp_path, name)
+
+    assemble(tmp_path)
+
+    assert {p.name for p in tmp_path.iterdir() if p.is_dir()} >= {
+        "unstable",
+        "3.4",
+        "3.5",
+    }
+
+
+def test_components_retire_independently(tmp_path, monkeypatch):
+    """Python builds are tiny, so its history is kept far longer than C++'s."""
+    monkeypatch.setitem(publish_site.KEEP_RELEASES, "cpp", 1)
+    monkeypatch.setitem(publish_site.KEEP_RELEASES, "python", 3)
+    for name in ("3.4", "3.5"):
+        make_version(tmp_path, name)
+    for name in ("1.0", "1.1", "1.2"):
+        make_version(tmp_path / "python", name)
+
+    assemble(tmp_path)
+
+    assert not (tmp_path / "3.4").exists()
+    assert {p.name for p in (tmp_path / "python").iterdir() if p.is_dir()} >= {
+        "1.0",
+        "1.1",
+        "1.2",
+    }
+
+
+def test_retirement_cannot_remove_the_version_just_published(tmp_path, monkeypatch):
+    """Publishing the newest release must never retire it as a side effect."""
+    monkeypatch.setitem(publish_site.KEEP_RELEASES, "cpp", 1)
+    for name in ("3.4", "3.5"):
+        make_version(tmp_path, name)
+
+    assemble(tmp_path)
+
+    assert (tmp_path / "3.5" / "index.html").is_file()
+    assert (
+        publish_site.latest_stable("cpp", publish_site.discover_versions(tmp_path))
+        == "3.5"
+    )
+
+
+# --------------------------------------------------------------------------
+# A branch is not self-describing, so it must say what it publishes as
+# --------------------------------------------------------------------------
+
+
+def test_expected_version_must_match_the_tree(tmp_path):
+    """The bogus 3.6: a branch off main carries main's version."""
+    checkout = make_checkout(tmp_path, 3006000, version_md="3.6\n")
+
+    with pytest.raises(SystemExit) as excinfo:
+        release_version.derive(checkout, expect="3.4")
+
+    assert "asked to publish as" in str(excinfo.value)
+    assert "3.6" in str(excinfo.value)
+
+
+def test_expected_version_matching_the_tree_is_accepted(tmp_path):
+    checkout = make_checkout(tmp_path, 3004002, version_md="3.4\n")
+
+    assert release_version.derive(checkout, expect="3.4") == ("3.4", "3.4.2")
+
+
+def test_expect_is_ignored_for_the_tip(tmp_path):
+    checkout = make_checkout(tmp_path, 3006000, version_md="3.6\n")
+
+    assert release_version.derive(checkout, tip=True, expect="3.4") == ("unstable", "")

@@ -111,14 +111,23 @@ def describe_python_release(checkout):
     return result.stdout.strip()
 
 
-def derive(checkout, component="cpp", tip=False):
-    """Return ``(version_dir, release_label)`` for a checkout."""
+def derive(checkout, component="cpp", tip=False, expect=None):
+    """Return ``(version_dir, release_label)`` for a checkout.
+
+    ``expect`` asserts the derived directory, and exists for refs that are not
+    self-describing. A branch cut from ``main`` carries ``main``'s version, so
+    publishing one as a release would silently create a directory for a version
+    that was never released -- which is exactly how a bogus ``3.6`` reached a
+    live site during testing. Requiring the caller to name the directory turns
+    that from an accident into a statement, and the assertion still prevents
+    naming the wrong one.
+    """
     if tip:
         return TIP_DIRECTORY, ""
 
     if component == "python":
         major, minor, patch = parse_python_tag(describe_python_release(checkout))
-        return f"{major}.{minor}", f"{major}.{minor}.{patch}"
+        return _checked(f"{major}.{minor}", f"{major}.{minor}.{patch}", expect)
 
     header = checkout / VERSION_HEADER
     if not header.is_file():
@@ -143,6 +152,19 @@ def derive(checkout, component="cpp", tip=False):
                 " inconsistent."
             )
 
+    return _checked(version_dir, label, expect)
+
+
+def _checked(version_dir, label, expect):
+    """Confirm the derived directory is the one the caller asked for."""
+    if expect is not None and expect != version_dir:
+        raise SystemExit(
+            f"error: asked to publish as {expect!r}, but this tree is"
+            f" {label!r} (directory {version_dir!r}).\n"
+            "       The version is read from the source being published, so"
+            " these cannot be\n"
+            "       reconciled by renaming the directory -- check the ref."
+        )
     return version_dir, label
 
 
@@ -160,10 +182,18 @@ def main(argv=None):
         action="store_true",
         help="this is a build of the development branch, not a release",
     )
+    parser.add_argument(
+        "--expect",
+        default=None,
+        help="fail unless the tree derives this version directory",
+    )
     args = parser.parse_args(argv)
 
     version_dir, label = derive(
-        Path(args.checkout), component=args.component, tip=args.tip
+        Path(args.checkout),
+        component=args.component,
+        tip=args.tip,
+        expect=args.expect,
     )
 
     lines = [f"version_dir={version_dir}", f"release_label={label}"]
