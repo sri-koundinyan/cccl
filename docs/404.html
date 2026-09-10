@@ -1,105 +1,129 @@
 <!DOCTYPE html>
 
-<!--
-  Site-wide 404 handler. GitHub Pages allows exactly one per site, so this file
-  routes misses for every component. /cccl and [{"path": "python", "label": "Python", "default": "1.1"}, {"path": "", "label": "C++", "default": "3.4"}] are
-  substituted by render_site_root.py, so nothing here hardcodes /cccl and the
-  handler works unchanged on a fork.
-
-  Its job is to work out which component and which version the reader was aiming
-  for, and hand off to that version's own 404_helper.html, which fuzzy-matches
-  the path against that version's page list.
--->
-<html lang="en" data-content_root="./" >
+<html lang="en" data-content_root="./">
     <head>
+        <meta charset="utf-8">
         <title>404 &#8212; CUDA Core Compute Libraries</title>
     </head>
-    <ul>
-        <div id="linkGen"></div>
-    </ul>
-    <script type="module">
-        var SITE_BASE = "/cccl";
-        // Longest path first, so a nested component is matched before the one
-        // living at the site root, which would otherwise swallow every path.
-        var COMPONENT_ROUTES = [{"path": "python", "label": "Python", "default": "1.1"}, {"path": "", "label": "C++", "default": "3.4"}];
+    <body>
+        <p>Looking for that page&hellip;</p>
 
-        // Directories that are a documentation version rather than page content:
-        // the development docs, the stable alias, and MAJOR.MINOR releases.
-        var VERSION_DIR = /^(?:unstable|latest|\d+\.\d+)$/;
+        <!--
+          GitHub Pages allows exactly one 404 handler for a whole site, so this
+          file has to route a miss in any component to that component's own
+          per-version helper, which does the fuzzy search against its page list.
 
-        var localUri = window.location.pathname;
-        var hostUrl = window.location.protocol + "//" + window.location.host
-
-        // Strip the repository path so the checks below are about the docs site
-        // itself, not about where that site happens to be hosted.
-        var relativeUri = localUri.indexOf(SITE_BASE) === 0
-            ? localUri.slice(SITE_BASE.length)
-            : localUri;
-
-        // Which component does this path fall under?
-        var component = null;
-        var withinComponent = null;
-        for (var i = 0; i < COMPONENT_ROUTES.length; i++) {
-            var candidate = COMPONENT_ROUTES[i];
-            if (!candidate.path) {
-                component = candidate;
-                withinComponent = relativeUri;
-                break;
-            }
-            var prefix = "/" + candidate.path;
-            if (relativeUri === prefix || relativeUri.indexOf(prefix + "/") === 0) {
-                component = candidate;
-                withinComponent = relativeUri.slice(prefix.length);
-                break;
-            }
+          The block below is rewritten by docs/publish_site.py at publish time from the
+          directories that actually exist. The values checked in here are the
+          single-component fallback, so a local or PR-preview build still gets a
+          working handler without publish_site.py having run.
+        -->
+        <script type="application/json" id="site-routing">
+{
+    "sitePath": "/cccl/",
+    "components": [
+        {
+            "path": "",
+            "default": "3.6",
+            "versions": [
+                "unstable",
+                "3.6"
+            ]
+        },
+        {
+            "path": "python",
+            "default": "1.1",
+            "versions": [
+                "1.1"
+            ]
         }
+    ],
+    "pythonPath": "python",
+    "pythonDefault": "1.1"
+}
+</script>
 
-        // No component owns the site root, so an unrecognised path can only go
-        // back to the landing page for the reader to choose.
-        if (component === null) {
-            window.location.href = hostUrl + SITE_BASE + "/";
-        } else {
-            var componentBase = component.path
-                ? SITE_BASE + "/" + component.path
-                : SITE_BASE;
+        <script>
+            // Kept as a pure function of (routing, pathname) so it can be
+            // exercised directly; the only side effect is the final redirect.
+            function resolveMiss(routing, pathname) {
+                const base = routing.sitePath;
 
-            var segments = withinComponent.replace(/^\//, "").split("/");
-            var version;
-            var searchPath;
+                // Everything below the site root, e.g. "3.4/thrust/vector.html".
+                const rest = pathname.startsWith(base)
+                    ? pathname.slice(base.length)
+                    : pathname.replace(/^\//, "");
 
-            if (VERSION_DIR.test(segments[0])) {
-                version = segments[0];
-                searchPath = "/" + segments.slice(1).join("/");
-            } else if (segments[0] === "") {
-                // The component root itself; its own index redirects onwards.
-                window.location.href = hostUrl + componentBase + "/";
-                version = null;
-            } else if (component.default) {
-                // No version in the path. This is a link that predates versioned
-                // docs, e.g. /cccl/thrust/api.html. Look it up in the component's
-                // default version rather than dropping the reader on an error.
-                version = component.default;
-                searchPath = withinComponent;
-            } else {
-                // Nothing published for this component yet.
-                window.location.href = hostUrl + componentBase + "/";
-                version = null;
+                // Pick the component whose path is the longest prefix of the
+                // miss. Nested components win over the one at the site root,
+                // which matches everything by construction.
+                let component = null;
+                let within = rest;
+                for (const candidate of routing.components) {
+                    if (!candidate.path) continue;
+                    if (rest === candidate.path || rest.startsWith(candidate.path + "/")) {
+                        if (!component || candidate.path.length > component.path.length) {
+                            component = candidate;
+                            within = rest.slice(candidate.path.length).replace(/^\//, "");
+                        }
+                    }
+                }
+                if (!component) {
+                    component = routing.components.find((c) => !c.path) || null;
+                    within = rest;
+                }
+                if (!component) return base;
+
+                // A leading segment naming a published version scopes the search
+                // to that version; anything else is part of the path the reader
+                // was actually after. "latest" is an alias for the default, and
+                // is stripped so the search runs against real pages.
+                const parts = within.split("/");
+                let version = component.default;
+                let remainder = within;
+                if (parts.length) {
+                    if (component.versions.includes(parts[0])) {
+                        version = parts[0];
+                        remainder = parts.slice(1).join("/");
+                    } else if (parts[0] === "latest") {
+                        remainder = parts.slice(1).join("/");
+                    }
+                }
+
+                // The Python docs used to be published inside the C++ tree, and
+                // those URLs are live today. They no longer exist there, and the
+                // C++ page list no longer contains them, so searching that tree
+                // would find nothing. Send them to the Python component instead.
+                if (
+                    !component.path &&
+                    routing.pythonPath &&
+                    /^python(\/|$)/.test(remainder)
+                ) {
+                    const tail = remainder.replace(/^python\/?/, "");
+                    return (
+                        base +
+                        routing.pythonPath +
+                        "/" +
+                        routing.pythonDefault +
+                        "/404_helper.html?path=/" +
+                        tail
+                    );
+                }
+
+                const prefix = component.path ? component.path + "/" : "";
+                return base + prefix + version + "/404_helper.html?path=/" + remainder;
             }
 
-            if (version !== null) {
-                var rootPath = componentBase + "/" + version
-
-                // User was trying to reach a page; forward to the helper for
-                // that version, which searches its page list.
-                if (searchPath && searchPath !== "/") {
-                    window.location.href =
-                        hostUrl + rootPath + "/404_helper.html?path=" + encodeURIComponent(searchPath)
-                }
-                // Otherwise just land on the version's index.
-                else {
-                    window.location.href = hostUrl + rootPath
-                }
+            if (typeof window !== "undefined" && window.location) {
+                const routing = JSON.parse(
+                    document.getElementById("site-routing").textContent
+                );
+                const host =
+                    window.location.protocol + "//" + window.location.host;
+                window.location.replace(
+                    host + resolveMiss(routing, window.location.pathname)
+                );
             }
-        }
-    </script>
+        </script>
+    </body>
 </html>

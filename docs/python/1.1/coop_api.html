@@ -48,7 +48,7 @@
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/copybutton.js?v=5ceeb459"></script>
     <script src="_static/design-tabs.js?v=f930bc37"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'coop_api';</script>
     <script>
@@ -214,21 +214,6 @@
   </ul>
 </div></div>
       
-        <div class="navbar-item"><ul class="navbar-icon-links"
-    aria-label="Icon Links">
-        <li class="nav-item">
-          
-          
-          
-          
-          
-          
-          
-          
-          <a href="https://github.com/NVIDIA/cccl" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
-        </li>
-</ul></div>
-      
     </div>
     
   </div>
@@ -340,21 +325,6 @@
     <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
   </ul>
 </div></div>
-        
-          <div class="navbar-item"><ul class="navbar-icon-links"
-    aria-label="Icon Links">
-        <li class="nav-item">
-          
-          
-          
-          
-          
-          
-          
-          
-          <a href="https://github.com/NVIDIA/cccl" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
-        </li>
-</ul></div>
         
       </div>
     
@@ -488,6 +458,77 @@ kernel</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="cuda.coop._experimental.warp.make_merge_sort_keys">
+<span class="sig-prename descclassname"><span class="pre">cuda.coop._experimental.warp.</span></span><span class="sig-name descname"><span class="pre">make_merge_sort_keys</span></span><span class="sig-paren">(</span>
+
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">items_per_thread</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">compare_op</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">threads_in_warp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">32</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">methods</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>,</dd>
+</dl>
+
+<span class="sig-paren">)</span><a class="headerlink" href="#cuda.coop._experimental.warp.make_merge_sort_keys" title="Link to this definition">#</a></dt>
+<dd><p>Creates a warp-wide merge sort primitive over a
+<a class="reference external" href="https://sri-koundinyan.github.io/cccl/latest/cub/index.html#flexible-data-arrangement" title="(in CUDA Core Compute Libraries v3.4)"><span class="xref std std-ref">blocked arrangement</span></a> of keys.</p>
+<p class="rubric">Example</p>
+<p>The code snippet below illustrates a sort of 128 integer keys that
+are partitioned in a
+<a class="reference external" href="https://sri-koundinyan.github.io/cccl/latest/cub/index.html#flexible-data-arrangement" title="(in CUDA Core Compute Libraries v3.4)"><span class="xref std std-ref">blocked arrangement</span></a> across a
+warp of 32 threads where each thread owns 4 consecutive keys.</p>
+<p>The following snippet shows how to invoke the returned
+<code class="docutils literal notranslate"><span class="pre">warp_merge_sort</span></code> primitive:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define comparison operator</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compare_op</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">a</span> <span class="o">&gt;</span> <span class="n">b</span>
+
+<span class="c1"># Specialize merge sort for a warp of threads owning 4 integer items each</span>
+<span class="n">items_per_thread</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">warp_merge_sort</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">warp</span><span class="o">.</span><span class="n">make_merge_sort_keys</span><span class="p">(</span>
+    <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">items_per_thread</span><span class="p">,</span> <span class="n">compare_op</span>
+<span class="p">)</span>
+
+<span class="c1"># Link the merge sort to a CUDA kernel</span>
+<span class="nd">@cuda</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">link</span><span class="o">=</span><span class="n">warp_merge_sort</span><span class="o">.</span><span class="n">files</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">keys</span><span class="p">):</span>
+    <span class="c1"># Obtain a segment of consecutive items that are blocked across threads</span>
+    <span class="n">thread_keys</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">local</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">items_per_thread</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">items_per_thread</span><span class="p">):</span>
+        <span class="n">thread_keys</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">keys</span><span class="p">[</span><span class="n">cuda</span><span class="o">.</span><span class="n">threadIdx</span><span class="o">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">items_per_thread</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span>
+
+    <span class="c1"># Collectively sort the keys</span>
+    <span class="n">warp_merge_sort</span><span class="p">(</span><span class="n">thread_keys</span><span class="p">)</span>
+
+    <span class="c1"># Copy the sorted keys back to the output</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">items_per_thread</span><span class="p">):</span>
+        <span class="n">keys</span><span class="p">[</span><span class="n">cuda</span><span class="o">.</span><span class="n">threadIdx</span><span class="o">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">items_per_thread</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">thread_keys</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+</pre></div>
+</div>
+<p>Suppose the set of input <code class="docutils literal notranslate"><span class="pre">thread_keys</span></code> across the warp of
+threads is <code class="docutils literal notranslate"><span class="pre">{</span> <span class="pre">[0,</span> <span class="pre">1,</span> <span class="pre">2,</span> <span class="pre">3],</span> <span class="pre">[4,</span> <span class="pre">5,</span> <span class="pre">6,</span> <span class="pre">7],</span> <span class="pre">...,</span> <span class="pre">[124,</span> <span class="pre">125,</span> <span class="pre">126,</span> <span class="pre">127]</span> <span class="pre">}</span></code>.
+The corresponding output <code class="docutils literal notranslate"><span class="pre">thread_keys</span></code> in those threads will be
+<code class="docutils literal notranslate"><span class="pre">{</span> <span class="pre">[127,</span> <span class="pre">126,</span> <span class="pre">125,</span> <span class="pre">124],</span> <span class="pre">[123,</span> <span class="pre">122,</span> <span class="pre">121,</span> <span class="pre">120],</span> <span class="pre">...,</span> <span class="pre">[3,</span> <span class="pre">2,</span> <span class="pre">1,</span> <span class="pre">0]</span> <span class="pre">}</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dtype</strong> – Numba data type of the keys to be sorted</p></li>
+<li><p><strong>threads_in_warp</strong> – The number of threads in a warp</p></li>
+<li><p><strong>items_per_thread</strong> – The number of items each thread owns</p></li>
+<li><p><strong>compare_op</strong> – Comparison function object. Returns true if the first
+argument is ordered before the second.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A callable object that can be linked to and invoked from a CUDA
+kernel</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="cuda.coop._experimental.warp.make_reduce">
 <span class="sig-prename descclassname"><span class="pre">cuda.coop._experimental.warp.</span></span><span class="sig-name descname"><span class="pre">make_reduce</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">binary_op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threads_in_warp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">32</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">methods</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.coop._experimental.warp.make_reduce" title="Link to this definition">#</a></dt>
 <dd><p>Creates a warp-wide reduction primitive for lane <sub>0</sub> using the
@@ -582,81 +623,11 @@ kernel</p>
 </dl>
 </dd></dl>
 
-<dl class="py function">
-<dt class="sig sig-object py" id="cuda.coop._experimental.warp.make_merge_sort_keys">
-<span class="sig-prename descclassname"><span class="pre">cuda.coop._experimental.warp.</span></span><span class="sig-name descname"><span class="pre">make_merge_sort_keys</span></span><span class="sig-paren">(</span>
-
-<dl>
-<dd><em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em>,</dd>
-<dd><em class="sig-param"><span class="n"><span class="pre">items_per_thread</span></span></em>,</dd>
-<dd><em class="sig-param"><span class="n"><span class="pre">compare_op</span></span></em>,</dd>
-<dd><em class="sig-param"><span class="n"><span class="pre">threads_in_warp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">32</span></span></em>,</dd>
-<dd><em class="sig-param"><span class="n"><span class="pre">methods</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>,</dd>
-</dl>
-
-<span class="sig-paren">)</span><a class="headerlink" href="#cuda.coop._experimental.warp.make_merge_sort_keys" title="Link to this definition">#</a></dt>
-<dd><p>Creates a warp-wide merge sort primitive over a
-<a class="reference external" href="https://sri-koundinyan.github.io/cccl/latest/cub/index.html#flexible-data-arrangement" title="(in CUDA Core Compute Libraries v3.4)"><span class="xref std std-ref">blocked arrangement</span></a> of keys.</p>
-<p class="rubric">Example</p>
-<p>The code snippet below illustrates a sort of 128 integer keys that
-are partitioned in a
-<a class="reference external" href="https://sri-koundinyan.github.io/cccl/latest/cub/index.html#flexible-data-arrangement" title="(in CUDA Core Compute Libraries v3.4)"><span class="xref std std-ref">blocked arrangement</span></a> across a
-warp of 32 threads where each thread owns 4 consecutive keys.</p>
-<p>The following snippet shows how to invoke the returned
-<code class="docutils literal notranslate"><span class="pre">warp_merge_sort</span></code> primitive:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define comparison operator</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">compare_op</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">a</span> <span class="o">&gt;</span> <span class="n">b</span>
-
-<span class="c1"># Specialize merge sort for a warp of threads owning 4 integer items each</span>
-<span class="n">items_per_thread</span> <span class="o">=</span> <span class="mi">4</span>
-<span class="n">warp_merge_sort</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">warp</span><span class="o">.</span><span class="n">make_merge_sort_keys</span><span class="p">(</span>
-    <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">items_per_thread</span><span class="p">,</span> <span class="n">compare_op</span>
-<span class="p">)</span>
-
-<span class="c1"># Link the merge sort to a CUDA kernel</span>
-<span class="nd">@cuda</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">link</span><span class="o">=</span><span class="n">warp_merge_sort</span><span class="o">.</span><span class="n">files</span><span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">keys</span><span class="p">):</span>
-    <span class="c1"># Obtain a segment of consecutive items that are blocked across threads</span>
-    <span class="n">thread_keys</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">local</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">items_per_thread</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">items_per_thread</span><span class="p">):</span>
-        <span class="n">thread_keys</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">keys</span><span class="p">[</span><span class="n">cuda</span><span class="o">.</span><span class="n">threadIdx</span><span class="o">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">items_per_thread</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span>
-
-    <span class="c1"># Collectively sort the keys</span>
-    <span class="n">warp_merge_sort</span><span class="p">(</span><span class="n">thread_keys</span><span class="p">)</span>
-
-    <span class="c1"># Copy the sorted keys back to the output</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">items_per_thread</span><span class="p">):</span>
-        <span class="n">keys</span><span class="p">[</span><span class="n">cuda</span><span class="o">.</span><span class="n">threadIdx</span><span class="o">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">items_per_thread</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">thread_keys</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-
-</pre></div>
-</div>
-<p>Suppose the set of input <code class="docutils literal notranslate"><span class="pre">thread_keys</span></code> across the warp of
-threads is <code class="docutils literal notranslate"><span class="pre">{</span> <span class="pre">[0,</span> <span class="pre">1,</span> <span class="pre">2,</span> <span class="pre">3],</span> <span class="pre">[4,</span> <span class="pre">5,</span> <span class="pre">6,</span> <span class="pre">7],</span> <span class="pre">...,</span> <span class="pre">[124,</span> <span class="pre">125,</span> <span class="pre">126,</span> <span class="pre">127]</span> <span class="pre">}</span></code>.
-The corresponding output <code class="docutils literal notranslate"><span class="pre">thread_keys</span></code> in those threads will be
-<code class="docutils literal notranslate"><span class="pre">{</span> <span class="pre">[127,</span> <span class="pre">126,</span> <span class="pre">125,</span> <span class="pre">124],</span> <span class="pre">[123,</span> <span class="pre">122,</span> <span class="pre">121,</span> <span class="pre">120],</span> <span class="pre">...,</span> <span class="pre">[3,</span> <span class="pre">2,</span> <span class="pre">1,</span> <span class="pre">0]</span> <span class="pre">}</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>dtype</strong> – Numba data type of the keys to be sorted</p></li>
-<li><p><strong>threads_in_warp</strong> – The number of threads in a warp</p></li>
-<li><p><strong>items_per_thread</strong> – The number of items each thread owns</p></li>
-<li><p><strong>compare_op</strong> – Comparison function object. Returns true if the first
-argument is ordered before the second.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A callable object that can be linked to and invoked from a CUDA
-kernel</p>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py class" id="module-cuda.coop._experimental.block">
 <dt class="sig sig-object py" id="cuda.coop._experimental.block.BlockExchangeType">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cuda.coop._experimental.block.</span></span><span class="sig-name descname"><span class="pre">BlockExchangeType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.coop._experimental.block.BlockExchangeType" title="Link to this definition">#</a></dt>
-<dd><p>Enum representing the type of block exchange operation.  Currently
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntEnum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
+<p>Enum representing the type of block exchange operation.  Currently
 only <a class="reference internal" href="#cuda.coop._experimental.block.BlockExchangeType.StripedToBlocked" title="cuda.coop._experimental.block.BlockExchangeType.StripedToBlocked"><code class="xref py py-attr docutils literal notranslate"><span class="pre">StripedToBlocked</span></code></a> is supported.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cuda.coop._experimental.block.BlockExchangeType.StripedToBlocked">
@@ -1627,9 +1598,9 @@ is <code class="docutils literal notranslate"><span class="pre">{</span> <span c
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.coop._experimental.warp.make_exclusive_sum"><code class="docutils literal notranslate"><span class="pre">make_exclusive_sum()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.coop._experimental.warp.make_merge_sort_keys"><code class="docutils literal notranslate"><span class="pre">make_merge_sort_keys()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.coop._experimental.warp.make_reduce"><code class="docutils literal notranslate"><span class="pre">make_reduce()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.coop._experimental.warp.make_sum"><code class="docutils literal notranslate"><span class="pre">make_sum()</span></code></a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.coop._experimental.warp.make_merge_sort_keys"><code class="docutils literal notranslate"><span class="pre">make_merge_sort_keys()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.coop._experimental.block.BlockExchangeType"><code class="docutils literal notranslate"><span class="pre">BlockExchangeType</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.coop._experimental.block.BlockExchangeType.StripedToBlocked"><code class="docutils literal notranslate"><span class="pre">StripedToBlocked</span></code></a></li>
 </ul>

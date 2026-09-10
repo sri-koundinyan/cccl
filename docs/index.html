@@ -1,21 +1,4 @@
 <!DOCTYPE html>
-<!--
-  Template for the site landing page.     <li>
-      <a href="/cccl/3.4/">C++
-        <span class="description">Thrust, CUB, libcu++ and CUDA Experimental</span>
-      </a>
-    </li>
-    <li>
-      <a href="/cccl/python/1.1/">Python
-        <span class="description">cuda.compute and cuda.coop</span>
-      </a>
-    </li> is substituted by
-  render_site_root.py from published_versions.json.
-
-  The C++ and Python libraries ship on independent release lines, so neither can
-  own the site root: a reader picks one here and lands in that component's own
-  versioned documentation, with its own version switcher.
--->
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -24,50 +7,52 @@
   <style>
     :root { color-scheme: light dark; }
     body {
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                   Helvetica, Arial, sans-serif;
       line-height: 1.5;
-      margin: 0 auto;
-      max-width: 34rem;
-      padding: 4rem 1.5rem;
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
     }
-    h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
-    p.lede { margin-top: 0; opacity: 0.75; }
-    ul { list-style: none; margin: 2rem 0 0; padding: 0; }
-    li { margin: 0 0 0.75rem; }
-    li a {
-      border: 1px solid currentColor;
-      border-radius: 0.4rem;
+    main { max-width: 46rem; padding: 2rem; }
+    h1 { font-size: 1.75rem; margin: 0 0 0.25rem; }
+    .lede { margin: 0 0 2rem; opacity: 0.75; }
+    .cards { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+    .card {
       display: block;
-      font-size: 1.15rem;
-      font-weight: 600;
-      padding: 0.9rem 1.1rem 0.5rem;
+      padding: 1.25rem 1.5rem;
+      border: 1px solid rgba(128, 128, 128, 0.35);
+      border-radius: 0.5rem;
       text-decoration: none;
+      color: inherit;
     }
-    li a:hover, li a:focus { background: rgba(118, 185, 0, 0.12); }
-    .description {
-      display: block;
-      font-size: 0.9rem;
-      font-weight: 400;
-      opacity: 0.75;
-      padding: 0 1.1rem 0.9rem;
-      margin-top: -0.4rem;
-    }
+    .card:hover { border-color: #76b900; }
+    .card h2 { font-size: 1.15rem; margin: 0 0 0.35rem; color: #76b900; }
+    .card p { margin: 0; font-size: 0.925rem; opacity: 0.8; }
+    .card .version { margin-top: 0.6rem; font-size: 0.8rem; opacity: 0.6; }
   </style>
 </head>
 <body>
-  <h1>CUDA Core Compute Libraries</h1>
-  <p class="lede">Making CUDA C++ and Python more delightful.</p>
-  <ul>
-    <li>
-      <a href="/cccl/3.4/">C++
-        <span class="description">Thrust, CUB, libcu++ and CUDA Experimental</span>
+  <main>
+    <h1>CUDA Core Compute Libraries</h1>
+    <p class="lede">
+      The C++ libraries and the Python package ship on independent release
+      lines, so each has its own documentation and its own version history.
+    </p>
+    <div class="cards">
+      <a class="card" href="3.6/">
+        <h2>C++</h2>
+        <p>Thrust, CUB, libcu++ and CUDA Experimental</p>
+        <p class="version">3.6.0</p>
       </a>
-    </li>
-    <li>
-      <a href="/cccl/python/1.1/">Python
-        <span class="description">cuda.compute and cuda.coop</span>
+      <a class="card" href="python/1.1/">
+        <h2>Python</h2>
+        <p>cuda.compute and cuda.coop</p>
+        <p class="version">1.1.1</p>
       </a>
-    </li>
-  </ul>
+    </div>
+  </main>
 </body>
 </html>

@@ -1,23 +1,16 @@
 [
   {
-    "name": "latest (3.4)",
-    "version": "latest",
-    "url": "https://sri-koundinyan.github.io/cccl/latest/"
-  },
-  {
-    "name": "unstable (main)",
+    "name": "unstable",
     "version": "unstable",
-    "url": "https://sri-koundinyan.github.io/cccl/unstable/"
+    "url": "https://sri-koundinyan.github.io/cccl/unstable/",
+    "latest": false,
+    "preferred": false
   },
   {
-    "name": "3.4",
-    "version": "3.4",
-    "url": "https://sri-koundinyan.github.io/cccl/3.4/",
+    "name": "3.6.0",
+    "version": "3.6",
+    "url": "https://sri-koundinyan.github.io/cccl/3.6/",
+    "latest": true,
     "preferred": true
-  },
-  {
-    "name": "3.3",
-    "version": "3.3",
-    "url": "https://sri-koundinyan.github.io/cccl/3.3/"
   }
 ]
