@@ -2,9 +2,57 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="refresh" content="0; url=3.6/">
-  <link rel="canonical" href="3.6/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CUDA Core Compute Libraries</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                   Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+    }
+    main { max-width: 46rem; padding: 2rem; }
+    h1 { font-size: 1.75rem; margin: 0 0 0.25rem; }
+    .lede { margin: 0 0 2rem; opacity: 0.75; }
+    .cards { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+    .card {
+      display: block;
+      padding: 1.25rem 1.5rem;
+      border: 1px solid rgba(128, 128, 128, 0.35);
+      border-radius: 0.5rem;
+      text-decoration: none;
+      color: inherit;
+    }
+    .card:hover { border-color: #76b900; }
+    .card h2 { font-size: 1.15rem; margin: 0 0 0.35rem; color: #76b900; }
+    .card p { margin: 0; font-size: 0.925rem; opacity: 0.8; }
+    .card .version { margin-top: 0.6rem; font-size: 0.8rem; opacity: 0.6; }
+  </style>
 </head>
-<body><a href="3.6/">CUDA Core Compute Libraries documentation</a></body>
+<body>
+  <main>
+    <h1>CUDA Core Compute Libraries</h1>
+    <p class="lede">
+      The C++ libraries and the Python package ship on independent release
+      lines, so each has its own documentation and its own version history.
+    </p>
+    <div class="cards">
+      <a class="card" href="3.6/">
+        <h2>C++</h2>
+        <p>Thrust, CUB, libcu++ and CUDA Experimental</p>
+        <p class="version">3.6.0</p>
+      </a>
+      <a class="card" href="python/1.1/">
+        <h2>Python</h2>
+        <p>cuda.compute and cuda.coop</p>
+        <p class="version">1.1.1</p>
+      </a>
+    </div>
+  </main>
+</body>
 </html>
