@@ -18,6 +18,18 @@ on:
   push:
     branches:
       - main
+  # Publishing a GitHub Release publishes its documentation.
+  #
+  # Deliberately not `push: tags:`, which is what cuda-python uses and what
+  # would look like the obvious choice: release-finalize.yml pushes the release
+  # tag with github.token, and GitHub does not start workflow runs from
+  # GITHUB_TOKEN pushes. A tag trigger here would never fire even once.
+  #
+  # The release is created as a draft and published by a person, so this fires
+  # on that action. It is also the more meaningful moment: docs appear when the
+  # release is announced, not when the tag lands.
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       component:
@@ -58,6 +70,15 @@ concurrency:
 jobs:
   deploy:
     name: Build and deploy documentation
+    # Evaluated from the event payload, so a pre-release or an unrelated tag
+    # never starts the job at all -- rather than starting it and skipping ten
+    # steps, where one missed condition would publish something that should
+    # not be published.
+    if: >-
+      github.event_name != 'release' ||
+      (github.event.release.prerelease == false &&
+       (startsWith(github.event.release.tag_name, 'v') ||
+        startsWith(github.event.release.tag_name, 'python-')))
     runs-on: ${{ github.repository == 'NVIDIA/cccl' && 'linux-amd64-cpu32' || 'ubuntu-latest' }}
     steps:
       # main's copy of the publishing tools. The docs themselves are built from
@@ -75,10 +96,26 @@ jobs:
           DOCS_BRANCH: ${{ github.event.inputs.docs_branch }}
           COMPONENT: ${{ github.event.inputs.component }}
           PUBLISH_AS: ${{ github.event.inputs.publish_as }}
+          EVENT: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_IS_PRERELEASE: ${{ github.event.release.prerelease }}
         run: |
           component="${COMPONENT:-cpp}"
           docs_branch="${DOCS_BRANCH:-gh-pages}"
           source_ref="${SOURCE_REF:-}"
+
+          # A published release names its own ref and component; nothing is
+          # typed, so nothing can be mistyped. Pre-releases and tags belonging
+          # to neither component never reach here -- the job's `if` filters
+          # them out from the event payload directly.
+          if [[ "${EVENT}" == "release" ]]; then
+            source_ref="${RELEASE_TAG}"
+            case "${RELEASE_TAG}" in
+              python-*) component="python" ;;
+              *)        component="cpp" ;;
+            esac
+            docs_branch="gh-pages"
+          fi
 
           # Rehearsals must not be able to target production by typo.
           if [[ "${docs_branch}" != "gh-pages" && "${docs_branch}" != gh-pages-* ]]; then
