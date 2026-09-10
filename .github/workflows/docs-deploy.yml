@@ -91,11 +91,21 @@ jobs:
             # is an immutable release marker and must look like one; a branch is
             # deliberate and human-created, which is how the one-time 3.4
             # backfill is published from a patched branch.
+            # The two components are versioned independently and tag
+            # differently: C++ releases are vX.Y.Z, the Python package's are
+            # python-X.Y.Z.
+            case "${component}" in
+              cpp)    release_tag='^v[0-9]+\.[0-9]+\.[0-9]+$'; example="v3.5.0" ;;
+              python) release_tag='^python-[0-9]+\.[0-9]+\.[0-9]+$'; example="python-1.1.1" ;;
+            esac
+
             if git ls-remote --exit-code --tags origin "refs/tags/${source_ref}" >/dev/null 2>&1; then
-              if [[ ! "${source_ref}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-                echo "error: '${source_ref}' is a tag but not a release tag." >&2
-                echo "       Pre-release tags (v3.5.0-rc0, v3.6.0.dev, v3.4.2-ctk0)" >&2
-                echo "       must not be published as the release they precede." >&2
+              if [[ ! "${source_ref}" =~ ${release_tag} ]]; then
+                echo "error: '${source_ref}' is a tag, but not a ${component} release tag." >&2
+                echo "       Expected something like ${example}." >&2
+                echo "       Pre-release tags (v3.5.0-rc0, v3.6.0.dev, v3.4.2-ctk0) must" >&2
+                echo "       not be published as the release they precede, and the two" >&2
+                echo "       components must not be published under each other's numbers." >&2
                 exit 1
               fi
             elif ! git ls-remote --exit-code --heads origin "refs/heads/${source_ref}" >/dev/null 2>&1; then
