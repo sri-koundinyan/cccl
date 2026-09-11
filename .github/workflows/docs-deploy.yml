@@ -71,15 +71,19 @@ concurrency:
 jobs:
   deploy:
     name: Build and deploy documentation
-    # Evaluated from the event payload, so a pre-release or an unrelated tag
-    # never starts the job at all -- rather than starting it and skipping ten
-    # steps, where one missed condition would publish something that should
-    # not be published.
+    # Routing only: don't start at all for a release of something this site
+    # does not document. Whether a given release *should* be published --
+    # pre-release, component, valid release tag -- is decided once, in
+    # docs/deploy_plan.py, where it is covered by tests. Restating any of that
+    # here would be a second copy of the policy, in the one place nothing
+    # type-checks, free to drift.
+    #
+    # Anything that slips through fails in "Plan the deploy", which is the
+    # second step and runs in seconds -- long before the 15-minute build.
     if: >-
       github.event_name != 'release' ||
-      (github.event.release.prerelease == false &&
-       (startsWith(github.event.release.tag_name, 'v') ||
-        startsWith(github.event.release.tag_name, 'python-')))
+      startsWith(github.event.release.tag_name, 'v') ||
+      startsWith(github.event.release.tag_name, 'python-')
     runs-on: ${{ github.repository == 'NVIDIA/cccl' && 'linux-amd64-cpu32' || 'ubuntu-latest' }}
     steps:
       # main's copy of the publishing tools. The docs themselves are built from

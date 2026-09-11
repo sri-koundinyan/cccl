@@ -610,7 +610,14 @@ def test_expect_is_ignored_for_the_tip(tmp_path):
 # Calling plan() directly needs no git, no shell and no workflow runner.
 # --------------------------------------------------------------------------
 
-KNOWN_TAGS = {"v3.4.2", "v3.5.0-rc1", "v3.6.0.dev", "v3.4.2-ctk0", "python-1.1.1"}
+KNOWN_TAGS = {
+    "v3.4.2",
+    "v3.5.0",
+    "v3.5.0-rc1",
+    "v3.6.0.dev",
+    "v3.4.2-ctk0",
+    "python-1.1.1",
+}
 KNOWN_BRANCHES = {"main", "branch/3.4.x", "docs-backfill-3.4"}
 
 
@@ -650,8 +657,25 @@ def test_cpp_release_publishes_cpp():
 
 
 def test_prerelease_is_not_published():
-    with pytest.raises(SystemExit):
-        make_plan("release", release_tag="v3.5.0-rc1", release_prerelease=True)
+    """Uses a *clean* tag deliberately.
+
+    v3.5.0-rc1 would be rejected by the tag pattern anyway, so testing with it
+    proves nothing about this check. The case only this catches is a release
+    tagged v3.5.0 -- which the pattern accepts -- whose GitHub Release was
+    marked pre-release by hand.
+    """
+    with pytest.raises(SystemExit) as excinfo:
+        make_plan("release", release_tag="v3.5.0", release_prerelease=True)
+
+    assert "pre-release" in str(excinfo.value)
+
+
+def test_a_clean_tag_not_marked_prerelease_is_published():
+    """The other half: the same tag, without the flag, must publish."""
+    result = make_plan("release", release_tag="v3.5.0")
+
+    assert result["components"] == "cpp"
+    assert result["source_ref"] == "v3.5.0"
 
 
 def test_branch_without_publish_as_is_rejected():
@@ -801,3 +825,36 @@ def test_labels_in_the_line_are_accepted(tmp_path, label):
 
     entry = next(e for e in manifest(tmp_path) if e["version"] == "3.4")
     assert entry["name"] == label
+
+
+def test_retention_is_sized_against_a_release_not_the_tip():
+    """The keep-count must be calibrated against what these directories hold.
+
+    A published release measures ~109 MB; the development tip is ~168 MB
+    because it carries every generated API page. Sizing the limit against the
+    tip wastes budget and halves the archive window, which is what an earlier
+    value of 3 did.
+
+    Two ways to get this wrong, so the limit is pinned from both sides.
+    """
+    tip, release, python_total = 168, 109, 14
+    keep = publish_site.KEEP_RELEASES["cpp"]
+    projected = tip + keep * release + python_total
+    budget = publish_site.SIZE_BUDGET_BYTES / 1024 / 1024
+    headroom = budget - projected
+
+    # Too many: the guard would refuse a deploy rather than retire anything.
+    assert projected < budget, f"keep={keep} projects to {projected} MB, over {budget}"
+
+    # Too tight: version sizes vary a great deal -- 3.3 measured 287 MB, because
+    # an old release rebuilt against current Sphinx grows. Keep a release's worth
+    # of slack so one unusually large version does not trip the guard.
+    assert headroom >= release, (
+        f"keep={keep} leaves only {headroom:.0f} MB; one large version trips the guard"
+    )
+
+    # Too few: leaving two releases of budget unused needlessly shortens the
+    # archive, which is the whole point of publishing versions at all.
+    assert headroom < 2 * release, (
+        f"keep={keep} leaves {headroom:.0f} MB unused; the archive could be longer"
+    )

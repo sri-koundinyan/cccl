@@ -103,11 +103,17 @@ def plan(
 
     # A published release names its own ref and component, so nothing is typed
     # and nothing can be mistyped.
+    #
+    # Whether a release should be published at all is decided here rather than
+    # in the workflow's job condition, so that it is testable and stated once.
+    # The tag pattern below already rejects v3.5.0-rc1 and friends; this catches
+    # the case a pattern cannot see -- a clean tag like v3.5.0 whose GitHub
+    # Release was marked pre-release by hand.
     if event == "release":
         if release_prerelease:
             raise PlanError(
-                f"error: {release_tag} is a pre-release; its documentation is not"
-                " published."
+                f"error: {release_tag} is marked a pre-release; its documentation"
+                " is not published."
             )
         source_ref = release_tag
         component = "python" if release_tag.startswith("python-") else "cpp"
