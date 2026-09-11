@@ -7,17 +7,10 @@
     "preferred": false
   },
   {
-    "name": "3.6.0",
-    "version": "3.6",
-    "url": "https://sri-koundinyan.github.io/cccl/3.6/",
-    "latest": true,
-    "preferred": true
-  },
-  {
     "name": "3.4.2",
     "version": "3.4",
     "url": "https://sri-koundinyan.github.io/cccl/3.4/",
-    "latest": false,
-    "preferred": false
+    "latest": true,
+    "preferred": true
   }
 ]
