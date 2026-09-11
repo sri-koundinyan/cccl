@@ -252,17 +252,15 @@ jobs:
             # over by the seed, so the publish below deletes exactly the files
             # this build no longer produces -- and nothing in any other version
             # or component.
-            echo "placing ${component} ${VERSION_DIR}"
+            # The exact release is logged, not published. /cccl/3.4/ means "the
+            # 3.4 line, newest patch", and the switcher says 3.4 to match. A
+            # label naming the patch would claim the URL is frozen at it, which
+            # it is not -- the next patch replaces this directory. Which patch
+            # built it is provenance, and belongs in this log.
+            echo "placing ${component} ${VERSION_DIR}${RELEASE_LABEL:+ (built from ${RELEASE_LABEL})}"
             rm -rf "${component_root:?}/${VERSION_DIR:?}"
             mkdir -p "${component_root}/${VERSION_DIR}"
             cp -a "${build}/${VERSION_DIR}/." "${component_root}/${VERSION_DIR}/"
-
-            # The exact release that produced this directory. The switcher shows
-            # it while matching on the directory name, which is how /3.4/ can be
-            # labelled 3.4.2 without a directory per patch release.
-            if [[ -n "${RELEASE_LABEL}" ]]; then
-              printf '%s' "${RELEASE_LABEL}" > "${component_root}/${VERSION_DIR}/.release"
-            fi
           done < <(python3 -c "import json,sys;[print('|'.join([c['id'],c['path'],c['build']])) for c in json.loads(sys.argv[1])]" "${COMPONENT_PLAN}")
 
       - name: Assemble the site

@@ -110,17 +110,24 @@ DEFAULT_KEEP_RELEASES = 3
 # versions are unusually large rather than unusually numerous.
 SIZE_BUDGET_BYTES = 900 * 1024 * 1024
 
-# A published version directory: the development tip, or a release line. Release
-# docs are kept per MAJOR.MINOR rather than per patch because the size budget
-# cannot accommodate one directory per patch; the exact patch that built a
-# directory is carried in its label instead. See RELEASE_LABEL_FILE.
+# A published version directory: the development tip, or a release line.
+#
+# One directory per MAJOR.MINOR, holding the newest patch on that line, and the
+# switcher shows that same MAJOR.MINOR. Both halves matter:
+#
+# Per minor rather than per patch, because a C++ version is ~109 MB against a
+# 1 GB ceiling -- a directory per patch would fill the site in a year.
+#
+# Labelled with the minor rather than the patch it currently holds, because the
+# label should describe what the URL durably provides. /cccl/3.4/ provides "the
+# 3.4 line, newest patch"; labelling it "3.4.3" claims something the URL cannot
+# honour, since tomorrow the same URL is 3.4.4 and anyone who noted the patch
+# was misled. This is also what Python, Django and NumPy do -- docs.python.org
+# lists 3.13, not 3.13.7.
+#
+# Which patch actually built a directory is recorded in the deploy log, where it
+# is provenance rather than a promise.
 VERSION_DIR = re.compile(r"^(?:unstable|[0-9]+\.[0-9]+)$")
-
-# Written into a version directory at publish time, holding the full version of
-# the release that produced it ("3.4.2" in a directory named "3.4"). The switcher
-# matches on the directory name and displays this, which is how readers get
-# patch-level precision without a directory per patch.
-RELEASE_LABEL_FILE = ".release"
 
 # Sphinx stamps this into every page. It is what the switcher compares against a
 # manifest entry's "version" to decide which entry to highlight.
@@ -215,38 +222,6 @@ def retire_old_releases(component_root, component_id, versions):
             shutil.rmtree(directory)
 
     return [v for v in versions if v not in set(retire)]
-
-
-def release_label(version_dir):
-    """The version to display for a directory: the exact release that built it.
-
-    The label is the one thing readers see that is not checked against anything
-    else -- the directory name is verified against what Sphinx stamped into the
-    pages, but a label is just a string in a file. An unchecked label can claim
-    a directory is any version at all, which is a worse lie than having no label,
-    so it must be consistent with the directory it describes: "3.4" may be
-    labelled "3.4" or "3.4.2", never "3.5.0" or "9.9.9".
-
-    Falls back to the directory name, so a version published before this file
-    existed still gets a sensible label rather than nothing.
-    """
-    label_file = version_dir / RELEASE_LABEL_FILE
-    if label_file.is_file():
-        label = label_file.read_text(encoding="utf-8").strip()
-        if label:
-            if label != version_dir.name and not label.startswith(
-                version_dir.name + "."
-            ):
-                raise SystemExit(
-                    f"error: {version_dir / RELEASE_LABEL_FILE} says {label!r},"
-                    f" which is not a release of {version_dir.name!r}.\n"
-                    "       The switcher would show readers a version number"
-                    " this directory does not\n"
-                    "       contain. Republish the version, or correct the"
-                    " label."
-                )
-            return label
-    return version_dir.name
 
 
 def stamped_version(version_dir):
@@ -375,7 +350,6 @@ def write_manifests(component_root, component, versions, default_version, base_u
     for version in versions:
         entries.append(
             {
-                "name": release_label(component_root / version),
                 "version": version,
                 "url": f"{base_url}{version}/",
                 "latest": version == default_version,
@@ -388,7 +362,7 @@ def write_manifests(component_root, component, versions, default_version, base_u
     )
 
     # Kept for anything still reading the older format.
-    legacy = {entry["version"]: entry["name"] for entry in entries}
+    legacy = {entry["version"]: entry["version"] for entry in entries}
     (component_root / "versions.json").write_text(
         json.dumps(legacy, indent=2) + "\n", encoding="utf-8"
     )
@@ -513,7 +487,7 @@ def write_site_root(site_root, published, base_url, template_dir):
                 f'      <a class="card" href="{href}">\n'
                 f"        <h2>{component['label']}</h2>\n"
                 f"        <p>{component['description']}</p>\n"
-                f'        <p class="version">{state["label"]}</p>\n'
+                f'        <p class="version">{state["default"]}</p>\n'
                 f"      </a>"
             )
         landing = (template_dir / "landing.html").read_text(encoding="utf-8")
@@ -647,7 +621,6 @@ def main(argv=None):
         published[component["id"]] = {
             "versions": versions,
             "default": default_version,
-            "label": release_label(component_root / default_version),
         }
 
     if not published:

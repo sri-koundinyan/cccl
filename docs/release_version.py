@@ -20,9 +20,14 @@ the version from the installed package rather than from a workflow input.
     #define CCCL_VERSION 3004002        ->  3.4.2
 
 The directory keeps only ``MAJOR.MINOR`` because the size budget cannot
-accommodate one directory per patch release; the full version travels alongside
-as the label the version switcher displays. So a reader browsing ``/cccl/3.4/``
-sees "3.4.2" in the dropdown and knows exactly which release they are reading.
+accommodate one directory per patch release. ``/cccl/3.4/`` therefore means "the
+3.4 line, newest patch", and that is what the version switcher shows.
+
+``release_label`` carries the full version anyway, but it is **not published**.
+It goes to the deploy log, so "which patch produced this directory" is
+answerable from the Actions history. Showing it in the switcher would claim the
+URL is frozen at that patch, which it is not -- the next patch replaces the
+directory, and a reader who noted "3.4.2" would have been misled.
 
 The Python package is versioned separately, from its own ``python-*`` tags::
 

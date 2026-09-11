@@ -13,6 +13,7 @@ Run directly, or via the pre-commit hook that runs them on every PR:
 
 import json
 import os
+import shutil
 import subprocess
 
 import deploy_plan
@@ -30,7 +31,7 @@ import release_version
 # --------------------------------------------------------------------------
 
 
-def make_version(root, name, *, stamp=None, label=None, index=True, pages=()):
+def make_version(root, name, *, stamp=None, index=True, pages=()):
     """Create a stand-in for one built version directory."""
     directory = root / name
     directory.mkdir(parents=True, exist_ok=True)
@@ -51,11 +52,6 @@ def make_version(root, name, *, stamp=None, label=None, index=True, pages=()):
         page_path = directory / page
         page_path.parent.mkdir(parents=True, exist_ok=True)
         page_path.write_text("<html>page</html>", encoding="utf-8")
-
-    if label is not None:
-        (directory / publish_site.RELEASE_LABEL_FILE).write_text(
-            label, encoding="utf-8"
-        )
 
     return directory
 
@@ -130,7 +126,7 @@ def test_no_release_published_means_no_latest_alias(tmp_path):
 
 def test_publishing_a_release_promotes_it(tmp_path):
     make_version(tmp_path, "unstable")
-    make_version(tmp_path, "3.4", label="3.4.2")
+    make_version(tmp_path, "3.4")
 
     assemble(tmp_path)
 
@@ -166,7 +162,7 @@ def test_override_naming_an_unpublished_version_degrades_safely(tmp_path, capsys
 def test_site_root_never_targets_the_latest_alias(tmp_path):
     """The root must point at a real version directory, not at the stub tree."""
     make_version(tmp_path, "unstable")
-    make_version(tmp_path, "3.4", label="3.4.2")
+    make_version(tmp_path, "3.4")
 
     assemble(tmp_path)
 
@@ -180,27 +176,39 @@ def test_site_root_never_targets_the_latest_alias(tmp_path):
 # --------------------------------------------------------------------------
 
 
-def test_release_label_is_displayed_but_not_matched_against(tmp_path):
-    """This is what gives patch precision without a directory per patch."""
-    make_version(tmp_path, "unstable")
-    make_version(tmp_path, "3.4", label="3.4.2")
+def test_switcher_shows_the_directory_not_the_patch(tmp_path):
+    """/cccl/3.4/ means "the 3.4 line, newest patch", so the switcher says 3.4.
 
-    assemble(tmp_path)
-
-    entry = next(e for e in manifest(tmp_path) if e["version"] == "3.4")
-    assert entry["name"] == "3.4.2"  # what the reader sees
-    assert entry["version"] == "3.4"  # what version_match is compared against
-    assert entry["url"].endswith("/3.4/")
-
-
-def test_missing_label_falls_back_to_the_directory_name(tmp_path):
+    Naming the patch would claim the URL is frozen at it. It is not: the next
+    patch replaces this directory, and a reader who noted "3.4.2" would have
+    been misled. Python, Django and NumPy all label by minor for this reason --
+    docs.python.org lists 3.13, not 3.13.7.
+    """
     make_version(tmp_path, "unstable")
     make_version(tmp_path, "3.4")
 
     assemble(tmp_path)
 
     entry = next(e for e in manifest(tmp_path) if e["version"] == "3.4")
-    assert entry["name"] == "3.4"
+    assert entry["url"].endswith("/3.4/")
+    # No display name at all: the theme falls back to `version`, so there is no
+    # second place a version string can be stated, and none to drift.
+    assert "name" not in entry
+
+
+def test_a_patch_release_replaces_the_line_in_place(tmp_path):
+    """3.4.3 shipping does not add a directory; it takes over 3.4's."""
+    make_version(tmp_path, "3.4", pages=("guide.html",))
+    assemble(tmp_path)
+    before = {e["version"] for e in manifest(tmp_path)}
+
+    # what the deploy does for a patch: replace the directory wholesale
+    shutil.rmtree(tmp_path / "3.4")
+    make_version(tmp_path, "3.4", pages=("guide.html",))
+    assemble(tmp_path)
+
+    assert {e["version"] for e in manifest(tmp_path)} == before == {"3.4"}
+    assert sorted(p.name for p in tmp_path.iterdir() if p.is_dir()) == ["3.4", "latest"]
 
 
 # --------------------------------------------------------------------------
@@ -244,10 +252,10 @@ def test_publishing_one_component_leaves_the_other_correct(tmp_path):
     pointing at whatever it had been before.
     """
     make_version(tmp_path, "unstable")
-    make_version(tmp_path, "3.4", label="3.4.2")
+    make_version(tmp_path, "3.4")
     python_root = tmp_path / "python"
     make_version(python_root, "unstable")
-    make_version(python_root, "1.1", label="1.1.1")
+    make_version(python_root, "1.1")
 
     assemble(tmp_path)
 
@@ -265,7 +273,7 @@ def test_landing_page_appears_only_once_there_is_a_choice(tmp_path):
     assemble(tmp_path)
     assert "refresh" in (tmp_path / "index.html").read_text(encoding="utf-8")
 
-    make_version(tmp_path / "python", "1.1", label="1.1.1")
+    make_version(tmp_path / "python", "1.1")
     assemble(tmp_path)
     root = (tmp_path / "index.html").read_text(encoding="utf-8")
     assert "python/1.1/" in root
@@ -275,7 +283,7 @@ def test_landing_page_appears_only_once_there_is_a_choice(tmp_path):
 def test_component_with_nothing_published_is_not_linked(tmp_path):
     """Never link into a component directory that does not exist."""
     make_version(tmp_path, "unstable")
-    make_version(tmp_path, "3.4", label="3.4.2")
+    make_version(tmp_path, "3.4")
 
     assemble(tmp_path)
 
@@ -289,7 +297,7 @@ def test_component_with_nothing_published_is_not_linked(tmp_path):
 
 
 def test_latest_is_stubs_pointing_at_the_stable_release(tmp_path):
-    make_version(tmp_path, "3.4", label="3.4.2", pages=("guide/deep.html",))
+    make_version(tmp_path, "3.4", pages=("guide/deep.html",))
 
     assemble(tmp_path)
 
@@ -306,13 +314,13 @@ def test_latest_is_stubs_pointing_at_the_stable_release(tmp_path):
 def test_latest_is_rebuilt_when_the_stable_release_changes(tmp_path):
     """Writing the alias only when its target is rebuilt is what made /latest/
     silently serve the previous release after a promotion."""
-    make_version(tmp_path, "3.4", label="3.4.2")
+    make_version(tmp_path, "3.4")
     assemble(tmp_path)
     assert "3.4/index.html" in (tmp_path / "latest" / "index.html").read_text(
         encoding="utf-8"
     )
 
-    make_version(tmp_path, "3.5", label="3.5.0")
+    make_version(tmp_path, "3.5")
     assemble(tmp_path)  # deploys nothing new; 3.5 simply exists now
 
     assert "3.5/index.html" in (tmp_path / "latest" / "index.html").read_text(
@@ -323,7 +331,7 @@ def test_latest_is_rebuilt_when_the_stable_release_changes(tmp_path):
 def test_root_objects_inv_tracks_the_stable_release(tmp_path):
     make_version(tmp_path, "unstable")
     (tmp_path / "unstable" / "objects.inv").write_text("tip", encoding="utf-8")
-    make_version(tmp_path, "3.4", label="3.4.2")
+    make_version(tmp_path, "3.4")
     (tmp_path / "3.4" / "objects.inv").write_text("stable", encoding="utf-8")
 
     assemble(tmp_path)
@@ -339,7 +347,7 @@ def test_root_objects_inv_tracks_the_stable_release(tmp_path):
 def test_size_over_budget_fails_before_upload(tmp_path, monkeypatch):
     """Better an actionable error here than a rejected upload from Pages."""
     monkeypatch.setattr(publish_site, "SIZE_BUDGET_BYTES", 1024)
-    make_version(tmp_path, "3.4", label="3.4.2")
+    make_version(tmp_path, "3.4")
     (tmp_path / "3.4" / "big.html").write_text("x" * 4096, encoding="utf-8")
 
     with pytest.raises(SystemExit) as excinfo:
@@ -356,8 +364,8 @@ def test_size_over_budget_fails_before_upload(tmp_path, monkeypatch):
 
 def test_routing_block_describes_what_is_published(tmp_path):
     make_version(tmp_path, "unstable")
-    make_version(tmp_path, "3.4", label="3.4.2")
-    make_version(tmp_path / "python", "1.1", label="1.1.1")
+    make_version(tmp_path, "3.4")
+    make_version(tmp_path / "python", "1.1")
 
     assemble(tmp_path)
 
@@ -802,29 +810,6 @@ def test_retirement_still_runs_around_a_pin(tmp_path, monkeypatch):
     assert (tmp_path / "3.4").is_dir()  # pinned
     assert (tmp_path / "3.7").is_dir() and (tmp_path / "3.6").is_dir()
     assert not (tmp_path / "3.5").exists()  # retired normally
-
-
-def test_a_label_cannot_claim_another_version(tmp_path):
-    """The label is the only thing readers see that nothing else corroborates,
-    so it must be consistent with the directory it describes."""
-    make_version(tmp_path, "unstable")
-    make_version(tmp_path, "3.4", label="9.9.9")
-
-    with pytest.raises(SystemExit) as excinfo:
-        assemble(tmp_path)
-
-    assert "not a release of" in str(excinfo.value)
-
-
-@pytest.mark.parametrize("label", ["3.4", "3.4.2", "3.4.10"])
-def test_labels_in_the_line_are_accepted(tmp_path, label):
-    make_version(tmp_path, "unstable")
-    make_version(tmp_path, "3.4", label=label)
-
-    assemble(tmp_path)
-
-    entry = next(e for e in manifest(tmp_path) if e["version"] == "3.4")
-    assert entry["name"] == label
 
 
 def test_retention_is_sized_against_a_release_not_the_tip():
