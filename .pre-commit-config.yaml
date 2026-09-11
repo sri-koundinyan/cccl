@@ -143,7 +143,7 @@ repos:
         name: docs site assembly tests
         entry: python -m pytest -q docs/test_publish_site.py
         language: python
-        additional_dependencies: [pytest]
+        additional_dependencies: [pytest, pyyaml]
         files: ^docs/(publish_site|release_version|test_publish_site)\.py$
         pass_filenames: false
 

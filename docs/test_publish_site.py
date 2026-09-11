@@ -13,6 +13,9 @@ Run directly, or via the pre-commit hook that runs them on every PR:
 
 import json
 import os
+import re
+import subprocess
+from pathlib import Path
 
 import publish_site
 import pytest
@@ -593,3 +596,176 @@ def test_expect_is_ignored_for_the_tip(tmp_path):
     checkout = make_checkout(tmp_path, 3006000, version_md="3.6\n")
 
     assert release_version.derive(checkout, tip=True, expect="3.4") == ("unstable", "")
+
+
+# --------------------------------------------------------------------------
+# The deploy workflow's input validation
+#
+# This logic decides which component a deploy publishes and which directory it
+# lands in, and it is bash embedded in YAML, so nothing else type-checks it. It
+# has had three separate bugs: every tag validated against the C++ pattern
+# (rejecting every Python release), a branch off main publishing as a release of
+# main's version, and the component list resolved before the release event had
+# set the component. Exercised here against a stubbed git so it needs no network.
+# --------------------------------------------------------------------------
+
+WORKFLOW = Path(__file__).resolve().parent.parent / ".github/workflows/docs-deploy.yml"
+
+KNOWN_TAGS = {
+    "v3.4.2",
+    "v3.4.1",
+    "v3.5.0-rc1",
+    "v3.6.0.dev",
+    "python-1.1.1",
+    "python-1.0.2",
+}
+KNOWN_BRANCHES = {"main", "branch/3.4.x", "docs-backfill-3.4"}
+
+
+def _validate_script():
+    yaml = pytest.importorskip("yaml")
+    steps = yaml.safe_load(WORKFLOW.read_text())["jobs"]["deploy"]["steps"]
+    step = next(s for s in steps if s["name"] == "Validate inputs")
+    # GitHub expressions are substituted by the runner; the env below stands in.
+    return re.sub(r"\$\{\{[^}]*\}\}", "", step["run"])
+
+
+def run_validate(tmp_path, **env):
+    """Run the workflow's validation step with git stubbed out."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(exist_ok=True)
+    (bin_dir / "git").write_text(
+        "#!/usr/bin/env bash\n"
+        'ref="${!#}"\n'
+        'case " $* " in\n'
+        '  *" --tags "*) known="%s" ;;\n'
+        '  *" --heads "*) known="%s" ;;\n'
+        "  *) exit 2 ;;\n"
+        "esac\n"
+        'for k in ${known}; do [[ "${ref}" == "refs/tags/${k}" || "${ref}" == "refs/heads/${k}" ]] && exit 0; done\n'
+        "exit 2\n" % (" ".join(sorted(KNOWN_TAGS)), " ".join(sorted(KNOWN_BRANCHES)))
+    )
+    (bin_dir / "git").chmod(0o755)
+
+    script = tmp_path / "validate.bash"
+    script.write_text(_validate_script())
+    output = tmp_path / "gh_output"
+    output.write_text("")
+
+    full = {
+        "PATH": f"{bin_dir}:{os.environ['PATH']}",
+        "GITHUB_OUTPUT": str(output),
+        "EVENT": "",
+        "RELEASE_TAG": "",
+        "COMPONENT": "",
+        "SOURCE_REF": "",
+        "DOCS_BRANCH": "",
+        "PUBLISH_AS": "",
+    }
+    full.update(env)
+    result = subprocess.run(
+        ["bash", "-euo", "pipefail", str(script)],
+        env=full,
+        capture_output=True,
+        text=True,
+    )
+    parsed = dict(
+        line.split("=", 1) for line in output.read_text().splitlines() if "=" in line
+    )
+    return result.returncode, parsed, result.stderr
+
+
+def test_push_to_main_publishes_both_components(tmp_path):
+    """One push advances both, so one deploy publishes both -- otherwise
+    python/unstable goes stale and the STF docs, which exist only on main,
+    are published nowhere."""
+    code, out, _ = run_validate(tmp_path, EVENT="push")
+
+    assert code == 0
+    assert out["components"] == "cpp python"
+    assert out["is_tip"] == "true"
+    assert out["source_ref"] == "main"
+
+
+def test_python_release_publishes_python(tmp_path):
+    """Resolved after the release event sets the component, not before."""
+    code, out, _ = run_validate(tmp_path, EVENT="release", RELEASE_TAG="python-1.1.1")
+
+    assert code == 0
+    assert out["components"] == "python"
+    assert out["source_ref"] == "python-1.1.1"
+
+
+def test_cpp_release_publishes_cpp(tmp_path):
+    code, out, _ = run_validate(tmp_path, EVENT="release", RELEASE_TAG="v3.4.2")
+
+    assert code == 0
+    assert out["components"] == "cpp"
+
+
+def test_branch_without_publish_as_is_rejected(tmp_path):
+    code, _, err = run_validate(
+        tmp_path, EVENT="workflow_dispatch", COMPONENT="cpp", SOURCE_REF="branch/3.4.x"
+    )
+
+    assert code != 0
+    assert "publish_as is required" in err
+
+
+def test_branch_with_publish_as_sets_the_expectation(tmp_path):
+    code, out, _ = run_validate(
+        tmp_path,
+        EVENT="workflow_dispatch",
+        COMPONENT="cpp",
+        SOURCE_REF="docs-backfill-3.4",
+        PUBLISH_AS="3.4",
+    )
+
+    assert code == 0
+    assert out["expect"] == "3.4"
+    assert out["is_tip"] == "false"
+
+
+def test_branch_published_as_unstable_is_a_tip_build(tmp_path):
+    code, out, _ = run_validate(
+        tmp_path,
+        EVENT="workflow_dispatch",
+        COMPONENT="cpp",
+        SOURCE_REF="branch/3.4.x",
+        PUBLISH_AS="unstable",
+    )
+
+    assert code == 0
+    assert out["is_tip"] == "true"
+    assert out["expect"] == ""
+
+
+@pytest.mark.parametrize("tag", ["v3.5.0-rc1", "v3.6.0.dev"])
+def test_pre_release_tags_are_rejected(tmp_path, tag):
+    code, _, err = run_validate(
+        tmp_path, EVENT="workflow_dispatch", COMPONENT="cpp", SOURCE_REF=tag
+    )
+
+    assert code != 0
+    assert "not a cpp release tag" in err
+
+
+def test_components_cannot_borrow_each_others_tags(tmp_path):
+    code, _, err = run_validate(
+        tmp_path, EVENT="workflow_dispatch", COMPONENT="cpp", SOURCE_REF="python-1.1.1"
+    )
+    assert code != 0 and "not a cpp release tag" in err
+
+    code, _, err = run_validate(
+        tmp_path, EVENT="workflow_dispatch", COMPONENT="python", SOURCE_REF="v3.4.2"
+    )
+    assert code != 0 and "not a python release tag" in err
+
+
+def test_production_cannot_be_targeted_by_a_bad_docs_branch(tmp_path):
+    code, _, err = run_validate(
+        tmp_path, EVENT="workflow_dispatch", COMPONENT="cpp", DOCS_BRANCH="main"
+    )
+
+    assert code != 0
+    assert "gh-pages" in err
