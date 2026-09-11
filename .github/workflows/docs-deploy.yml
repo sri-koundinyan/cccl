@@ -89,136 +89,21 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Validate inputs
+      # The logic that decides what gets published, and where. In Python
+      # rather than inline bash because it is the highest-consequence decision
+      # here and nothing type-checks bash embedded in YAML; see the file header.
+      - name: Plan the deploy
         id: inputs
         shell: bash --noprofile --norc -euo pipefail {0}
-        env:
-          SOURCE_REF: ${{ github.event.inputs.source_ref }}
-          DOCS_BRANCH: ${{ github.event.inputs.docs_branch }}
-          COMPONENT: ${{ github.event.inputs.component }}
-          PUBLISH_AS: ${{ github.event.inputs.publish_as }}
-          EVENT: ${{ github.event_name }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-          RELEASE_IS_PRERELEASE: ${{ github.event.release.prerelease }}
         run: |
-          component="${COMPONENT:-cpp}"
-          docs_branch="${DOCS_BRANCH:-gh-pages}"
-          source_ref="${SOURCE_REF:-}"
-
-          # A published release names its own ref and component; nothing is
-          # typed, so nothing can be mistyped. Pre-releases and tags belonging
-          # to neither component never reach here -- the job's `if` filters
-          # them out from the event payload directly.
-          if [[ "${EVENT}" == "release" ]]; then
-            source_ref="${RELEASE_TAG}"
-            case "${RELEASE_TAG}" in
-              python-*) component="python" ;;
-              *)        component="cpp" ;;
-            esac
-            docs_branch="gh-pages"
-          fi
-
-          # Which components this deploy publishes. Resolved after the release
-          # event has had its say, so a Python release does not inherit the
-          # default of cpp.
-          #
-          # A push to main advances both components at once, so one deploy
-          # publishes both. Modelling a deploy as a single component is what
-          # left python/unstable stale -- and with it the STF documentation,
-          # which exists only on main.
-          if [[ "${EVENT}" == "push" || "${component}" == "all" ]]; then
-            components="cpp python"
-            # Both are built from the same ref at the same version, which only
-            # makes sense for the development tip.
-            component="cpp"
-            if [[ -n "${source_ref}" && "${source_ref}" != "main" ]]; then
-              echo "error: 'all' publishes both components from main." >&2
-              echo "       A release belongs to one component; publish it by name." >&2
-              exit 1
-            fi
-          else
-            components="${component}"
-          fi
-
-          # Rehearsals must not be able to target production by typo.
-          if [[ "${docs_branch}" != "gh-pages" && "${docs_branch}" != gh-pages-* ]]; then
-            echo "error: docs_branch must be gh-pages or a gh-pages-* branch," \
-                 "got '${docs_branch}'" >&2
-            exit 1
-          fi
-
-          expect=""
-
-          # A push to main, or a dispatch with no ref, publishes the tip.
-          if [[ -z "${source_ref}" || "${source_ref}" == "main" ]]; then
-            source_ref="main"
-            is_tip="true"
-            if [[ -n "${PUBLISH_AS}" && "${PUBLISH_AS}" != "unstable" ]]; then
-              echo "error: main always publishes to unstable; drop publish_as." >&2
-              exit 1
-            fi
-          else
-            is_tip="false"
-            # Classify the ref rather than pattern-match a version string. A tag
-            # is an immutable release marker and must look like one; a branch is
-            # deliberate and human-created, which is how the one-time 3.4
-            # backfill is published from a patched branch.
-            # The two components are versioned independently and tag
-            # differently: C++ releases are vX.Y.Z, the Python package's are
-            # python-X.Y.Z.
-            case "${component}" in
-              cpp)    release_tag='^v[0-9]+\.[0-9]+\.[0-9]+$'; example="v3.5.0" ;;
-              python) release_tag='^python-[0-9]+\.[0-9]+\.[0-9]+$'; example="python-1.1.1" ;;
-            esac
-
-            if git ls-remote --exit-code --tags origin "refs/tags/${source_ref}" >/dev/null 2>&1; then
-              if [[ ! "${source_ref}" =~ ${release_tag} ]]; then
-                echo "error: '${source_ref}' is a tag, but not a ${component} release tag." >&2
-                echo "       Expected something like ${example}." >&2
-                echo "       Pre-release tags (v3.5.0-rc0, v3.6.0.dev, v3.4.2-ctk0) must" >&2
-                echo "       not be published as the release they precede, and the two" >&2
-                echo "       components must not be published under each other's numbers." >&2
-                exit 1
-              fi
-            elif git ls-remote --exit-code --heads origin "refs/heads/${source_ref}" >/dev/null 2>&1; then
-              # A branch is not self-describing: one cut from main carries
-              # main's version, so publishing it as a release would create a
-              # directory for a version that was never released. Make the
-              # caller say which directory they mean; publish_as is then
-              # checked against what the tree actually derives, so it can
-              # acknowledge the version but never invent one.
-              if [[ -z "${PUBLISH_AS}" ]]; then
-                echo "error: '${source_ref}' is a branch, so publish_as is required." >&2
-                echo "       Use publish_as=unstable to preview it as the development" >&2
-                echo "       docs, or publish_as=MAJOR.MINOR to publish a release built" >&2
-                echo "       from a patched release branch (e.g. the 3.4 backfill)." >&2
-                exit 1
-              fi
-              if [[ "${PUBLISH_AS}" == "unstable" ]]; then
-                is_tip="true"
-              elif [[ "${PUBLISH_AS}" =~ ^[0-9]+\.[0-9]+$ ]]; then
-                expect="${PUBLISH_AS}"
-              else
-                echo "error: publish_as must be 'unstable' or MAJOR.MINOR," \
-                     "got '${PUBLISH_AS}'." >&2
-                exit 1
-              fi
-            else
-              echo "error: '${source_ref}' is neither a tag nor a branch on origin." >&2
-              exit 1
-            fi
-          fi
-
-          {
-            echo "component=${component}"
-            echo "components=${components}"
-            echo "docs_branch=${docs_branch}"
-            echo "source_ref=${source_ref}"
-            echo "is_tip=${is_tip}"
-            echo "expect=${expect}"
-          } >> "${GITHUB_OUTPUT}"
-
-          echo "Publishing ${component} from ${source_ref} to ${docs_branch}"
+          python3 docs/deploy_plan.py \
+            --event "${{ github.event_name }}" \
+            --release-tag "${{ github.event.release.tag_name }}" \
+            --release-prerelease "${{ github.event.release.prerelease }}" \
+            --component "${{ github.event.inputs.component }}" \
+            --source-ref "${{ github.event.inputs.source_ref }}" \
+            --publish-as "${{ github.event.inputs.publish_as }}" \
+            --docs-branch "${{ github.event.inputs.docs_branch }}"
 
       - name: Compute base URL
         id: base_url
@@ -318,7 +203,7 @@ jobs:
       - name: Replace the versions being published
         shell: bash --noprofile --norc -euo pipefail {0}
         env:
-          COMPONENTS: ${{ steps.inputs.outputs.components }}
+          COMPONENT_PLAN: ${{ steps.inputs.outputs.component_plan }}
           VERSION_DIR: ${{ steps.version.outputs.version_dir }}
           RELEASE_LABEL: ${{ steps.version.outputs.release_label }}
           PAGES_EXISTS: ${{ steps.pages.outputs.exists }}
@@ -346,19 +231,12 @@ jobs:
             fi
           fi
 
-          for component in ${COMPONENTS}; do
-            case "${component}" in
-              cpp)
-                component_root="_publish"
-                build="source/docs/_build/html"
-                ;;
-              python)
-                component_root="_publish/python"
-                build="source/docs/_build/python-html"
-                ;;
-              *)
-                echo "error: unknown component '${component}'" >&2; exit 1 ;;
-            esac
+          # Where each component lives on the site comes from the plan, which
+          # takes it from publish_site.COMPONENTS -- so assembly and publishing
+          # cannot disagree about a component's path.
+          while IFS='|' read -r component path build_subdir; do
+            component_root="_publish${path:+/${path}}"
+            build="source/docs/_build/${build_subdir}"
             mkdir -p "${component_root}"
 
             if [[ ! -d "${build}/${VERSION_DIR}" ]]; then
@@ -381,7 +259,7 @@ jobs:
             if [[ -n "${RELEASE_LABEL}" ]]; then
               printf '%s' "${RELEASE_LABEL}" > "${component_root}/${VERSION_DIR}/.release"
             fi
-          done
+          done < <(python3 -c "import json,sys;[print('|'.join([c['id'],c['path'],c['build']])) for c in json.loads(sys.argv[1])]" "${COMPONENT_PLAN}")
 
       - name: Assemble the site
         shell: bash --noprofile --norc -euo pipefail {0}

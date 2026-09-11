@@ -13,10 +13,9 @@ Run directly, or via the pre-commit hook that runs them on every PR:
 
 import json
 import os
-import re
 import subprocess
-from pathlib import Path
 
+import deploy_plan
 import publish_site
 import pytest
 import release_version
@@ -465,7 +464,6 @@ def test_non_python_release_tags_are_rejected(tag):
 def test_python_version_comes_from_python_tags_not_cpp(tmp_path):
     """main's pyproject derives the package version from v[0-9]* -- the C++
     tags. The docs must version Python by Python's own releases regardless."""
-    import subprocess
 
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -604,193 +602,202 @@ def test_expect_is_ignored_for_the_tip(tmp_path):
 
 
 # --------------------------------------------------------------------------
-# The deploy workflow's input validation
+# What a deploy publishes, and where
 #
-# This logic decides which component a deploy publishes and which directory it
-# lands in, and it is bash embedded in YAML, so nothing else type-checks it. It
-# has had three separate bugs: every tag validated against the C++ pattern
-# (rejecting every Python release), a branch off main publishing as a release of
-# main's version, and the component list resolved before the release event had
-# set the component. Exercised here against a stubbed git so it needs no network.
+# This decides which component's documentation is published, from which ref,
+# into which directory -- the highest-consequence decision in the deploy. It was
+# bash embedded in YAML and accumulated three bugs there, each reproduced below.
+# Calling plan() directly needs no git, no shell and no workflow runner.
 # --------------------------------------------------------------------------
 
-WORKFLOW = Path(__file__).resolve().parent.parent / ".github/workflows/docs-deploy.yml"
-
-KNOWN_TAGS = {
-    "v3.4.2",
-    "v3.4.1",
-    "v3.5.0-rc1",
-    "v3.6.0.dev",
-    "python-1.1.1",
-    "python-1.0.2",
-}
+KNOWN_TAGS = {"v3.4.2", "v3.5.0-rc1", "v3.6.0.dev", "v3.4.2-ctk0", "python-1.1.1"}
 KNOWN_BRANCHES = {"main", "branch/3.4.x", "docs-backfill-3.4"}
 
 
-def _validate_script():
-    yaml = pytest.importorskip("yaml")
-    steps = yaml.safe_load(WORKFLOW.read_text())["jobs"]["deploy"]["steps"]
-    step = next(s for s in steps if s["name"] == "Validate inputs")
-    # GitHub expressions are substituted by the runner; the env below stands in.
-    return re.sub(r"\$\{\{[^}]*\}\}", "", step["run"])
+def fake_refs(ref):
+    if ref in KNOWN_TAGS:
+        return "tag"
+    if ref in KNOWN_BRANCHES:
+        return "branch"
+    return None
 
 
-def run_validate(tmp_path, **env):
-    """Run the workflow's validation step with git stubbed out."""
-    bin_dir = tmp_path / "bin"
-    bin_dir.mkdir(exist_ok=True)
-    (bin_dir / "git").write_text(
-        "#!/usr/bin/env bash\n"
-        'ref="${!#}"\n'
-        'case " $* " in\n'
-        '  *" --tags "*) known="%s" ;;\n'
-        '  *" --heads "*) known="%s" ;;\n'
-        "  *) exit 2 ;;\n"
-        "esac\n"
-        'for k in ${known}; do [[ "${ref}" == "refs/tags/${k}" || "${ref}" == "refs/heads/${k}" ]] && exit 0; done\n'
-        "exit 2\n" % (" ".join(sorted(KNOWN_TAGS)), " ".join(sorted(KNOWN_BRANCHES)))
-    )
-    (bin_dir / "git").chmod(0o755)
-
-    script = tmp_path / "validate.bash"
-    script.write_text(_validate_script())
-    output = tmp_path / "gh_output"
-    output.write_text("")
-
-    full = {
-        "PATH": f"{bin_dir}:{os.environ['PATH']}",
-        "GITHUB_OUTPUT": str(output),
-        "EVENT": "",
-        "RELEASE_TAG": "",
-        "COMPONENT": "",
-        "SOURCE_REF": "",
-        "DOCS_BRANCH": "",
-        "PUBLISH_AS": "",
-    }
-    full.update(env)
-    result = subprocess.run(
-        ["bash", "-euo", "pipefail", str(script)],
-        env=full,
-        capture_output=True,
-        text=True,
-    )
-    parsed = dict(
-        line.split("=", 1) for line in output.read_text().splitlines() if "=" in line
-    )
-    return result.returncode, parsed, result.stderr
+def make_plan(event, **kwargs):
+    return deploy_plan.plan(event, classify_ref=fake_refs, **kwargs)
 
 
-def test_push_to_main_publishes_both_components(tmp_path):
+def test_push_publishes_both_components():
     """One push advances both, so one deploy publishes both -- otherwise
     python/unstable goes stale and the STF docs, which exist only on main,
     are published nowhere."""
-    code, out, _ = run_validate(tmp_path, EVENT="push")
+    result = make_plan("push")
 
-    assert code == 0
-    assert out["components"] == "cpp python"
-    assert out["is_tip"] == "true"
-    assert out["source_ref"] == "main"
+    assert result["components"] == "cpp python"
+    assert result["is_tip"] == "true"
+    assert result["source_ref"] == "main"
 
 
-def test_python_release_publishes_python(tmp_path):
+def test_python_release_publishes_python():
     """Resolved after the release event sets the component, not before."""
-    code, out, _ = run_validate(tmp_path, EVENT="release", RELEASE_TAG="python-1.1.1")
+    result = make_plan("release", release_tag="python-1.1.1")
 
-    assert code == 0
-    assert out["components"] == "python"
-    assert out["source_ref"] == "python-1.1.1"
-
-
-def test_cpp_release_publishes_cpp(tmp_path):
-    code, out, _ = run_validate(tmp_path, EVENT="release", RELEASE_TAG="v3.4.2")
-
-    assert code == 0
-    assert out["components"] == "cpp"
+    assert result["components"] == "python"
+    assert result["source_ref"] == "python-1.1.1"
 
 
-def test_branch_without_publish_as_is_rejected(tmp_path):
-    code, _, err = run_validate(
-        tmp_path, EVENT="workflow_dispatch", COMPONENT="cpp", SOURCE_REF="branch/3.4.x"
+def test_cpp_release_publishes_cpp():
+    assert make_plan("release", release_tag="v3.4.2")["components"] == "cpp"
+
+
+def test_prerelease_is_not_published():
+    with pytest.raises(SystemExit):
+        make_plan("release", release_tag="v3.5.0-rc1", release_prerelease=True)
+
+
+def test_branch_without_publish_as_is_rejected():
+    with pytest.raises(SystemExit) as excinfo:
+        make_plan("workflow_dispatch", component="cpp", source_ref="branch/3.4.x")
+
+    assert "publish_as is required" in str(excinfo.value)
+
+
+def test_branch_with_publish_as_sets_the_expectation():
+    result = make_plan(
+        "workflow_dispatch",
+        component="cpp",
+        source_ref="docs-backfill-3.4",
+        publish_as="3.4",
     )
 
-    assert code != 0
-    assert "publish_as is required" in err
+    assert result["expect"] == "3.4"
+    assert result["is_tip"] == "false"
 
 
-def test_branch_with_publish_as_sets_the_expectation(tmp_path):
-    code, out, _ = run_validate(
-        tmp_path,
-        EVENT="workflow_dispatch",
-        COMPONENT="cpp",
-        SOURCE_REF="docs-backfill-3.4",
-        PUBLISH_AS="3.4",
+def test_branch_published_as_unstable_is_a_tip_build():
+    result = make_plan(
+        "workflow_dispatch",
+        component="cpp",
+        source_ref="branch/3.4.x",
+        publish_as="unstable",
     )
 
-    assert code == 0
-    assert out["expect"] == "3.4"
-    assert out["is_tip"] == "false"
+    assert result["is_tip"] == "true"
+    assert result["expect"] == ""
 
 
-def test_branch_published_as_unstable_is_a_tip_build(tmp_path):
-    code, out, _ = run_validate(
-        tmp_path,
-        EVENT="workflow_dispatch",
-        COMPONENT="cpp",
-        SOURCE_REF="branch/3.4.x",
-        PUBLISH_AS="unstable",
-    )
+@pytest.mark.parametrize("tag", ["v3.5.0-rc1", "v3.6.0.dev", "v3.4.2-ctk0"])
+def test_pre_release_tags_are_rejected(tag):
+    with pytest.raises(SystemExit) as excinfo:
+        make_plan("workflow_dispatch", component="cpp", source_ref=tag)
 
-    assert code == 0
-    assert out["is_tip"] == "true"
-    assert out["expect"] == ""
+    assert "not a cpp release tag" in str(excinfo.value)
 
 
-@pytest.mark.parametrize("tag", ["v3.5.0-rc1", "v3.6.0.dev"])
-def test_pre_release_tags_are_rejected(tmp_path, tag):
-    code, _, err = run_validate(
-        tmp_path, EVENT="workflow_dispatch", COMPONENT="cpp", SOURCE_REF=tag
-    )
+def test_components_cannot_borrow_each_others_tags():
+    with pytest.raises(SystemExit) as excinfo:
+        make_plan("workflow_dispatch", component="cpp", source_ref="python-1.1.1")
+    assert "not a cpp release tag" in str(excinfo.value)
 
-    assert code != 0
-    assert "not a cpp release tag" in err
-
-
-def test_components_cannot_borrow_each_others_tags(tmp_path):
-    code, _, err = run_validate(
-        tmp_path, EVENT="workflow_dispatch", COMPONENT="cpp", SOURCE_REF="python-1.1.1"
-    )
-    assert code != 0 and "not a cpp release tag" in err
-
-    code, _, err = run_validate(
-        tmp_path, EVENT="workflow_dispatch", COMPONENT="python", SOURCE_REF="v3.4.2"
-    )
-    assert code != 0 and "not a python release tag" in err
+    with pytest.raises(SystemExit) as excinfo:
+        make_plan("workflow_dispatch", component="python", source_ref="v3.4.2")
+    assert "not a python release tag" in str(excinfo.value)
 
 
-def test_production_cannot_be_targeted_by_a_bad_docs_branch(tmp_path):
-    code, _, err = run_validate(
-        tmp_path, EVENT="workflow_dispatch", COMPONENT="cpp", DOCS_BRANCH="main"
-    )
+def test_production_cannot_be_targeted_by_typo():
+    with pytest.raises(SystemExit) as excinfo:
+        make_plan("workflow_dispatch", component="cpp", docs_branch="main")
 
-    assert code != 0
-    assert "gh-pages" in err
+    assert "gh-pages" in str(excinfo.value)
 
 
-def test_component_all_publishes_both(tmp_path):
-    """Makes the two-component path reachable by dispatch, so it can be
-    exercised without pushing to main."""
-    code, out, _ = run_validate(tmp_path, EVENT="workflow_dispatch", COMPONENT="all")
+def test_all_publishes_both():
+    result = make_plan("workflow_dispatch", component="all")
 
-    assert code == 0
-    assert out["components"] == "cpp python"
-    assert out["is_tip"] == "true"
+    assert result["components"] == "cpp python"
+    assert result["is_tip"] == "true"
 
 
-def test_all_refuses_release_ref(tmp_path):
+def test_all_refuses_a_release_ref():
     """A release belongs to one component, so 'all' cannot mean a tag."""
-    code, _, err = run_validate(
-        tmp_path, EVENT="workflow_dispatch", COMPONENT="all", SOURCE_REF="v3.4.2"
+    with pytest.raises(SystemExit) as excinfo:
+        make_plan("workflow_dispatch", component="all", source_ref="v3.4.2")
+
+    assert "publishes both components from main" in str(excinfo.value)
+
+
+def test_unknown_ref_is_rejected():
+    with pytest.raises(SystemExit) as excinfo:
+        make_plan("workflow_dispatch", component="cpp", source_ref="nope")
+
+    assert "neither a tag nor a branch" in str(excinfo.value)
+
+
+def test_component_paths_come_from_the_site_layout():
+    """The workflow places builds using this plan, so a component's path is
+    defined once -- in publish_site.COMPONENTS -- rather than repeated in YAML
+    where the two could silently disagree."""
+    planned = json.loads(make_plan("push")["component_plan"])
+    by_id = {c["id"]: c for c in planned}
+
+    for component in publish_site.COMPONENTS:
+        assert by_id[component["id"]]["path"] == component["path"]
+    assert by_id["cpp"]["build"] == "html"
+    assert by_id["python"]["build"] == "python-html"
+
+
+def test_pinned_version_survives_retirement(tmp_path, monkeypatch):
+    """Retirement must not delete the version readers are pinned to.
+
+    The override exists to hold people off a bad release; retiring its target
+    would delete the safe version and move everyone onto the release they were
+    being protected from.
+    """
+    monkeypatch.setitem(publish_site.KEEP_RELEASES, "cpp", 3)
+    monkeypatch.setattr(publish_site, "LATEST_STABLE_OVERRIDE", {"cpp": "3.4"})
+    for name in ("unstable", "3.4", "3.5", "3.6", "3.7"):
+        make_version(tmp_path, name)
+
+    assemble(tmp_path)
+
+    assert (tmp_path / "3.4").is_dir()
+    assert [e["version"] for e in manifest(tmp_path) if e["preferred"]] == ["3.4"]
+    assert "3.4/index.html" in (tmp_path / "latest" / "index.html").read_text(
+        encoding="utf-8"
     )
 
-    assert code != 0
-    assert "publishes both components from main" in err
+
+def test_retirement_still_runs_around_a_pin(tmp_path, monkeypatch):
+    """Pinning one version must not disable retirement for the others."""
+    monkeypatch.setitem(publish_site.KEEP_RELEASES, "cpp", 2)
+    monkeypatch.setattr(publish_site, "LATEST_STABLE_OVERRIDE", {"cpp": "3.4"})
+    for name in ("3.4", "3.5", "3.6", "3.7"):
+        make_version(tmp_path, name)
+
+    assemble(tmp_path)
+
+    assert (tmp_path / "3.4").is_dir()  # pinned
+    assert (tmp_path / "3.7").is_dir() and (tmp_path / "3.6").is_dir()
+    assert not (tmp_path / "3.5").exists()  # retired normally
+
+
+def test_a_label_cannot_claim_another_version(tmp_path):
+    """The label is the only thing readers see that nothing else corroborates,
+    so it must be consistent with the directory it describes."""
+    make_version(tmp_path, "unstable")
+    make_version(tmp_path, "3.4", label="9.9.9")
+
+    with pytest.raises(SystemExit) as excinfo:
+        assemble(tmp_path)
+
+    assert "not a release of" in str(excinfo.value)
+
+
+@pytest.mark.parametrize("label", ["3.4", "3.4.2", "3.4.10"])
+def test_labels_in_the_line_are_accepted(tmp_path, label):
+    make_version(tmp_path, "unstable")
+    make_version(tmp_path, "3.4", label=label)
+
+    assemble(tmp_path)
+
+    entry = next(e for e in manifest(tmp_path) if e["version"] == "3.4")
+    assert entry["name"] == label

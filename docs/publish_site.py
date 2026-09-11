@@ -177,6 +177,22 @@ def retire_old_releases(component_root, component_id, versions):
 
     # `versions` is already newest-first, so the tail is the oldest.
     retire = releases[keep:]
+
+    # Never retire a version readers are deliberately pinned to. The override
+    # exists to hold people off a bad release; retiring its target would delete
+    # the safe version and move everyone onto the release they were being
+    # protected from -- the exact opposite of what was asked for.
+    pinned = (LATEST_STABLE_OVERRIDE or {}).get(component_id)
+    if pinned in retire:
+        retire.remove(pinned)
+        print(
+            f"  keeping {component_id} {pinned} past the retention limit:"
+            " readers are pinned to it"
+        )
+
+    if not retire:
+        return versions
+
     for version in retire:
         directory = component_root / version
         print(
@@ -191,6 +207,13 @@ def retire_old_releases(component_root, component_id, versions):
 def release_label(version_dir):
     """The version to display for a directory: the exact release that built it.
 
+    The label is the one thing readers see that is not checked against anything
+    else -- the directory name is verified against what Sphinx stamped into the
+    pages, but a label is just a string in a file. An unchecked label can claim
+    a directory is any version at all, which is a worse lie than having no label,
+    so it must be consistent with the directory it describes: "3.4" may be
+    labelled "3.4" or "3.4.2", never "3.5.0" or "9.9.9".
+
     Falls back to the directory name, so a version published before this file
     existed still gets a sensible label rather than nothing.
     """
@@ -198,6 +221,17 @@ def release_label(version_dir):
     if label_file.is_file():
         label = label_file.read_text(encoding="utf-8").strip()
         if label:
+            if label != version_dir.name and not label.startswith(
+                version_dir.name + "."
+            ):
+                raise SystemExit(
+                    f"error: {version_dir / RELEASE_LABEL_FILE} says {label!r},"
+                    f" which is not a release of {version_dir.name!r}.\n"
+                    "       The switcher would show readers a version number"
+                    " this directory does not\n"
+                    "       contain. Republish the version, or correct the"
+                    " label."
+                )
             return label
     return version_dir.name
 
