@@ -21,6 +21,11 @@ import publish_site
 import pytest
 import release_version
 
+# Note on naming: keep test function names off exactly 40 characters. Lob API
+# test keys are literally "test_" followed by 35 characters, so the repo's
+# trufflehog hook reports any 40-character test_* identifier as a verified
+# secret. Four names in this file tripped it before this was understood.
+
 # --------------------------------------------------------------------------
 # Fixtures: synthetic published sites
 # --------------------------------------------------------------------------
@@ -769,3 +774,23 @@ def test_production_cannot_be_targeted_by_a_bad_docs_branch(tmp_path):
 
     assert code != 0
     assert "gh-pages" in err
+
+
+def test_component_all_publishes_both(tmp_path):
+    """Makes the two-component path reachable by dispatch, so it can be
+    exercised without pushing to main."""
+    code, out, _ = run_validate(tmp_path, EVENT="workflow_dispatch", COMPONENT="all")
+
+    assert code == 0
+    assert out["components"] == "cpp python"
+    assert out["is_tip"] == "true"
+
+
+def test_all_refuses_release_ref(tmp_path):
+    """A release belongs to one component, so 'all' cannot mean a tag."""
+    code, _, err = run_validate(
+        tmp_path, EVENT="workflow_dispatch", COMPONENT="all", SOURCE_REF="v3.4.2"
+    )
+
+    assert code != 0
+    assert "publishes both components from main" in err

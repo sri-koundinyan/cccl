@@ -40,6 +40,7 @@ on:
         options:
           - cpp
           - python
+          - all
       source_ref:
         description: "Ref to build from: a release tag (vX.Y.Z) or a branch. Blank builds main."
         required: false
@@ -125,8 +126,16 @@ jobs:
           # publishes both. Modelling a deploy as a single component is what
           # left python/unstable stale -- and with it the STF documentation,
           # which exists only on main.
-          if [[ "${EVENT}" == "push" ]]; then
+          if [[ "${EVENT}" == "push" || "${component}" == "all" ]]; then
             components="cpp python"
+            # Both are built from the same ref at the same version, which only
+            # makes sense for the development tip.
+            component="cpp"
+            if [[ -n "${source_ref}" && "${source_ref}" != "main" ]]; then
+              echo "error: 'all' publishes both components from main." >&2
+              echo "       A release belongs to one component; publish it by name." >&2
+              exit 1
+            fi
           else
             components="${component}"
           fi
