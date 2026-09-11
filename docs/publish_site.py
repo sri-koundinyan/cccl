@@ -78,31 +78,27 @@ LATEST_STABLE_OVERRIDE = None
 # How many release directories to keep per component, newest first. The
 # development tip is always kept and does not count.
 #
-# This is the real constraint on the whole scheme. A built C++ version measures
-# roughly 170 MB against GitHub Pages' 1 GB limit, and CCCL ships minor releases
-# several times a year, so without a bound the site fills up in about a year and
-# every release after that fails until someone intervenes. Retiring the oldest
-# automatically keeps that from becoming a decision forced at release time.
+# This is the real constraint on the whole scheme. CCCL ships minor releases
+# several times a year against GitHub Pages' 1 GB limit, so without a bound the
+# site fills up and every release after that fails until someone intervenes.
+# Retiring the oldest automatically keeps that from becoming a decision forced
+# at release time.
 #
-# Python builds are ~7 MB, so its history is effectively free; the number is
-# generous there for the same reason it is tight for C++.
-#
-# Sized against a measured *release*, which is what these directories hold. A
-# release is ~109 MB; the development tip is ~168 MB because it carries every
-# generated API page. Sizing against the tip would waste roughly 400 MB of
+# Sized against a measured *release*, which is what these directories hold: a
+# release is ~109 MB, while the development tip is ~168 MB because it carries
+# every generated API page. Sizing against the tip would waste roughly 400 MB of
 # budget and halve the archive:
 #
 #     168 (tip) + 5 x 109 (releases) + 14 (python) = 727 MB, under the 900 guard
 #
 # At CCCL's ~4 minor releases a year that is around fifteen months of archive.
+# Python builds are ~7 MB, so its history is effectively free, which is why its
+# number is generous for the same reason C++'s is tight.
 #
 # Worth being honest about what retention is: it does not solve the dead-URL
 # problem, it delays it. A URL from six releases ago still dies. That is a
 # deliberate trade against a hard 1 GB ceiling, not a fix.
-KEEP_RELEASES = {
-    "cpp": int(os.environ.get("CCCL_KEEP_RELEASES_CPP", "5")),
-    "python": int(os.environ.get("CCCL_KEEP_RELEASES_PYTHON", "8")),
-}
+KEEP_RELEASES = {"cpp": 5, "python": 8}
 DEFAULT_KEEP_RELEASES = 3
 
 # GitHub Pages refuses to publish a site larger than 1 GB. With retirement doing
@@ -339,12 +335,12 @@ def check_size(site_root):
 # --------------------------------------------------------------------------
 
 
-def write_manifests(component_root, component, versions, default_version, base_url):
+def write_manifests(component_root, versions, default_version, base_url):
     """Write the version switcher manifests for one component.
 
-    ``version`` is the match key, compared against the stamp in the page.
-    ``name`` is what the reader sees. Keeping them separate is what lets a
-    directory named "3.4" display as "3.4.2".
+    Entries carry no display name. The theme falls back to ``version``, so the
+    directory name is the only version string in play -- nothing to keep in
+    step, and nothing to drift.
     """
     entries = []
     for version in versions:
@@ -596,9 +592,7 @@ def main(argv=None):
         print(f"  default:         {default_version}")
         print(f"  latest stable:   {stable or '<none published>'}")
 
-        write_manifests(
-            component_root, component, versions, default_version, component_base
-        )
+        write_manifests(component_root, versions, default_version, component_base)
 
         if component["path"]:
             write_component_index(component_root, default_version)

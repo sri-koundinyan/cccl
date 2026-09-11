@@ -172,7 +172,7 @@ def test_site_root_never_targets_the_latest_alias(tmp_path):
 
 
 # --------------------------------------------------------------------------
-# Labels: the directory is the match key, the label is what readers see
+# What the switcher shows: the directory, and nothing else
 # --------------------------------------------------------------------------
 
 
