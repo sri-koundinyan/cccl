@@ -500,13 +500,15 @@ block: compiling a simple Python function and making it callable from
 CUDA C++. The same technique later applies to user-provided reduction
 operators.</p>
 <p>We can compile such a Python function to PTX using
-<a class="reference external" href="https://nvidia.github.io/numba-cuda/">Numba-CUDA</a> as follows:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numba.cuda</span>
+<a class="reference external" href="https://nvidia.github.io/numba-cuda-mlir/">numba-cuda-mlir</a> as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numba_cuda_mlir</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">op</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
     <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">value</span>
 
-<span class="n">ptx</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">sig</span><span class="o">=</span><span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+<span class="n">ptx</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">numba_cuda_mlir</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="n">op</span><span class="p">,</span> <span class="n">sig</span><span class="o">=</span><span class="n">numba_cuda_mlir</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">numba_cuda_mlir</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 <p>That’d give us the following PTX code:</p>
@@ -558,12 +560,14 @@ Instead, we use NVRTC, which is designed for runtime compilation of
 CUDA C++.</p>
 <p>Our Python code is now:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">ctypes</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numba.cuda</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numba_cuda_mlir</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">op</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
     <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">value</span>
 
-<span class="n">ptx</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">sig</span><span class="o">=</span><span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+<span class="n">ptx</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">numba_cuda_mlir</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="n">op</span><span class="p">,</span> <span class="n">sig</span><span class="o">=</span><span class="n">numba_cuda_mlir</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">numba_cuda_mlir</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+<span class="p">)</span>
 
 <span class="n">bindings</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">CDLL</span><span class="p">(</span><span class="s1">'./build/libkernel.so'</span><span class="p">)</span>
 <span class="n">bindings</span><span class="o">.</span><span class="n">launcher</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_char_p</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_int</span><span class="p">]</span>
@@ -668,7 +672,11 @@ LTO-IR preserves enough information for link-time optimization, which
 allows the operator to be inlined into the generated kernel.</p>
 <p>On the Python side, switching from PTX to LTO-IR requires only a small
 change:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ltoir</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">sig</span><span class="o">=</span><span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">output</span><span class="o">=</span><span class="s2">"ltoir"</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ltoir</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">numba_cuda_mlir</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="n">op</span><span class="p">,</span>
+    <span class="n">sig</span><span class="o">=</span><span class="n">numba_cuda_mlir</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">numba_cuda_mlir</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+    <span class="n">output</span><span class="o">=</span><span class="s2">"ltoir"</span><span class="p">,</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 <p>On the C++ side, we make the same switch from PTX to LTO-IR:</p>
@@ -732,18 +740,22 @@ Python side, we therefore pass a pointer to the <code class="docutils literal no
 value, together with the size and alignment needed to construct a
 matching storage type on the C++ side:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">ctypes</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numba</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numba.cuda</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numba_cuda_mlir</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
-<span class="k">def</span><span class="w"> </span><span class="nf">op</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">real</span> <span class="o">+</span> <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">imag</span><span class="p">)</span>
+<span class="n">types</span> <span class="o">=</span> <span class="n">numba_cuda_mlir</span><span class="o">.</span><span class="n">types</span>
 
-<span class="n">value_type</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">complex128</span>
-<span class="n">context</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">descriptor</span><span class="o">.</span><span class="n">cuda_target</span><span class="o">.</span><span class="n">target_context</span>
-<span class="n">size</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">get_value_type</span><span class="p">(</span><span class="n">value_type</span><span class="p">)</span><span class="o">.</span><span class="n">get_abi_size</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">target_data</span><span class="p">)</span>
-<span class="n">alignment</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">get_value_type</span><span class="p">(</span><span class="n">value_type</span><span class="p">)</span><span class="o">.</span><span class="n">get_abi_alignment</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">target_data</span><span class="p">)</span>
-<span class="n">ltoir</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">sig</span><span class="o">=</span><span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">numba</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">CPointer</span><span class="p">(</span><span class="n">value_type</span><span class="p">)),</span> <span class="n">output</span><span class="o">=</span><span class="s1">'ltoir'</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">op</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">types</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">real</span> <span class="o">+</span> <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">imag</span><span class="p">)</span>
+
+<span class="n">value_type</span> <span class="o">=</span> <span class="n">types</span><span class="o">.</span><span class="n">complex128</span>
+<span class="c1"># The storage size and alignment the C++ side has to match are the</span>
+<span class="c1"># NumPy dtype's.</span>
+<span class="n">size</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span><span class="o">.</span><span class="n">itemsize</span>
+<span class="n">alignment</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span><span class="o">.</span><span class="n">alignment</span>
+<span class="n">ltoir</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">numba_cuda_mlir</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="n">op</span><span class="p">,</span> <span class="n">sig</span><span class="o">=</span><span class="n">types</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">types</span><span class="o">.</span><span class="n">CPointer</span><span class="p">(</span><span class="n">value_type</span><span class="p">)),</span> <span class="n">output</span><span class="o">=</span><span class="s2">"ltoir"</span>
+<span class="p">)</span>
 
 <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span> <span class="o">+</span> <span class="mi">2</span><span class="n">j</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
 <span class="n">type_erased_value_ptr</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">ctypes</span><span class="o">.</span><span class="n">data_as</span><span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_void_p</span><span class="p">)</span>
@@ -1156,6 +1168,30 @@ independently.</p>
 algorithm execution is not supported unless the caller synchronizes externally.</p>
 </section>
 </section>
+<section id="struct-types-registered-by-cuda-compute">
+<h2>Struct types registered by <code class="docutils literal notranslate"><span class="pre">cuda.compute</span></code><a class="headerlink" href="#struct-types-registered-by-cuda-compute" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">gpu_struct</span></code> types are registered with the JIT backend by hand — typing, data
+model and lowering — rather than by using the backend’s own value-semantic
+aggregate (its experimental <code class="docutils literal notranslate"><span class="pre">struct</span></code>/<code class="docutils literal notranslate"><span class="pre">AggregateType</span></code>). Value semantics is
+the only property of that aggregate <code class="docutils literal notranslate"><span class="pre">cuda.compute</span></code> needs, and it comes bound
+to three that do not suit it:</p>
+<ol class="arabic simple">
+<li><p><strong>Nominal (name-based) identity.</strong> Its type identity is tied to a unique type
+<em>name</em>. The same logical struct is registered several times per build — the
+operator’s input type, the constructed return value, the output array’s
+element type, nested inline fields — and with name-based identity those split
+into incompatible types, so casts between them fail. What is needed is
+identity by <em>shape</em>.</p></li>
+<li><p><strong>Zero-argument construction only</strong> (<code class="docutils literal notranslate"><span class="pre">s</span> <span class="pre">=</span> <span class="pre">S();</span> <span class="pre">s.a</span> <span class="pre">=</span> <span class="pre">x</span></code>). The public API and
+the tuple-reconstruction path both need positional <code class="docutils literal notranslate"><span class="pre">S(a,</span> <span class="pre">b)</span></code>.</p></li>
+<li><p><strong>No by-index access</strong> (<code class="docutils literal notranslate"><span class="pre">s[i]</span></code>) and no tuple-to-struct casts, both of which
+<code class="docutils literal notranslate"><span class="pre">cuda.compute</span></code> relies on; a CUB operator returning a tuple becomes a struct.</p></li>
+</ol>
+<p>Numba’s own <code class="docutils literal notranslate"><span class="pre">Record</span></code> type is value-adjacent but reference-semantic — a pointer
+into array memory — so it is not a substitute either.</p>
+<p>The registration itself is isolated in <code class="docutils literal notranslate"><span class="pre">cuda/compute/_jit.py</span></code> to keep
+Numba-specific type plumbing out of the other modules.</p>
+</section>
 <section id="source-map">
 <h2>Source map<a class="headerlink" href="#source-map" title="Link to this heading">#</a></h2>
 <p>For readers who want to connect this overview back to the source tree:</p>
@@ -1236,6 +1272,7 @@ HostJIT backend).</p></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#clearing-caches">Clearing caches</a></li>
 </ul>
 </li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#struct-types-registered-by-cuda-compute">Struct types registered by <code class="docutils literal notranslate"><span class="pre">cuda.compute</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#source-map">Source map</a></li>
 </ul>
   </nav></div>

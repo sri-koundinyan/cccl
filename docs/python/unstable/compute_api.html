@@ -4612,6 +4612,12 @@ For stateless operators, the signature is</p>
 <dd><p>Return the op’s state bytes.</p>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="cuda.compute.op.RawOp.state_alignment">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">state_alignment</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><a class="headerlink" href="#cuda.compute.op.RawOp.state_alignment" title="Link to this definition">#</a></dt>
+<dd><p>Return the alignment requirement of the op’s state bytes.</p>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -4712,7 +4718,8 @@ See <a class="reference internal" href="#module-cuda.compute.iterators" title="c
 <p>Algorithms accept the following objects as operators:</p>
 <ul class="simple">
 <li><p>Python functions or lambdas implementing the operator. This function will be JIT
-compiled into device code using <a class="reference external" href="https://nvidia.github.io/numba-cuda/">numba.cuda</a>.</p></li>
+compiled into device code using
+<a class="reference external" href="https://nvidia.github.io/numba-cuda-mlir/">numba-cuda-mlir</a>.</p></li>
 <li><p><a class="reference internal" href="#cuda.compute.op.OpKind" title="cuda.compute.op.OpKind"><code class="xref py py-class docutils literal notranslate"><span class="pre">OpKind</span></code></a> enumerators which are pre-defined constants
 for common operations.</p></li>
 <li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">RawOp</span> <span class="pre">&lt;cuda.compute.op.RawOp</span></code> objects containing pre-compiled device code.</p></li>
@@ -4921,6 +4928,7 @@ for common operations.</p></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.op.RawOp.__init__"><code class="docutils literal notranslate"><span class="pre">__init__()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.op.RawOp.compile"><code class="docutils literal notranslate"><span class="pre">compile()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.op.RawOp.get_state"><code class="docutils literal notranslate"><span class="pre">get_state()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda.compute.op.RawOp.state_alignment"><code class="docutils literal notranslate"><span class="pre">state_alignment</span></code></a></li>
 </ul>
 </li>
 </ul>

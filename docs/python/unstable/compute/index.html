@@ -607,17 +607,28 @@ we can use <a class="reference internal" href="../compute_api.html#cuda.compute.
 <section id="features-and-restrictions">
 <h3>Features and Restrictions<a class="headerlink" href="#features-and-restrictions" title="Link to this heading">#</a></h3>
 <p>User-defined operations are just-in-time (JIT) compiled into device code using
-<a class="reference external" href="https://nvidia.github.io/numba-cuda/">Numba CUDA</a>, so they inherit many
-of the same features and restrictions as Numba CUDA functions:</p>
+<a class="reference external" href="https://nvidia.github.io/numba-cuda-mlir/">numba-cuda-mlir</a>, which follows
+Numba CUDA’s programming model, so they inherit many of the same features and
+restrictions as Numba CUDA functions:</p>
 <ul class="simple">
 <li><p><a class="reference external" href="https://nvidia.github.io/numba-cuda/user/cudapysupported.html">Python features</a>
 and <a class="reference external" href="https://nvidia.github.io/numba-cuda/user/intrinsics.html">atomic operations</a>
 supported by Numba CUDA are also supported within user-defined operators.</p></li>
-<li><p>Nested functions must be decorated with <code class="docutils literal notranslate"><span class="pre">&#64;numba.cuda.jit</span></code>.</p></li>
+<li><p>Nested functions must be decorated with <code class="docutils literal notranslate"><span class="pre">&#64;numba_cuda_mlir.cuda.jit</span></code>.</p></li>
 <li><p>Variables captured in closures or globals follow
 <a class="reference external" href="https://nvidia.github.io/numba-cuda/user/globals.html">Numba CUDA semantics</a>:
 scalars and host arrays are captured by value (as constants),
 while device arrays are captured by reference.</p></li>
+<li><p>Indexing a <code class="xref py py-func docutils literal notranslate"><span class="pre">gpu_struct</span></code> with a value only
+known at run time, such as a loop variable, gives a result of the type the
+fields unify to, rather than the indexed field’s own type. Indexing with a
+constant, or accessing a field by name, gives the field’s declared type.</p></li>
+<li><p>A multi-dimensional device array captured as operator state must be
+C-contiguous; a Fortran-ordered one is rejected with an error.</p></li>
+<li><p>Storing a float into a captured array, or a <code class="docutils literal notranslate"><span class="pre">cuda.local.array</span></code>, of boolean
+type truncates the value instead of asking whether it is non-zero, so <code class="docutils literal notranslate"><span class="pre">1.25</span></code>
+is stored as false. Compare against zero yourself, or keep the types the same.
+A value <em>returned</em> from an operator converts correctly.</p></li>
 </ul>
 </section>
 </section>

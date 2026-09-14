@@ -860,10 +860,21 @@ interoperability layer must wrap that pointer before a Python array library can
 use it. Partitioning the outermost dimension gives each device contiguous row
 bands and avoids interleaving owners within the allocation granularity.</p>
 <p>Physical placement is page-granular: memory is localized in blocks of the
-device’s allocation granularity (typically 2 MiB), and a block landing on the
-boundary between two owners is placed with the majority owner. Placement can
-therefore only approximate element ownership when ownership runs are smaller
-than a page.</p>
+allocation granularity queried on device 0 (typically 2 MiB; granularity is
+assumed uniform across devices), and a block landing on the boundary between
+two owners is placed with the majority owner. Placement can therefore only
+approximate element ownership when ownership runs are smaller than a page. Use
+<code class="docutils literal notranslate"><span class="pre">placement_evaluate(grid,</span> <span class="pre">partition,</span> <span class="pre">None,</span> <span class="pre">elemsize)</span></code> to score a candidate
+mapping – its <code class="docutils literal notranslate"><span class="pre">accuracy</span></code> is the fraction of bytes local to their owner –
+before committing memory. The third argument is the data shape; pass <code class="docutils literal notranslate"><span class="pre">None</span></code>
+with a <code class="docutils literal notranslate"><span class="pre">cute_partition</span></code>, which carries its own extents.</p>
+<p><code class="docutils literal notranslate"><span class="pre">accuracy</span></code> is byte-exact for a <code class="docutils literal notranslate"><span class="pre">cute_partition</span></code>: structured partitions
+resolve through the same analytic (or census) tiers the allocation path uses,
+which count bytes in closed form. A Python or native <em>callable</em> mapper is opaque,
+so its blocks are scored by a sampled majority vote instead (<code class="docutils literal notranslate"><span class="pre">probes</span></code>
+samples per block) and <code class="docutils literal notranslate"><span class="pre">accuracy</span></code> is then an estimate whose resolution is
+bounded by the probe count – as is a structured layout too dense for the
+placement blocks, which falls back to the same sampling.</p>
 <p><strong>Tensor of tiles.</strong> Multidimensional distributions match the page granularity
 best when storage is reorganized into tiles: a <code class="docutils literal notranslate"><span class="pre">(tiles_y,</span> <span class="pre">tiles_x,</span> <span class="pre">tile_y,</span>
 <span class="pre">tile_x)</span></code> tensor keeps each tile’s payload contiguous, so every ownership run
@@ -896,8 +907,8 @@ placement without re-implementing any policy:</p>
 </pre></div>
 </div>
 <p>Note that <code class="docutils literal notranslate"><span class="pre">owner()</span></code> is exact element-level ownership; the <em>physical</em>
-placement of an allocation is page-granular and may only approximate it.
-Note that tile-major storage is a real storage format: viewing it as
+placement of an allocation is page-granular and may only approximate it
+(<code class="docutils literal notranslate"><span class="pre">placement_evaluate</span></code> quantifies the difference). Note that tile-major storage is a real storage format: viewing it as
 a conventional <code class="docutils literal notranslate"><span class="pre">(rows,</span> <span class="pre">columns)</span></code> spatial tensor requires a permutation, not a
 reshape.</p>
 </section>
