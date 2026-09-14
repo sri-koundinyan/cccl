@@ -130,10 +130,18 @@ html_theme = "nvidia_sphinx_theme"
 
 html_logo = "_static/nvidia-logo.png"
 
-html_baseurl = (
+# Where this component's versions live. The switcher manifest sits here,
+# alongside the version directories.
+_component_root = (
     os.environ.get("CCCL_DOCS_BASE_URL", "https://nvidia.github.io/cccl/").rstrip("/")
     + "/"
 )
+
+# Sphinx defines html_baseurl as the root of *this* documentation, and uses it
+# for the canonical link on every page. These pages are served from
+# <component root>/<version>/, so the version has to be part of it -- otherwise
+# every page in every version claims the same canonical URL.
+html_baseurl = f"{_component_root}{release}/"
 
 html_theme_options = {
     "icon_links": [
@@ -153,7 +161,9 @@ html_theme_options = {
     "sidebar_includehidden": True,
     "collapse_navigation": False,
     "switcher": {
-        "json_url": f"{html_baseurl}nv-versions.json",
+        # The component root, not html_baseurl: the manifest lists every
+        # version, so it cannot live inside one of them.
+        "json_url": f"{_component_root}nv-versions.json",
         "version_match": release,
     },
 }
