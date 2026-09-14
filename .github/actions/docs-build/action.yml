@@ -11,10 +11,21 @@ inputs:
 runs:
   using: "composite"
   steps:
-    # Build all docs (gen_docs.bash detects and installs missing deps)
-    - name: Build all docs
+    # The C++ docs. This no longer includes the Python pages: they build on
+    # their own release line and are published as their own versioned site.
+    - name: Build C++ docs
       shell: bash --noprofile --norc -euo pipefail {0}
       run: ./docs/gen_docs.bash --allow-dep-install
+
+    # Which is why this step exists. Excluding Python from the build above also
+    # removed it from this required check, so a docstring that breaks the
+    # Python docs could merge and surface only at deploy time -- after the
+    # change is already on main. Runs second so it can resolve C++
+    # cross-references against the inventory just built locally, which is both
+    # contemporaneous with this PR and free of a network round-trip.
+    - name: Build Python docs
+      shell: bash --noprofile --norc -euo pipefail {0}
+      run: ./docs/gen_python_docs.bash --allow-dep-install
 
     # Copy all docs to the right folder
     - name: Move docs to right folder
@@ -22,6 +33,11 @@ runs:
       run: |
         mkdir -p _site
         cp -rf ./docs/_build/html/* _site/
+        # Preview the same shape the site has: Python under /python/.
+        if [ -d ./docs/_build/python-html ]; then
+          mkdir -p _site/python
+          cp -rf ./docs/_build/python-html/* _site/python/
+        fi
         touch _site/.nojekyll
 
     # Update docs as workflow artifact:

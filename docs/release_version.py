@@ -116,7 +116,7 @@ def describe_python_release(checkout):
     return result.stdout.strip()
 
 
-def derive(checkout, component="cpp", tip=False, expect=None):
+def derive(checkout, component="cpp", tip=False, expect=None, release_tag=None):
     """Return ``(version_dir, release_label)`` for a checkout.
 
     ``expect`` asserts the derived directory, and exists for refs that are not
@@ -126,12 +126,21 @@ def derive(checkout, component="cpp", tip=False, expect=None):
     live site during testing. Requiring the caller to name the directory turns
     that from an accident into a statement, and the assertion still prevents
     naming the wrong one.
+
+    ``release_tag`` is the exact tag being published, when the caller knows it.
+    A release event does know it, and passing it avoids asking ``git describe``
+    a question it cannot answer: ``--abbrev=0`` returns *a* reachable tag, not
+    the one being released, so two ``python-*`` tags on one commit make
+    publishing ``python-1.2.0`` derive ``1.1.1``. Reproduced; see the tests.
     """
     if tip:
         return TIP_DIRECTORY, ""
 
     if component == "python":
-        major, minor, patch = parse_python_tag(describe_python_release(checkout))
+        # Prefer the tag we were actually handed; describe only as a fallback
+        # for refs that carry no tag of their own (a backfill branch).
+        tag = release_tag.strip() if release_tag else describe_python_release(checkout)
+        major, minor, patch = parse_python_tag(tag)
         return _checked(f"{major}.{minor}", f"{major}.{minor}.{patch}", expect)
 
     header = checkout / VERSION_HEADER
@@ -173,7 +182,42 @@ def _checked(version_dir, label, expect):
     return version_dir, label
 
 
+LABEL = re.compile(r"^([0-9]+)\.([0-9]+)\.([0-9]+)$")
+
+
+def label_order(label):
+    """``"3.4.2"`` -> ``(3, 4, 2)``, or ``None`` if it is not a release label."""
+    match = LABEL.match((label or "").strip())
+    return tuple(int(part) for part in match.groups()) if match else None
+
+
+def is_downgrade(existing, incoming):
+    """Would writing ``incoming`` over ``existing`` move a directory backwards?
+
+    A version directory holds a minor line, newest patch: ``/3.4/`` should be
+    3.4.2 once 3.4.2 exists. Nothing about *when* a job runs guarantees that.
+    GitHub does not promise execution order within a concurrency group, and a
+    re-run of an old release is ordinary maintenance -- so a delayed 3.4.1 job
+    can land after 3.4.2 and silently roll the directory back. Compare the
+    labels rather than trusting arrival order.
+
+    Unlabelled on either side means "cannot tell", which is not a downgrade:
+    directories published before labels existed must stay republishable.
+    """
+    old, new = label_order(existing), label_order(incoming)
+    if old is None or new is None:
+        return False
+    return new < old
+
+
 def main(argv=None):
+    argv = list(sys.argv[1:] if argv is None else argv)
+
+    # Two jobs, deliberately in one file: both are "what does this version
+    # string mean", and splitting them would duplicate the parsing.
+    if argv and argv[0] == "precedence":
+        return _precedence_main(argv[1:])
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("checkout", help="root of the checked-out source tree")
     parser.add_argument(
@@ -192,6 +236,11 @@ def main(argv=None):
         default=None,
         help="fail unless the tree derives this version directory",
     )
+    parser.add_argument(
+        "--release-tag",
+        default=None,
+        help="the exact tag being published, when the caller knows it",
+    )
     args = parser.parse_args(argv)
 
     version_dir, label = derive(
@@ -199,6 +248,7 @@ def main(argv=None):
         component=args.component,
         tip=args.tip,
         expect=args.expect,
+        release_tag=args.release_tag,
     )
 
     lines = [f"version_dir={version_dir}", f"release_label={label}"]
@@ -210,6 +260,44 @@ def main(argv=None):
             f.write("\n".join(lines) + "\n")
 
     return 0
+
+
+def _precedence_main(argv):
+    parser = argparse.ArgumentParser(
+        prog="release_version.py precedence",
+        description="Refuse to roll a published version directory backwards.",
+    )
+    parser.add_argument("--existing", default="", help="label already published")
+    parser.add_argument("--incoming", default="", help="label about to be written")
+    parser.add_argument("--directory", default="", help="which directory, for the message")
+    parser.add_argument(
+        "--allow-rollback",
+        action="store_true",
+        help="publish anyway; deliberate rollback to a known-good release",
+    )
+    args = parser.parse_args(argv)
+
+    if not is_downgrade(args.existing, args.incoming):
+        return 0
+
+    where = f" {args.directory}" if args.directory else ""
+    if args.allow_rollback:
+        print(
+            f"::warning::rolling{where} back from {args.existing} to {args.incoming}"
+            " because allow_rollback was set"
+        )
+        return 0
+
+    raise SystemExit(
+        f"error: refusing to publish{where} as {args.incoming}; it currently"
+        f" holds {args.existing}.\n"
+        "       A version directory tracks the newest patch in its line, and"
+        " job order is not\n"
+        "       guaranteed -- a delayed or re-run older release must not"
+        " overwrite a newer one.\n"
+        "       If this rollback is deliberate, dispatch again with"
+        " allow_rollback=true."
+    )
 
 
 if __name__ == "__main__":

@@ -31,8 +31,14 @@ import release_version
 # --------------------------------------------------------------------------
 
 
-def make_version(root, name, *, stamp=None, index=True, pages=()):
-    """Create a stand-in for one built version directory."""
+def make_version(root, name, *, stamp=None, index=True, pages=(), helper=True):
+    """Create a stand-in for one built version directory.
+
+    ``helper=False`` omits 404_helper.html. That option exists because this
+    fixture used to manufacture the helper unconditionally, which meant no test
+    could observe a component that lacks one -- and the Python component
+    shipped without one, undetected, until review caught it.
+    """
     directory = root / name
     directory.mkdir(parents=True, exist_ok=True)
 
@@ -43,9 +49,10 @@ def make_version(root, name, *, stamp=None, index=True, pages=()):
             f"<html><script>{marker}</script></html>", encoding="utf-8"
         )
         (directory / "pagelist.txt").write_text("/index.html,", encoding="utf-8")
-        (directory / "404_helper.html").write_text(
-            "<html>helper</html>", encoding="utf-8"
-        )
+        if helper:
+            (directory / "404_helper.html").write_text(
+                "<html>helper</html>", encoding="utf-8"
+            )
         (directory / "objects.inv").write_text("inv", encoding="utf-8")
 
     for page in pages:
@@ -237,6 +244,28 @@ def test_a_version_stamping_nothing_is_tolerated(tmp_path):
     assemble(tmp_path)
 
     assert {e["version"] for e in manifest(tmp_path)} == {"unstable", "3.4"}
+
+
+def test_version_without_a_404_helper_is_rejected(tmp_path):
+    """A component whose helper is missing turns every miss into a second miss.
+
+    This is the defect the Python component actually shipped with: the router
+    redirected to <version>/404_helper.html, the file was never rendered, and
+    verify() passed anyway because it only looked for pagelist.txt.
+    """
+    make_version(tmp_path, "unstable", helper=False)
+
+    with pytest.raises(SystemExit) as excinfo:
+        assemble(tmp_path, "--verify")
+
+    assert "404_helper.html" in str(excinfo.value) or "problem" in str(excinfo.value)
+
+
+def test_a_complete_version_verifies_clean(tmp_path):
+    """The negative test above must fail for the stated reason, not by accident."""
+    make_version(tmp_path, "unstable")
+
+    assemble(tmp_path, "--verify")
 
 
 # --------------------------------------------------------------------------
@@ -649,7 +678,8 @@ def test_push_publishes_both_components():
 
     assert result["components"] == "cpp python"
     assert result["is_tip"] == "true"
-    assert result["source_ref"] == "main"
+    assert result["source_ref"] == "refs/heads/main"
+    assert result["release_tag"] == ""
 
 
 def test_python_release_publishes_python():
@@ -657,7 +687,8 @@ def test_python_release_publishes_python():
     result = make_plan("release", release_tag="python-1.1.1")
 
     assert result["components"] == "python"
-    assert result["source_ref"] == "python-1.1.1"
+    assert result["source_ref"] == "refs/tags/python-1.1.1"
+    assert result["release_tag"] == "python-1.1.1"
 
 
 def test_cpp_release_publishes_cpp():
@@ -683,7 +714,8 @@ def test_a_clean_tag_not_marked_prerelease_is_published():
     result = make_plan("release", release_tag="v3.5.0")
 
     assert result["components"] == "cpp"
-    assert result["source_ref"] == "v3.5.0"
+    assert result["source_ref"] == "refs/tags/v3.5.0"
+    assert result["release_tag"] == "v3.5.0"
 
 
 def test_branch_without_publish_as_is_rejected():
@@ -869,3 +901,119 @@ def test_provenance_that_lies_is_rejected(tmp_path):
         assemble(tmp_path)
 
     assert "not a release of" in str(excinfo.value)
+
+
+# --------------------------------------------------------------------------
+# Review findings: identity, ordering and the input boundary
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "existing,incoming,expected",
+    [
+        ("3.4.2", "3.4.1", True),    # the delayed-job case
+        ("3.4.2", "3.4.3", False),   # ordinary patch release
+        ("3.4.2", "3.4.2", False),   # a re-run of the same release
+        ("3.4.2", "4.0.0", False),
+        ("", "3.4.1", False),        # predates labelling; stay republishable
+        ("3.4.2", "", False),
+    ],
+)
+def test_downgrade_detection(existing, incoming, expected):
+    assert release_version.is_downgrade(existing, incoming) is expected
+
+
+def test_older_patch_will_not_overwrite_newer(capsys):
+    """Job order is not guaranteed, so arrival order cannot be the check."""
+    with pytest.raises(SystemExit) as excinfo:
+        release_version.main(
+            ["precedence", "--existing", "3.4.2", "--incoming", "3.4.1"]
+        )
+
+    assert "refusing to publish" in str(excinfo.value)
+
+
+def test_rollback_is_possible_when_asked_for(capsys):
+    assert (
+        release_version.main(
+            [
+                "precedence",
+                "--existing",
+                "3.4.2",
+                "--incoming",
+                "3.4.1",
+                "--allow-rollback",
+            ]
+        )
+        == 0
+    )
+    assert "rolling" in capsys.readouterr().out
+
+
+def test_exact_tag_beats_describing_the_commit(tmp_path):
+    """Two python-* tags on one commit make `git describe` answer the wrong one."""
+    run = lambda *a: subprocess.run(
+        a, cwd=tmp_path, check=True, capture_output=True
+    )
+    run("git", "init", "-q", ".")
+    run("git", "-c", "user.email=t@t", "-c", "user.name=t",
+        "commit", "-q", "--allow-empty", "-m", "c")
+    run("git", "tag", "python-1.1.1")
+    run("git", "tag", "python-1.2.0")
+
+    # What describe reports -- not necessarily the release being published.
+    assert release_version.derive(tmp_path, component="python") == ("1.1", "1.1.1")
+    # What the release event actually knows.
+    assert release_version.derive(
+        tmp_path, component="python", release_tag="python-1.2.0"
+    ) == ("1.2", "1.2.0")
+
+
+@pytest.mark.parametrize(
+    "branch",
+    ["gh-pages-x\nkey=value", "gh-pages-a b", "gh-pages-../main", "main", "gh-pages\n"],
+)
+def test_bad_docs_branch_rejected(branch):
+    with pytest.raises(SystemExit):
+        deploy_plan.plan("workflow_dispatch", docs_branch=branch)
+
+
+@pytest.mark.parametrize("branch", ["gh-pages", "gh-pages-dry-run", "gh-pages-v2.1"])
+def test_good_docs_branch_accepted(branch):
+    assert deploy_plan.plan("workflow_dispatch", docs_branch=branch)["docs_branch"] == branch
+
+
+def test_publish_as_with_newline_rejected():
+    """`$` matches before a trailing newline in Python; these patterns use \\Z."""
+    with pytest.raises(SystemExit):
+        deploy_plan.plan(
+            "workflow_dispatch",
+            source_ref="some-branch",
+            publish_as="3.4\n",
+            classify_ref=lambda ref: "branch",
+        )
+
+
+def test_output_value_cannot_forge_a_second_key():
+    with pytest.raises(SystemExit) as excinfo:
+        deploy_plan.emittable("version_dir", "3.4\nis_tip=true")
+
+    assert "GITHUB_OUTPUT" in str(excinfo.value)
+
+
+def test_refs_are_emitted_fully_qualified():
+    """classify_ref asks tags-first; actions/checkout resolves branches-first."""
+    tag = deploy_plan.plan(
+        "workflow_dispatch", source_ref="v3.4.2", classify_ref=lambda ref: "tag"
+    )
+    assert tag["source_ref"] == "refs/tags/v3.4.2"
+
+    branch = deploy_plan.plan(
+        "workflow_dispatch",
+        source_ref="docs-backfill-3.4",
+        publish_as="3.4",
+        classify_ref=lambda ref: "branch",
+    )
+    assert branch["source_ref"] == "refs/heads/docs-backfill-3.4"
+    # A branch is not a release, so nothing is passed to --release-tag.
+    assert branch["release_tag"] == ""

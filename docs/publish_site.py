@@ -334,7 +334,7 @@ def check_size(site_root):
 
     total = sum(f.stat().st_size for f in site_root.rglob("*") if f.is_file())
 
-    mb = lambda n: f"{n / 1024 / 1024:.0f} MB"  # noqa: E731
+    mb = lambda n: f"{n / 1024 / 1024:.0f} MB"
     print(
         f"\nPublished size: {mb(total)} across {len(per_version)} version directories"
     )
@@ -691,11 +691,20 @@ def verify(site_root, published):
                 f" expected [{state['default']!r}]"
             )
 
+        # Both halves of the 404 path, not just one. The router sends a miss to
+        # <version>/404_helper.html, which then searches <version>/pagelist.txt.
+        # Checking only the page list passes a component whose helper is absent,
+        # which turns every miss into a second miss -- shipped exactly that way
+        # until it was caught in review.
         for version in state["versions"]:
-            if not (root / version / "pagelist.txt").is_file():
-                problems.append(
-                    f"{component['id']}/{version}: no pagelist.txt; 404 search will fail"
-                )
+            for required, consequence in (
+                ("404_helper.html", "every miss redirects to a missing page"),
+                ("pagelist.txt", "the 404 search has nothing to search"),
+            ):
+                if not (root / version / required).is_file():
+                    problems.append(
+                        f"{component['id']}/{version}: no {required}; {consequence}"
+                    )
 
         alias = root / "latest"
         if alias.is_dir() and not (alias / "index.html").is_file():

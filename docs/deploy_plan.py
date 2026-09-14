@@ -45,12 +45,22 @@ from publish_site import COMPONENTS
 BUILD_SUBDIR = {"cpp": "html", "python": "python-html"}
 
 # The components version independently and tag differently.
+#
+# Every pattern here ends with \Z, not $. In Python `$` also matches just before
+# a trailing newline, so `^[0-9]+\.[0-9]+$` accepts "3.4\n" -- and these values
+# are written to $GITHUB_OUTPUT as `key=value` lines, where an embedded newline
+# starts a second key. \Z means end-of-string and nothing else.
 RELEASE_TAG = {
-    "cpp": (re.compile(r"^v[0-9]+\.[0-9]+\.[0-9]+$"), "v3.5.0"),
-    "python": (re.compile(r"^python-[0-9]+\.[0-9]+\.[0-9]+$"), "python-1.1.1"),
+    "cpp": (re.compile(r"^v[0-9]+\.[0-9]+\.[0-9]+\Z"), "v3.5.0"),
+    "python": (re.compile(r"^python-[0-9]+\.[0-9]+\.[0-9]+\Z"), "python-1.1.1"),
 }
 
-VERSION_DIR = re.compile(r"^[0-9]+\.[0-9]+$")
+VERSION_DIR = re.compile(r"^[0-9]+\.[0-9]+\Z")
+
+# gh-pages, or a gh-pages-<suffix> rehearsal branch. Spelled out in full rather
+# than checked with startswith(), which accepted "gh-pages-x\nkey=value".
+DOCS_BRANCH = re.compile(r"^gh-pages(-[A-Za-z0-9._-]+)?\Z")
+
 TIP = "unstable"
 
 
@@ -131,15 +141,26 @@ def plan(
     else:
         component_ids = [component]
 
-    # A rehearsal must not be able to target production by typo.
-    if docs_branch != "gh-pages" and not docs_branch.startswith("gh-pages-"):
+    # A rehearsal must not be able to target production by typo -- and the value
+    # is also a git ref and a $GITHUB_OUTPUT value, so it has to be well-formed
+    # as both.
+    if not DOCS_BRANCH.match(docs_branch):
         raise PlanError(
-            "error: docs_branch must be gh-pages or a gh-pages-* branch,"
+            "error: docs_branch must be gh-pages or a gh-pages-<suffix> branch"
+            " of [A-Za-z0-9._-],"
             f" got {docs_branch!r}"
         )
 
+    # The ref is emitted fully qualified, because the validation above and the
+    # checkout below must be talking about the same object. classify_ref asks
+    # the remote for tags first, so "release-3.4" is validated as a tag -- but
+    # actions/checkout resolves an unqualified name as a *branch* first, so a
+    # branch of the same name would be what actually got built and published.
+    # refs/tags/... and refs/heads/... are unambiguous to both.
+    release_tag_out = ""
     if source_ref in ("", "main"):
         source_ref = "main"
+        qualified_ref = "refs/heads/main"
         is_tip = True
         if publish_as not in ("", TIP):
             raise PlanError(
@@ -148,6 +169,10 @@ def plan(
     else:
         is_tip = False
         kind = classify_ref(source_ref)
+        qualified_ref = {
+            "tag": f"refs/tags/{source_ref}",
+            "branch": f"refs/heads/{source_ref}",
+        }.get(kind, source_ref)
 
         if kind == "tag":
             # A tag is an immutable release marker and must look like one.
@@ -160,6 +185,7 @@ def plan(
                     " they precede,\n       and the components must not be published"
                     " under each other's numbers."
                 )
+            release_tag_out = source_ref
         elif kind == "branch":
             # A branch is not self-describing: one cut from main carries main's
             # version, so publishing it as a release would create a directory for
@@ -201,9 +227,14 @@ def plan(
             ],
             separators=(",", ":"),
         ),
-        "source_ref": source_ref,
+        "source_ref": qualified_ref,
         "is_tip": "true" if is_tip else "false",
         "expect": expect,
+        # The exact tag being published -- empty unless the ref really is a tag.
+        # release_version.py uses it instead of `git describe`, which returns
+        # *a* reachable tag rather than this one: two python-* tags on a single
+        # commit make publishing python-1.2.0 derive 1.1.1.
+        "release_tag": release_tag_out,
         "docs_branch": docs_branch,
     }
 
@@ -229,7 +260,7 @@ def main(argv=None):
         docs_branch=args.docs_branch,
     )
 
-    lines = [f"{key}={value}" for key, value in result.items()]
+    lines = [f"{key}={emittable(key, value)}" for key, value in result.items()]
     print("\n".join(lines))
 
     github_output = os.environ.get("GITHUB_OUTPUT")
@@ -238,6 +269,24 @@ def main(argv=None):
             f.write("\n".join(lines) + "\n")
 
     return 0
+
+
+def emittable(key, value):
+    """Refuse to write a value that could forge a second $GITHUB_OUTPUT key.
+
+    The validators above are the real defence; this is the backstop that does
+    not depend on remembering to write `\\Z` in the next pattern someone adds.
+    Outputs are consumed downstream as step outputs, so a forged key becomes a
+    forged decision.
+    """
+    text = str(value)
+    if any(c in text for c in "\r\n\x00"):
+        raise PlanError(
+            f"error: refusing to emit {key}={text!r}: it contains a newline or"
+            " NUL, which would\n"
+            "       inject an additional key into $GITHUB_OUTPUT."
+        )
+    return text
 
 
 if __name__ == "__main__":

