@@ -915,8 +915,8 @@ def test_provenance_that_lies_is_rejected(tmp_path):
         ("3.4.2", "3.4.3", False),   # ordinary patch release
         ("3.4.2", "3.4.2", False),   # a re-run of the same release
         ("3.4.2", "4.0.0", False),
-        ("", "3.4.1", False),        # predates labelling; stay republishable
-        ("3.4.2", "", False),
+        ("3.4.2", "", False),        # publishing the tip; nothing to compare
+        ("", "3.4.1", None),         # something is there, but it will not say what
     ],
 )
 def test_downgrade_detection(existing, incoming, expected):
@@ -927,7 +927,12 @@ def test_older_patch_will_not_overwrite_newer(capsys):
     """Job order is not guaranteed, so arrival order cannot be the check."""
     with pytest.raises(SystemExit) as excinfo:
         release_version.main(
-            ["precedence", "--existing", "3.4.2", "--incoming", "3.4.1"]
+            [
+                "precedence",
+                "--existing", "3.4.2",
+                "--incoming", "3.4.1",
+                "--target-exists",
+            ]
         )
 
     assert "refusing to publish" in str(excinfo.value)
@@ -938,10 +943,9 @@ def test_rollback_is_possible_when_asked_for(capsys):
         release_version.main(
             [
                 "precedence",
-                "--existing",
-                "3.4.2",
-                "--incoming",
-                "3.4.1",
+                "--existing", "3.4.2",
+                "--incoming", "3.4.1",
+                "--target-exists",
                 "--allow-rollback",
             ]
         )
@@ -1044,3 +1048,91 @@ def test_component_with_no_helper_anywhere_is_refused(tmp_path):
         assemble(tmp_path)
 
     assert "no published copy to repair from" in str(excinfo.value)
+
+
+def test_unprovenanced_directory_is_not_overwritten():
+    """A directory that will not say what it holds cannot be compared against.
+
+    Reading "no label" as "safe to overwrite" is a fail-open, and it was live:
+    python/1.1 was built from python-1.1.1, carries no .release, and the tag
+    python-1.1.0 exists -- so publishing 1.1.0 passed the check.
+    """
+    with pytest.raises(SystemExit) as excinfo:
+        release_version.main(
+            [
+                "precedence",
+                "--existing", "",
+                "--incoming", "1.1.0",
+                "--directory", "python/1.1",
+                "--target-exists",
+            ]
+        )
+
+    assert "records no release" in str(excinfo.value)
+
+
+def test_provenance_can_be_bootstrapped_deliberately(capsys):
+    """The escape hatch, narrowly named: publish the newest release once."""
+    assert (
+        release_version.main(
+            [
+                "precedence",
+                "--existing", "",
+                "--incoming", "1.1.1",
+                "--directory", "python/1.1",
+                "--target-exists",
+                "--allow-missing-provenance",
+            ]
+        )
+        == 0
+    )
+    assert "no recorded provenance" in capsys.readouterr().out
+
+
+def test_first_publish_of_a_line_is_unaffected():
+    """Nothing published there yet, so nothing can be rolled back."""
+    assert (
+        release_version.main(
+            ["precedence", "--existing", "", "--incoming", "1.1.0"]
+        )
+        == 0
+    )
+
+
+def test_tip_is_never_blocked_by_precedence():
+    """The development tip carries no release label by design."""
+    assert (
+        release_version.main(
+            [
+                "precedence",
+                "--existing", "",
+                "--incoming", "",
+                "--directory", "unstable",
+                "--target-exists",
+            ]
+        )
+        == 0
+    )
+
+
+def test_cpp_tag_must_match_the_header(tmp_path):
+    """The tree decides the version; the tag must agree that it does.
+
+    Publishing the tag v999.0.0 against a 3.4.2 tree used to succeed silently
+    and publish 3.4. release-finalize.yml cuts tags from the tree so they agree
+    by construction, but a manually created tag or release bypasses that.
+    """
+    header = tmp_path / release_version.VERSION_HEADER
+    header.parent.mkdir(parents=True, exist_ok=True)
+    header.write_text("#define CCCL_VERSION 3004002\n", encoding="utf-8")
+
+    assert release_version.derive(
+        tmp_path, component="cpp", release_tag="v3.4.2"
+    ) == ("3.4", "3.4.2")
+
+    with pytest.raises(SystemExit) as excinfo:
+        release_version.derive(tmp_path, component="cpp", release_tag="v999.0.0")
+    assert "does not match this tree" in str(excinfo.value)
+
+    # Without a tag, the tree still decides on its own -- unchanged behaviour.
+    assert release_version.derive(tmp_path, component="cpp") == ("3.4", "3.4.2")

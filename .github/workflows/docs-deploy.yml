@@ -61,6 +61,11 @@ on:
         required: false
         default: false
         type: boolean
+      allow_missing_provenance:
+        description: "Allow publishing over a release directory that records no release. One-time, to establish it."
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -347,6 +352,9 @@ jobs:
           # Non-empty only when a human deliberately asked to roll a version
           # directory back to an older patch.
           ALLOW_ROLLBACK: ${{ github.event.inputs.allow_rollback == 'true' && '1' || '' }}
+          # Non-empty only when deliberately establishing provenance on a
+          # directory published before it was recorded. One-time, per line.
+          ALLOW_MISSING_PROVENANCE: ${{ github.event.inputs.allow_missing_provenance == 'true' && '1' || '' }}
         run: |
           # The tree that becomes gh-pages:/docs. Seeded from what is live, so
           # it is the complete desired state and can be published cleanly.
@@ -393,11 +401,21 @@ jobs:
             if [[ -f "${component_root}/${VERSION_DIR}/.release" ]]; then
               existing_label="$(tr -d '\n' < "${component_root}/${VERSION_DIR}/.release")"
             fi
+            # "Is there already something here" is a separate question from
+            # "what does it say it is". A directory that exists but records no
+            # release cannot be compared against, and the check must not read
+            # that as permission -- see release_version.is_downgrade.
+            target_exists=""
+            if [[ -d "${component_root}/${VERSION_DIR}" ]]; then
+              target_exists=1
+            fi
             python3 "${GITHUB_WORKSPACE}/docs/release_version.py" precedence \
               --existing "${existing_label}" \
               --incoming "${RELEASE_LABEL}" \
               --directory "${component}/${VERSION_DIR}" \
-              ${ALLOW_ROLLBACK:+--allow-rollback}
+              ${target_exists:+--target-exists} \
+              ${ALLOW_ROLLBACK:+--allow-rollback} \
+              ${ALLOW_MISSING_PROVENANCE:+--allow-missing-provenance}
 
             # Replace this one version wholesale. Everything else is carried
             # over by the seed, so the publish below deletes exactly the files

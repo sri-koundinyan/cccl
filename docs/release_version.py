@@ -151,6 +151,30 @@ def derive(checkout, component="cpp", tip=False, expect=None, release_tag=None):
     version_dir = f"{major}.{minor}"
     label = f"{major}.{minor}.{patch}"
 
+    # The tag and the tree have to be describing the same release.
+    #
+    # Reading the version from the tree is what stops a mislabelled ref
+    # publishing into the wrong directory, and that is still the rule -- the
+    # tree decides. But when the caller also knows the tag, silently ignoring a
+    # disagreement throws away the one cross-check available: publishing the tag
+    # v999.0.0 against this tree returned 3.6.0 without complaint.
+    #
+    # release-finalize.yml cuts the tag from the tree, so the two agree by
+    # construction there. A manually created tag or release bypasses that, and
+    # those are exactly the cases with no other check.
+    if release_tag:
+        expected_tag = f"v{major}.{minor}.{patch}"
+        if release_tag.strip() != expected_tag:
+            raise SystemExit(
+                f"error: tag {release_tag.strip()!r} does not match this tree,"
+                f" which is {label!r}.\n"
+                f"       A release tagged {release_tag.strip()!r} should carry"
+                f" {expected_tag!r} in\n"
+                f"       {VERSION_HEADER}. One of the two is wrong, and"
+                " publishing either way would\n"
+                "       misattribute the documentation."
+            )
+
     # docs/VERSION.md is what conf.py falls back to when SPHINX_CCCL_VER is
     # unset, so a disagreement between the two would mean the pages could be
     # stamped with one version and published under another -- exactly the drift
@@ -201,12 +225,22 @@ def is_downgrade(existing, incoming):
     can land after 3.4.2 and silently roll the directory back. Compare the
     labels rather than trusting arrival order.
 
-    Unlabelled on either side means "cannot tell", which is not a downgrade:
-    directories published before labels existed must stay republishable.
+    Returns ``True`` (refuse), ``False`` (allow) or ``None`` ("cannot tell").
+
+    ``None`` is the case worth being careful about. It means the directory is
+    there but carries no readable provenance, so whether this would move it
+    backwards is unknowable. Treating that as "allow" is a fail-open, and not a
+    hypothetical one: ``python/1.1`` on the live site was built from
+    ``python-1.1.1`` and has no provenance file, while the tag ``python-1.1.0``
+    exists -- so publishing 1.1.0 would have sailed through and silently
+    downgraded it. The caller decides what to do with ``None``; see
+    ``_precedence_main``.
     """
     old, new = label_order(existing), label_order(incoming)
-    if old is None or new is None:
-        return False
+    if new is None:
+        return False          # not publishing a release; nothing to compare
+    if old is None:
+        return None           # something is there, but we cannot tell what
     return new < old
 
 
@@ -271,16 +305,58 @@ def _precedence_main(argv):
     parser.add_argument("--incoming", default="", help="label about to be written")
     parser.add_argument("--directory", default="", help="which directory, for the message")
     parser.add_argument(
+        "--target-exists",
+        action="store_true",
+        help="the version directory is already published (something to overwrite)",
+    )
+    parser.add_argument(
         "--allow-rollback",
         action="store_true",
         help="publish anyway; deliberate rollback to a known-good release",
     )
+    parser.add_argument(
+        "--allow-missing-provenance",
+        action="store_true",
+        help=(
+            "publish over a release directory that carries no .release file."
+            " Narrow, one-time: use it to bootstrap provenance onto a directory"
+            " published before provenance was recorded"
+        ),
+    )
     args = parser.parse_args(argv)
 
-    if not is_downgrade(args.existing, args.incoming):
+    verdict = is_downgrade(args.existing, args.incoming)
+    where = f" {args.directory}" if args.directory else ""
+
+    # Nothing published there yet, so nothing can be rolled back.
+    if not args.target_exists:
         return 0
 
-    where = f" {args.directory}" if args.directory else ""
+    if verdict is None:
+        # The directory holds a release line but will not say which release.
+        # Allowing this is a fail-open: the incoming build could be older than
+        # what is there and nothing would notice.
+        if args.allow_missing_provenance:
+            print(
+                f"::warning::publishing{where} as {args.incoming} over a directory"
+                " with no recorded provenance, because allow_missing_provenance"
+                " was set. This deploy establishes it."
+            )
+            return 0
+        raise SystemExit(
+            f"error: refusing to publish{where} as {args.incoming}; the directory"
+            " that is already\n"
+            "       there records no release, so whether this would overwrite a"
+            " newer build is\n"
+            "       unknowable.\n"
+            "       Publishing the newest release of this line with"
+            " allow_missing_provenance=true\n"
+            "       records it and makes every later deploy checkable."
+        )
+
+    if not verdict:
+        return 0
+
     if args.allow_rollback:
         print(
             f"::warning::rolling{where} back from {args.existing} to {args.incoming}"
