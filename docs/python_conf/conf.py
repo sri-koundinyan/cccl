@@ -58,7 +58,10 @@ extensions = [
     "sphinx_copybutton",
 ]
 
-templates_path = []
+# docs/_templates carries a custom search.html. It is a sibling of this
+# configuration directory rather than inside it, so it needs a real path.
+_templates = CONF_DIR.parent / "_templates"
+templates_path = [str(_templates)] if _templates.is_dir() else []
 exclude_patterns = [
     "_build",
     "Thumbs.db",
@@ -71,16 +74,32 @@ exclude_patterns = [
 html_theme = "nvidia_sphinx_theme"
 html_title = "CCCL Python Libraries"
 
-# The Python component lives under /python/, so the deploy passes that as the
-# base URL. Everything the switcher needs hangs off it.
-html_baseurl = (
+# Where this component's versions live, e.g. .../cccl/python/ . The switcher
+# manifest sits here, alongside the version directories.
+_component_root = (
     os.environ.get(
         "CCCL_DOCS_BASE_URL", "https://nvidia.github.io/cccl/python/"
     ).rstrip("/")
     + "/"
 )
 
+# The root of *this* documentation, which is what Sphinx puts in each page's
+# canonical link. Pages are served from <component root>/<version>/, so the
+# version belongs here; without it every version claims the same canonical URL.
+html_baseurl = f"{_component_root}{release}/"
+
 html_theme_options = {
+    # Matches docs/conf.py: the GitHub link in the navbar is part of the shared
+    # chrome, and its absence here was a visible difference from the combined
+    # build rather than a decision.
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/NVIDIA/cccl",
+            "icon": "fa-brands fa-github",
+            "type": "fontawesome",
+        }
+    ],
     "navigation_depth": 4,
     "show_toc_level": 2,
     "navbar_start": ["navbar-logo"],
@@ -90,30 +109,49 @@ html_theme_options = {
     "sidebar_includehidden": True,
     "collapse_navigation": False,
     "switcher": {
-        # This component's own manifest, listing only Python releases.
-        "json_url": f"{html_baseurl}nv-versions.json",
+        # Deliberately the component root, not html_baseurl: the manifest lists
+        # every Python version, so it cannot live inside one of them.
+        "json_url": f"{_component_root}nv-versions.json",
         "version_match": release,
     },
 }
 
 _static = CONF_DIR.parent / "_static"
 html_static_path = [str(_static)] if _static.is_dir() else []
+# Shared with the C++ build; lives in docs/_static, already on the static path.
+html_js_files = ["deduplicate_toc.js"]
+
 _logo = _static / "nvidia-logo.png"
 if _logo.is_file():
     html_logo = str(_logo)
 
-# -- Cross-references into the C++ documentation -----------------------------
+# -- Cross-references --------------------------------------------------------
 
-# The Python docs point at C++ pages in a few places, and the docstrings carry
-# :ref:s into C++ labels. Now that the two are separate sites those cannot
-# resolve locally, so they resolve through the C++ inventory instead -- which
-# means no docstring has to be edited to accommodate the split.
+# The STF pages reference C++ labels -- `stf` and `stf-data-place`, both defined
+# in docs/cudax/ -- so the C++ inventory is genuinely required. What matters is
+# *which* C++ version it comes from.
 #
-# CI points this at the C++ objects.inv it just built, so the reference is to
-# the matching version and the build does not depend on the network. Falls back
-# to the published site for local builds.
+# These docs and the C++ docs move together on main, so the tip must resolve
+# against the tip: `stf-data-place` exists on main and not in 3.4, so a build of
+# Python unstable against the newest *release* fails. Releases resolve against
+# /latest/, which is the closest thing to contemporaneous for a component on its
+# own release line.
+#
+# CI passes a locally built inventory when the C++ docs were built in the same
+# job, which is both fresher and free of a network round trip.
+#
+# Note what is deliberately *not* here: the one hand-written link to the C++ site
+# in index.rst is a plain URL, not an intersphinx :doc: reference. Labels are
+# explicit and stable across versions; document paths are not -- 3.4 calls that
+# page `cpp` while main calls it `cccl/index` -- so a :doc: cross-reference
+# breaks on a rename that a label survives.
 _cpp_inventory = os.environ.get("CCCL_CPP_OBJECTS_INV") or None
-_cpp_base = os.environ.get("CCCL_CPP_DOCS_URL", "https://nvidia.github.io/cccl/latest/")
+_cpp_base = os.environ.get(
+    "CCCL_CPP_DOCS_URL",
+    "https://nvidia.github.io/cccl/"
+    + ("unstable" if release == "unstable" else "latest")
+    + "/",
+)
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
@@ -121,17 +159,18 @@ intersphinx_mapping = {
     "cccl": (_cpp_base, _cpp_inventory),
 }
 
-# A missing C++ inventory should not fail the build: the Python docs are still
-# correct and useful, the cross-links just degrade to plain text.
-intersphinx_disabled_reftypes = []
-nitpicky = False
-
 # -- autodoc -----------------------------------------------------------------
 
+# Copied from docs/conf.py rather than chosen afresh. These decide *which*
+# members appear, so a different set silently changes the rendered API -- my
+# earlier values dropped __init__ documentation and flipped undoc-members,
+# which is a content change disguised as a configuration tidy-up.
 autodoc_default_options = {
     "members": True,
-    "undoc-members": False,
-    "show-inheritance": True,
+    "member-order": "bysource",
+    "special-members": "__init__",
+    "undoc-members": True,
+    "exclude-members": "__weakref__",
 }
 autosummary_generate = True
 autosummary_imported_members = False

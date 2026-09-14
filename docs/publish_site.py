@@ -61,7 +61,10 @@ COMPONENTS = [
         "id": "python",
         "label": "Python",
         "path": "python",
-        "description": "cuda.compute and cuda.coop",
+        # Deliberately not a package list: which modules exist differs by version
+        # (main ships cuda.stf and no cuda.coop; 1.1.1 is the reverse), and a
+        # component description spans every version.
+        "description": "Python APIs for CCCL",
     },
 ]
 
@@ -121,12 +124,21 @@ SIZE_BUDGET_BYTES = 900 * 1024 * 1024
 # was misled. This is also what Python, Django and NumPy do -- docs.python.org
 # lists 3.13, not 3.13.7.
 #
-# Which patch actually built a directory is recorded in the deploy log, where it
-# is provenance rather than a promise.
+# Which patch actually built a directory is recorded in a small file inside it,
+# read by nobody and displayed nowhere. It is provenance, not a promise: the
+# deploy log would do the same job until it expires, and Actions logs are not a
+# durable record.
 VERSION_DIR = re.compile(r"^(?:unstable|[0-9]+\.[0-9]+)$")
 
 # Sphinx stamps this into every page. It is what the switcher compares against a
 # manifest entry's "version" to decide which entry to highlight.
+# Written into a version directory at publish time, holding the full version of
+# the release that produced it ("3.4.2" in a directory named "3.4"). Never
+# rendered -- the switcher shows the directory name. This exists so that "which
+# release built /3.4/" is answerable from the site itself years later, rather
+# than from workflow logs that expire.
+RELEASE_LABEL_FILE = ".release"
+
 VERSION_MATCH = re.compile(r"version_match\s*=\s*'([^']*)'")
 
 # The routing data the site-wide 404 handler reads, carried in a JSON <script>
@@ -218,6 +230,25 @@ def retire_old_releases(component_root, component_id, versions):
             shutil.rmtree(directory)
 
     return [v for v in versions if v not in set(retire)]
+
+
+def check_release_provenance(component_root, versions):
+    """Confirm each version's provenance file describes the directory it is in.
+
+    Nothing renders this, so a wrong value misleads nobody today -- but
+    provenance that lies is worse than none at all, and the check is one
+    comparison. "3.4" may record "3.4" or "3.4.2", never "3.5.0".
+    """
+    for version in versions:
+        label_file = component_root / version / RELEASE_LABEL_FILE
+        if not label_file.is_file():
+            continue
+        label = label_file.read_text(encoding="utf-8").strip()
+        if label and label != version and not label.startswith(version + "."):
+            raise SystemExit(
+                f"error: {label_file} records {label!r}, which is not a release"
+                f" of {version!r}."
+            )
 
 
 def stamped_version(version_dir):
@@ -581,6 +612,7 @@ def main(argv=None):
 
         print(f"\n{component['id']} in {component_root}")
         check_version_match(component_root, versions)
+        check_release_provenance(component_root, versions)
         versions = retire_old_releases(component_root, component["id"], versions)
 
         stable = latest_stable(component["id"], versions)

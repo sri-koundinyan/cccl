@@ -81,13 +81,13 @@ if ! python -c "import sphinx" 2>/dev/null; then
     python3 -m pip install -r requirements.txt
 fi
 
-# Cross-references into the C++ documentation resolve through its inventory
-# rather than locally, so no docstring has to change for the split. Prefer a
-# locally built objects.inv when there is one: it matches the version being
-# published and keeps the build off the network.
+
+# The STF pages cross-reference C++ labels, so this build needs the C++
+# inventory -- from the *matching* version. When the C++ docs were built in the
+# same job, prefer that: it is contemporaneous and needs no network.
 if [[ -z "${CCCL_CPP_OBJECTS_INV:-}" && -f "${BUILDDIR}/html/${VERSION}/objects.inv" ]]; then
     export CCCL_CPP_OBJECTS_INV="${SCRIPT_PATH}/${BUILDDIR}/html/${VERSION}/objects.inv"
-    echo "Resolving C++ cross-references against the local ${VERSION} inventory"
+    echo "Resolving C++ cross-references against the locally built ${VERSION} inventory"
 fi
 
 echo "Building Python documentation (version: ${VERSION})..."

@@ -67,6 +67,12 @@ permissions:
 concurrency:
   group: docs-deploy-${{ github.event.inputs.docs_branch || 'gh-pages' }}
   cancel-in-progress: false
+  # Without this the group allows at most one *pending* run, so a third trigger
+  # supersedes the one waiting. Tip pushes and both release types share this
+  # group, so two merges landing while a release deploy waits would discard the
+  # release deploy -- and a discarded release deploy means those docs never
+  # publish at all. `max` keeps up to 100 pending, processed first-in-first-out.
+  queue: max
 
 jobs:
   deploy:
@@ -86,11 +92,22 @@ jobs:
       startsWith(github.event.release.tag_name, 'python-')
     runs-on: ${{ github.repository == 'NVIDIA/cccl' && 'linux-amd64-cpu32' || 'ubuntu-latest' }}
     steps:
-      # main's copy of the publishing tools. The docs themselves are built from
-      # source_ref, which may be an older release whose tooling predates this.
+      # The publishing tools, which must come from a ref that has them. The docs
+      # themselves are built from source_ref, which may be an older release
+      # whose tooling predates all of this.
+      #
+      # The ref is explicit because a release run's default is the *tag*, not a
+      # branch -- so without this, publishing v3.4.2 would check out v3.4.2,
+      # which has no deploy_plan.py, and fail on the very next step. push and
+      # workflow_dispatch already resolve to a branch, and dispatch deliberately
+      # uses the ref it was started on so workflow changes can be tested.
       - name: Checkout publishing tools
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
         with:
+          ref: >-
+            ${{ github.event_name == 'release'
+                && github.event.repository.default_branch
+                || github.ref }}
           persist-credentials: false
 
       # The logic that decides what gets published, and where. In Python
@@ -167,9 +184,10 @@ jobs:
           # canonical URLs hang off that rather than off the site root.
           CCCL_DOCS_BASE_URL: ${{ steps.base_url.outputs.base }}python/
           SPHINX_CCCL_VER: ${{ steps.version.outputs.version_dir }}
-          # Docstrings carry :ref:s into C++ labels. They resolve through the
-          # published C++ inventory, so the split needs no docstring edits.
-          CCCL_CPP_DOCS_URL: ${{ steps.base_url.outputs.base }}latest/
+          # The STF pages reference C++ labels, so this needs the C++ inventory
+          # from the matching version: the tip moves with main, releases track
+          # the newest published release.
+          CCCL_CPP_DOCS_URL: ${{ steps.base_url.outputs.base }}${{ steps.version.outputs.version_dir == 'unstable' && 'unstable' || 'latest' }}/
         run: |
           # A release ref predates this script, so use main's copy against that
           # ref's sources -- the same reason publish_site.py is checked out
@@ -252,15 +270,20 @@ jobs:
             # over by the seed, so the publish below deletes exactly the files
             # this build no longer produces -- and nothing in any other version
             # or component.
-            # The exact release is logged, not published. /cccl/3.4/ means "the
-            # 3.4 line, newest patch", and the switcher says 3.4 to match. A
-            # label naming the patch would claim the URL is frozen at it, which
-            # it is not -- the next patch replaces this directory. Which patch
-            # built it is provenance, and belongs in this log.
             echo "placing ${component} ${VERSION_DIR}${RELEASE_LABEL:+ (built from ${RELEASE_LABEL})}"
             rm -rf "${component_root:?}/${VERSION_DIR:?}"
             mkdir -p "${component_root}/${VERSION_DIR}"
             cp -a "${build}/${VERSION_DIR}/." "${component_root}/${VERSION_DIR}/"
+
+            # Record which release produced this directory, inside the directory.
+            # Never rendered: the switcher shows "3.4", because /cccl/3.4/ means
+            # "the 3.4 line, newest patch" and naming the patch would claim the
+            # URL is frozen at it. This file answers "which release built this"
+            # from the site itself, years later -- the run log answers it too,
+            # until it expires.
+            if [[ -n "${RELEASE_LABEL}" ]]; then
+              printf '%s' "${RELEASE_LABEL}" > "${component_root}/${VERSION_DIR}/.release"
+            fi
           done < <(python3 -c "import json,sys;[print('|'.join([c['id'],c['path'],c['build']])) for c in json.loads(sys.argv[1])]" "${COMPONENT_PLAN}")
 
       - name: Assemble the site

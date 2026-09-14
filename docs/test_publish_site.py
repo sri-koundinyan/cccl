@@ -843,3 +843,29 @@ def test_retention_is_sized_against_a_release_not_the_tip():
     assert headroom < 2 * release, (
         f"keep={keep} leaves {headroom:.0f} MB unused; the archive could be longer"
     )
+
+
+def test_provenance_is_recorded_but_never_shown(tmp_path):
+    """Which release built a directory is durable data, not a display label.
+
+    Workflow logs expire, so the site has to carry this itself; the switcher
+    still shows the directory, because the URL is not frozen at a patch.
+    """
+    make_version(tmp_path, "3.4")
+    (tmp_path / "3.4" / publish_site.RELEASE_LABEL_FILE).write_text("3.4.2")
+
+    assemble(tmp_path)
+
+    entry = next(e for e in manifest(tmp_path) if e["version"] == "3.4")
+    assert "name" not in entry
+    assert (tmp_path / "3.4" / publish_site.RELEASE_LABEL_FILE).read_text() == "3.4.2"
+
+
+def test_provenance_that_lies_is_rejected(tmp_path):
+    make_version(tmp_path, "3.4")
+    (tmp_path / "3.4" / publish_site.RELEASE_LABEL_FILE).write_text("3.5.0")
+
+    with pytest.raises(SystemExit) as excinfo:
+        assemble(tmp_path)
+
+    assert "not a release of" in str(excinfo.value)
