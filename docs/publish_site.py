@@ -139,6 +139,10 @@ VERSION_DIR = re.compile(r"^(?:unstable|[0-9]+\.[0-9]+)$")
 # than from workflow logs that expire.
 RELEASE_LABEL_FILE = ".release"
 
+# The per-version page the site-wide 404 handler redirects to. It searches that
+# version's pagelist.txt for something close to the URL that missed.
+HELPER_FILE = "404_helper.html"
+
 VERSION_MATCH = re.compile(r"version_match\s*=\s*'([^']*)'")
 
 # The routing data the site-wide 404 handler reads, carried in a JSON <script>
@@ -230,6 +234,55 @@ def retire_old_releases(component_root, component_id, versions):
             shutil.rmtree(directory)
 
     return [v for v in versions if v not in set(retire)]
+
+
+def backfill_404_helpers(component_root, versions):
+    """Give any version missing a 404 helper a copy from one that has it.
+
+    The router sends a miss to ``<version>/404_helper.html``, which searches
+    that version's ``pagelist.txt``. A version with the list but not its reader
+    turns every miss into a second miss -- which is what the Python component
+    shipped, because its Sphinx source directory does not contain the shared
+    ``404_helper.rst``.
+
+    Fixing the build fixes new versions, but not the ones already published:
+    a version can only be rebuilt by a deploy, and a deploy that refused to
+    proceed while any version lacked a helper could never publish the fix. So
+    repair rather than refuse. The page is not version-specific -- it resolves
+    ``?path=`` against whatever ``pagelist.txt`` sits beside it -- so a copy
+    from a sibling version behaves correctly in its new home.
+
+    Refusing is still right when there is nothing to copy from, because then
+    the component has no working 404 path at all and silently shipping that is
+    the defect this exists to prevent.
+    """
+    missing = [v for v in versions if not (component_root / v / HELPER_FILE).is_file()]
+    if not missing:
+        return
+
+    donor = next(
+        (v for v in versions if (component_root / v / HELPER_FILE).is_file()), None
+    )
+    if donor is None:
+        raise SystemExit(
+            f"error: no version under {component_root} has a {HELPER_FILE}.\n"
+            "       Every miss in this component would redirect to a missing"
+            " page, and there\n"
+            "       is no published copy to repair from. Build this component"
+            " with a current\n"
+            "       gen_python_docs.bash, which renders it."
+        )
+
+    for version in missing:
+        shutil.copyfile(
+            component_root / donor / HELPER_FILE,
+            component_root / version / HELPER_FILE,
+        )
+        print(
+            f"  note: {version} had no {HELPER_FILE}; copied {donor}'s."
+            " Rebuild it to regenerate.",
+            file=sys.stderr,
+        )
 
 
 def check_release_provenance(component_root, versions):
@@ -613,6 +666,7 @@ def main(argv=None):
         print(f"\n{component['id']} in {component_root}")
         check_version_match(component_root, versions)
         check_release_provenance(component_root, versions)
+        backfill_404_helpers(component_root, versions)
         versions = retire_old_releases(component_root, component["id"], versions)
 
         stable = latest_stable(component["id"], versions)
@@ -698,7 +752,7 @@ def verify(site_root, published):
         # until it was caught in review.
         for version in state["versions"]:
             for required, consequence in (
-                ("404_helper.html", "every miss redirects to a missing page"),
+                (HELPER_FILE, "every miss redirects to a missing page"),
                 ("pagelist.txt", "the 404 search has nothing to search"),
             ):
                 if not (root / version / required).is_file():

@@ -1017,3 +1017,30 @@ def test_refs_are_emitted_fully_qualified():
     assert branch["source_ref"] == "refs/heads/docs-backfill-3.4"
     # A branch is not a release, so nothing is passed to --release-tag.
     assert branch["release_tag"] == ""
+
+
+def test_missing_helper_is_repaired_from_a_sibling(tmp_path, capsys):
+    """A version can only be rebuilt by a deploy, so refusing would deadlock.
+
+    Fixing the build fixes new versions. Versions already published keep their
+    gap until they are rebuilt -- and if that gap blocked every deploy, the
+    rebuild could never happen. So repair, and say so.
+    """
+    make_version(tmp_path, "unstable")            # freshly built: has a helper
+    make_version(tmp_path, "3.4", helper=False)   # published before the fix
+
+    assemble(tmp_path, "--verify")
+
+    assert (tmp_path / "3.4" / publish_site.HELPER_FILE).is_file()
+    assert "copied" in capsys.readouterr().err
+
+
+def test_component_with_no_helper_anywhere_is_refused(tmp_path):
+    """Nothing to copy from means the component has no working 404 path."""
+    make_version(tmp_path, "unstable", helper=False)
+    make_version(tmp_path, "3.4", helper=False)
+
+    with pytest.raises(SystemExit) as excinfo:
+        assemble(tmp_path)
+
+    assert "no published copy to repair from" in str(excinfo.value)
