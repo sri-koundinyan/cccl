@@ -101,7 +101,11 @@ _component_root = (
 # Canonical URL of this build. The version is part of it because these pages are
 # served from <component root>/<version>/; without it every version would claim
 # the same canonical address.
-html_baseurl = f"{_component_root}{release}/"
+# The directory this build is served from: "latest" for a development build,
+# or the exact release for a stable one.
+_publication_label = os.environ.get("CCCL_DOCS_LABEL", release)
+
+html_baseurl = f"{_component_root}{_publication_label}/"
 
 html_theme_options = {
     "icon_links": [
@@ -120,13 +124,28 @@ html_theme_options = {
     "footer_end": ["sphinx-version"],
     "sidebar_includehidden": True,
     "collapse_navigation": False,
+    # A reader landing on latest/ must not mistake development documentation
+    # for a release. cuda-python uses the same convention.
+    **(
+        {
+            "announcement": (
+                "This is the <strong>development</strong> documentation, built "
+                "from the latest commit on <code>main</code>. "
+                '<a href="https://nvidia.github.io/cccl/python/">Browse released '
+                "versions</a>."
+            )
+        }
+        if _publication_label == "latest"
+        else {}
+    ),
     "switcher": {
         # The component root, not html_baseurl: the manifest lists every version,
         # so it cannot live inside one of them. This is the Python manifest --
         # it never lists a C++ version.
         "json_url": f"{_component_root}nv-versions.json",
-        # Must equal the directory this build is served from.
-        "version_match": release,
+        # Must equal the directory this build is served from, so the switcher
+        # highlights the entry the reader is actually on.
+        "version_match": _publication_label,
     },
 }
 

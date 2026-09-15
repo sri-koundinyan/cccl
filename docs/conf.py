@@ -132,19 +132,27 @@ html_theme = "nvidia_sphinx_theme"
 
 html_logo = "_static/nvidia-logo.png"
 
-# Where this component's versions live, e.g. https://nvidia.github.io/cccl/ .
-# The switcher manifest sits here, alongside the version directories.
+# Where this component's versions live. C++ and Python are sibling products
+# under a neutral root, so each gets its own namespace and its own switcher
+# manifest -- the same shape cuda-python uses for cuda-core and cuda-bindings.
+#
+# The site root itself is a chooser and claims no version.
 _component_root = (
-    os.environ.get("CCCL_DOCS_BASE_URL", "https://nvidia.github.io/cccl/").rstrip("/")
+    os.environ.get("CCCL_DOCS_BASE_URL", "https://nvidia.github.io/cccl/cpp/").rstrip("/")
     + "/"
 )
 
-# Sphinx defines html_baseurl as the root of *this* generated documentation and
-# writes it into every page as the canonical link. These pages are served from
-# <component root>/<version>/, so the version has to be part of it -- otherwise
-# every version claims the same canonical URL and the archive competes with
-# itself for indexing.
-html_baseurl = f"{_component_root}{release}/"
+# The directory this build is served from, which is also the switcher entry
+# that represents it. "latest" is the development branch -- not the newest
+# release -- matching cuda-python, whose latest/ is likewise built from main.
+# A stable build uses its exact MAJOR.MINOR.PATCH.
+_publication_label = os.environ.get("CCCL_DOCS_LABEL", release)
+
+# Sphinx writes html_baseurl into every page as the canonical link. These pages
+# are served from <component root>/<label>/, so the label has to be part of it
+# -- otherwise every version claims the same canonical URL and the archive
+# competes with itself for indexing.
+html_baseurl = f"{_component_root}{_publication_label}/"
 
 html_theme_options = {
     "icon_links": [
@@ -163,15 +171,32 @@ html_theme_options = {
     "footer_end": ["sphinx-version"],
     "sidebar_includehidden": True,
     "collapse_navigation": False,
+    # A reader landing on latest/ must not mistake development documentation
+    # for a release. cuda-python uses the same convention.
+    **(
+        {
+            "announcement": (
+                "This is the <strong>development</strong> documentation, built "
+                "from the latest commit on <code>main</code>. "
+                '<a href="https://nvidia.github.io/cccl/cpp/">Browse released '
+                "versions</a>."
+            )
+        }
+        if _publication_label == "latest"
+        else {}
+    ),
     "switcher": {
         # Deliberately the component root, not html_baseurl: the manifest lists
         # every version, so it cannot live inside one of them.
         "json_url": f"{_component_root}nv-versions.json",
-        # Must equal the directory this build is served from ("unstable" or
-        # "X.Y"), never the full patch. gen_docs.bash validates that and exports
-        # it as SPHINX_CCCL_VER; a disagreement leaves the switcher unable to
-        # highlight the current page while every route still returns 200.
-        "version_match": release,
+        # Must equal the directory this build is served from: "latest" for a
+        # development build, or the exact release for a stable one.
+        #
+        # cuda-python does not do this -- its latest/ is stamped with the source
+        # version (1.2.1.dev72 today), so its switcher can never highlight the
+        # entry a reader is actually on. CCCL already passes the publication
+        # label to Sphinx, so matching them costs nothing and fixes that.
+        "version_match": _publication_label,
     },
 }
 

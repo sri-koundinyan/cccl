@@ -5,16 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CUDA Core Compute Libraries</title>
   <!--
-    The site root is a neutral chooser, not a redirect.
+    The site root is a neutral chooser and deliberately does not redirect.
 
-    CCCL publishes two independently versioned products: the C++ libraries on
-    the 3.x line and the Python package cuda-cccl on its own 1.x line. The root
-    therefore cannot claim a single CCCL version, and it does not redirect to
-    either component -- doing so would make one of them the implicit default.
+    CCCL ships two independently released products: the C++ libraries on the
+    3.x line and the Python package cuda-cccl on its own 1.x line. The root
+    therefore cannot claim a CCCL version, and redirecting would make one
+    component the implicit default.
 
-    Each link points at that component's development documentation, which is
-    what each component defaults to. Publishing a stable release never changes
-    these links.
+    Each link goes to that component's latest/ -- which, following cuda-python,
+    means documentation built from the development branch rather than the
+    newest release. Stable releases live under their exact version numbers and
+    are reached through the version switcher.
   -->
   <style>
     :root { color-scheme: light dark; }
@@ -34,11 +35,11 @@
       .card { background: #1c1c1c; border-color: #333; }
       .card h2 { color: #76b900; }
       .card p { color: #b5b5b5; }
+      .lede { color: #a8a8a8; }
     }
     main { max-width: 46rem; padding: 2.5rem 1.5rem; width: 100%; box-sizing: border-box; }
     h1 { font-size: 1.75rem; margin: 0 0 0.35rem; }
     .lede { margin: 0 0 2rem; color: #555; }
-    @media (prefers-color-scheme: dark) { .lede { color: #a8a8a8; } }
     .cards { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
     .card {
       display: block;
@@ -58,13 +59,13 @@
 <body>
   <main>
     <h1>CUDA Core Compute Libraries</h1>
-    <p class="lede">Two independently versioned products. Choose one.</p>
+    <p class="lede">Two independently released products. Choose one.</p>
     <div class="cards">
-      <a class="card" href="unstable/">
+      <a class="card" href="cpp/latest/">
         <h2>C++ &rarr;</h2>
         <p>Thrust, CUB, libcu++ and CUDA Experimental.</p>
       </a>
-      <a class="card" href="python/unstable/">
+      <a class="card" href="python/latest/">
         <h2>Python &rarr;</h2>
         <p>Python APIs for CCCL, shipped as <code>cuda-cccl</code>.</p>
       </a>
