@@ -1,0 +1,145 @@
+# One-time launch: create the first provenance-complete Pages commit.
+#
+# DISPOSABLE. This workflow, docs/launch_migration.py and the launch ledger are
+# deleted once the launch is accepted. Leaving it in place would turn a
+# one-time bootstrap into a permanent path that starts from an unprovenanced
+# seed and rewrites the site shell -- exactly the two things the permanent
+# publisher is forbidden to do.
+#
+# It takes no inputs. There is nothing to choose: it publishes both components
+# from the commit it runs on, authors the shell, and stops.
+name: One-time documentation versioning launch
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PAGES_BRANCH: gh-pages
+  PAGES_DIR: docs
+
+jobs:
+  launch:
+    name: Seed the versioned site
+    runs-on: ${{ github.repository == 'NVIDIA/cccl' && 'linux-amd64-cpu32' || 'ubuntu-latest' }}
+    permissions:
+      contents: write
+
+    # The same literal writer group as the permanent publisher. A launch that
+    # used its own group could race an ordinary publication while both edited
+    # the same branch.
+    concurrency:
+      group: cccl-docs-production
+      cancel-in-progress: false
+      queue: max
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
+        with:
+          fetch-depth: 0
+          path: source
+          persist-credentials: false
+
+      - name: Build C++ docs
+        working-directory: source
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: ./docs/gen_docs.bash --allow-dep-install --version-dir unstable
+
+      - name: Build Python docs
+        working-directory: source
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: ./docs/gen_python_docs.bash --allow-dep-install --version-dir unstable
+
+      # Decided before anything is replaced. "I could not tell" must never
+      # collapse into "there is nothing there": exit 2, and only 2, means the
+      # branch is absent.
+      - name: Check the Pages branch exists
+        id: pages
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: |
+          set +e
+          probe="$(git ls-remote --exit-code --heads \
+            "https://github.com/${GITHUB_REPOSITORY}.git" \
+            "refs/heads/${PAGES_BRANCH}" 2>&1)"
+          status=$?
+          set -e
+          case "${status}" in
+            0) echo "exists=true"  >> "${GITHUB_OUTPUT}" ;;
+            2) echo "exists=false" >> "${GITHUB_OUTPUT}" ;;
+            *) echo "error: could not determine whether ${PAGES_BRANCH} exists." >&2
+               printf '%s\n' "${probe}" | sed 's/^/       /' >&2
+               exit 1 ;;
+          esac
+
+      - name: Seed from the published site
+        if: ${{ steps.pages.outputs.exists == 'true' }}
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
+        with:
+          ref: ${{ env.PAGES_BRANCH }}
+          path: pages
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Record the pre-launch state
+        id: pre
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: |
+          if [[ -d pages/.git ]]; then
+            head="$(git -C pages rev-parse HEAD)"
+          else
+            head="(branch absent)"
+            mkdir -p "pages/${PAGES_DIR}"
+          fi
+          echo "P-pre: ${head}"
+          echo "p_pre=${head}" >> "${GITHUB_OUTPUT}"
+
+      - name: Assemble the launch candidate
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: |
+          python3 source/docs/launch_migration.py "pages/${PAGES_DIR}" \
+            --docs-dir source/docs \
+            --source-sha "${GITHUB_SHA}" \
+            --publisher-sha "${GITHUB_SHA}" \
+            --artifact "cpp=source/docs/_build/html/unstable" \
+            --artifact "python=source/docs/_build/python-html/unstable"
+
+      - name: Publish P-attempt
+        working-directory: pages
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config core.autocrlf false
+
+          git add -A -- "${PAGES_DIR}"
+          if git diff --cached --quiet; then
+            echo "::notice::candidate is identical to the current site"
+            exit 0
+          fi
+
+          subtree="$(git rev-parse "$(git write-tree):${PAGES_DIR}")"
+          echo "published docs/ subtree: ${subtree}"
+
+          git commit -q -m "launch: seed provenance-complete versioned site"
+          # An ordinary child commit, pushed without force. The previous site
+          # stays reachable in history, which is what makes a revert possible.
+          git push origin "HEAD:${PAGES_BRANCH}"
+          echo "P-attempt: $(git rev-parse HEAD)"
+
+      - name: Summary
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: |
+          {
+            echo "### Documentation versioning launch"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| P-pre | \`${{ steps.pre.outputs.p_pre }}\` |"
+            echo "| source | \`${GITHUB_SHA}\` |"
+            echo ""
+            echo "Verify the hosted site, then this workflow and"
+            echo "\`docs/launch_migration.py\` are deleted."
+          } >> "${GITHUB_STEP_SUMMARY}"
