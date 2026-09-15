@@ -71,20 +71,11 @@ The flip side: **a page dropped from a build is not dropped from the site.**
 Rename `foo.html` to `foo2.html` and both stay live. Nothing links to
 `foo.html` any more, because the sidebars, the search index and `objects.inv`
 were all rebuilt without it, but the URL still works and still serves the old
-content. It does not even look stale: the same deploy replaced `_static/`, so
-the leftover page renders with current styling.
+content.
 
 This only happens where a deployment writes into a directory that already has
-files, which means **the two `latest/` trees and nowhere else**:
-
-| | |
-|---|---|
-| `cpp/latest/`, `python/latest/` | rewritten on every merge, so leftovers collect here |
-| a new release, `cpp/3.5.0/` | lands in an empty directory, so it cannot have any |
-| a published release, `cpp/3.4.2/` | never rewritten, so it stays exactly as shipped |
-
-People usually pin to and cite specific releases, and those do not accumulate
-stale content.
+files (in practice, the two `latest/` trees). People usually pin to and cite
+specific releases, and those do not accumulate stale content.
 
 **Versions accumulate forever.** Nothing retires automatically. A C++ release is
 about 118 MB and GitHub Pages refuses a site over 1 GB. The site is at 314 MB
