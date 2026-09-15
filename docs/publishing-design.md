@@ -7,7 +7,7 @@ This document explains the system in full, including the reasoning behind each
 decision. Two shorter documents cover narrower needs:
 
 - **New to this change?** [publishing-overview.md](publishing-overview.md) — what
-  changed, what happens automatically, and the caveats that will surprise you.
+  changed, what happens automatically, and what to keep in mind.
 - **Cutting a release?** [PUBLISHING.md](PUBLISHING.md) — the procedure.
 
 ---

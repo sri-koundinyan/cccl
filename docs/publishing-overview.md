@@ -89,7 +89,7 @@ documentation that nothing links to.
 
 ---
 
-## Things that will surprise you
+## Things to keep in mind
 
 **The old URLs are gone.** `/cccl/unstable/...` returns 404, with no redirect.
 Existing links and bookmarks break. This was deliberate: the old tree contained
