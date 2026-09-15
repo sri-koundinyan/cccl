@@ -72,6 +72,14 @@ Rename a page and the old URL keeps serving the old content until somebody
 deletes it from the `gh-pages` branch by hand. Nothing links to it any more, but
 it stays reachable.
 
+cuda-python lives with the same behaviour, at a larger scale: its site still
+serves 25 directories from a URL scheme it no longer uses. This is automatable
+in principle, by comparing the deployed tree against a fresh build and removing
+whatever is no longer produced. The catch is that such a step has to be scoped
+to the directory being published. Applied site-wide it would invert the property
+that makes additive deployment safe, and a partial or failed build could delete
+another product's documentation.
+
 **Versions accumulate forever.** Nothing retires automatically. A C++ release is
 about 118 MB and GitHub Pages refuses a site over 1 GB. The site is at 314 MB
 today, so there is room for roughly six more C++ releases. Python is tiny by
