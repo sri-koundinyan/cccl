@@ -127,4 +127,4 @@ The model is lifted from [cuda-python](https://github.com/NVIDIA/cuda-python),
 which solves the same problem: several independently released components in one
 repository. CCCL follows its architecture: the same reusable workflow shape,
 the same deploy action at the same pinned commit, and the same meaning of
-`latest`, with a small number of deliberate differences.
+`latest` (with a small number of differences).
