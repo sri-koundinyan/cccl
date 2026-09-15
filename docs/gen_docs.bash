@@ -271,6 +271,16 @@ fi
 
 # Build Sphinx HTML documentation
 echo "Building documentation with Sphinx..."
+
+# This script builds into _build/html and afterwards moves that directory
+# aside and copies it back under the version name. A second run therefore
+# finds the previous run's <version>/ directory already sitting in _build/html,
+# sweeps it up with everything else, and nests a complete stale copy at
+# <version>/<version>/ -- carrying the URLs it was built with the first time.
+# Start from an empty output directory so the run is reproducible. Doctrees are
+# kept, so this costs a re-render and not a re-parse.
+rm -rf "${BUILDDIR}/html" "${BUILDDIR}/html_orig"
+
 # Use the virtual environment's Python
 python -m sphinx.cmd.build -b html -d "${BUILDDIR}/doctrees" -j auto "." "${BUILDDIR}/html" "${SPHINXOPTS[@]}"
 
