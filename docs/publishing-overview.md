@@ -24,7 +24,7 @@ all. Now each is its own versioned site.
 Readers pick a version from a dropdown in the page header.
 
 **Every patch release gets its own directory**, named for the full version
-(e.g. `3.4.2`, `3.4.3`, `3.5.0`, `1.1.2`, `1.2.0`).
+(e.g. `3.4.3`, `3.5.0`, `1.1.2`, `1.2.0`).
 
 ---
 
