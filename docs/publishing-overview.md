@@ -85,8 +85,8 @@ comparison (~8 MB) and is not a practical constraint.
 **The two existing releases cannot be rebuilt by the workflow.** A release build
 runs the build scripts found in the tag's own source, and `v3.4.2` and
 `python-1.1.1` predate this system. `python-1.1.1` has no Python docs build at
-all. They were published once from one-off compatibility branches. Any release
-tagged from now on re-publishes normally.
+all. Both `3.4.2` and `1.1.1` were published once, from one-off compatibility
+branches. Any release tagged from now on re-publishes normally.
 
 ---
 
