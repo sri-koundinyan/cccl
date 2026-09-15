@@ -48,19 +48,19 @@ like any other change.
 **2. Tag the release**, e.g. `v3.5.0` or `python-1.2.0`.
 
 > **Why both, when they hold the same number?** They do different jobs. The tag
-> says *which source to build* — it pins a commit. The manifest is *content that
-> gets published*: the list of versions the dropdown offers, which has to name
+> says *which source to build*: it pins a commit. The manifest is *content that
+> gets published*, the list of versions the dropdown offers, which has to name
 > every version, not just the new one.
 >
 > And the order matters, because a release build copies the manifest out of the
 > tag's own tree. Tag first and the tag points at a commit whose manifest has
-> never heard of the new version — so the build stops instead of publishing docs
+> never heard of the new version, so the build stops instead of publishing docs
 > nothing links to.
 
 **3. Run the workflow.** *Actions → Deploy CCCL Documentation → Run workflow*,
 and give it the exact tag.
 
-The tag alone decides everything — which product, and which directory. There is
+The tag alone decides everything: which product, and which directory. There is
 no "publish to" field, so a Python release cannot land in the C++ namespace and
 no version can be published under another version's name.
 
@@ -71,7 +71,7 @@ documentation that nothing links to.
 
 ## Things to keep in mind
 
-**`latest` means "built from `main`" — it is not the newest release.** The name
+**`latest` means "built from `main`". It is not the newest release.** The name
 naturally reads the other way, so it is worth pausing on. `latest` is the
 replacement for `unstable`: same content, less alarming name. It documents code
 that is not in any release yet, and it changes every time `main` changes.
@@ -98,7 +98,7 @@ comparison (~8 MB) and is not a practical constraint.
 
 **The two existing releases cannot be rebuilt by the workflow.** A release build
 runs the build scripts found in the tag's own source, and `v3.4.2` and
-`python-1.1.1` predate this system — `python-1.1.1` has no Python docs build at
+`python-1.1.1` predate this system. `python-1.1.1` has no Python docs build at
 all. They were published once from one-off compatibility branches. Any release
 tagged from now on re-publishes normally.
 
@@ -115,7 +115,7 @@ that documents it. Both links work. It is churn, not a fault.
 another product or an earlier version.
 
 **If a release published wrong content**, the fix is a corrective release: fix
-the source, tag a new patch, publish that. There is no rollback button — the
+the source, tag a new patch, publish that. There is no rollback button, but the
 `gh-pages` history is ordinary commits, so a maintainer can revert one if it
 comes to that.
 
@@ -134,6 +134,6 @@ actually fetches, and that stylesheets load.
 
 The model is lifted from [cuda-python](https://github.com/NVIDIA/cuda-python),
 which solves the same problem: several independently released components in one
-repository. CCCL follows its architecture — the same reusable workflow shape,
-the same deploy action at the same pinned commit, the same meaning of `latest` —
-with a small number of deliberate differences.
+repository. CCCL follows its architecture: the same reusable workflow shape,
+the same deploy action at the same pinned commit, and the same meaning of
+`latest`, with a small number of deliberate differences.
