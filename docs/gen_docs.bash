@@ -30,6 +30,18 @@ done
 SCRIPT_PATH=$(cd "$(dirname "${0}")"; pwd -P)
 cd "$SCRIPT_PATH"
 
+# This branch exists to rebuild one already-released version, v3.4.2, into the
+# component layout that did not exist when it was tagged. Both values are
+# defaulted rather than left to the caller so the branch reproduces its one
+# artifact on its own.
+#
+# The version file in this tree says "3.4", which is why an unadapted build
+# lands in a rolling MAJOR.MINOR directory. The published layout uses exact
+# releases, so the label has to be the full version. Exported before Sphinx
+# runs, because conf.py reads it to stamp the switcher.
+export SPHINX_CCCL_VER="${SPHINX_CCCL_VER:-3.4.2}"
+export CCCL_DOCS_BASE_URL="${CCCL_DOCS_BASE_URL:-https://nvidia.github.io/cccl/cpp/}"
+
 BUILDDIR="_build"
 DOXYGEN_BUILD_DIR="${SCRIPT_PATH}/_build/doxygen-build"
 DOXYGEN_SRC_DIR="${SCRIPT_PATH}/_build/doxygen-src"

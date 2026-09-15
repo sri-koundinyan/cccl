@@ -133,7 +133,7 @@ html_logo = "_static/nvidia-logo.png"
 # Where this component's versions live. The switcher manifest sits here,
 # alongside the version directories.
 _component_root = (
-    os.environ.get("CCCL_DOCS_BASE_URL", "https://nvidia.github.io/cccl/").rstrip("/")
+    os.environ.get("CCCL_DOCS_BASE_URL", "https://nvidia.github.io/cccl/cpp/").rstrip("/")
     + "/"
 )
 
