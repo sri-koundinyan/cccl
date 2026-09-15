@@ -25,6 +25,7 @@ This is not a publication system. It reads two files and compares two sets.
 import argparse
 import json
 import pathlib
+import re
 import sys
 
 
@@ -66,18 +67,37 @@ def check(component_root, version):
 
 
 def retarget(component_root, component, site_root):
-    """Point the manifest's URLs at the host actually serving this build.
+    """Point this component root's absolute URLs at the host serving the build.
 
     The switcher entries are absolute URLs and the browser follows them, so a
     rehearsal published to a fork would otherwise offer a dropdown whose every
-    option navigates to production.
+    option navigates to production. The landing redirect's canonical link is
+    rewritten for the same reason -- it is inert, but a lone production URL in
+    a rehearsal artifact is exactly the confusion this flag exists to remove.
+
+    Only the built artifact is touched. The checked-in manifests still name
+    production, because that is where a real release goes.
     """
     root = pathlib.Path(component_root)
+    base = f"{site_root.rstrip('/')}/{component}"
+
     path = root / "nv-versions.json"
     entries = json.loads(path.read_text(encoding="utf-8"))
     for entry in entries:
-        entry["url"] = f"{site_root.rstrip('/')}/{component}/{entry['version']}/"
+        entry["url"] = f"{base}/{entry['version']}/"
     path.write_text(json.dumps(entries, indent=2) + "\n", encoding="utf-8")
+
+    landing = root / "index.html"
+    if landing.exists():
+        landing.write_text(
+            re.sub(
+                r'(<link rel="canonical" href=")[^"]*(">)',
+                rf"\g<1>{base}/latest/\g<2>",
+                landing.read_text(encoding="utf-8"),
+            ),
+            encoding="utf-8",
+        )
+
     return entries
 
 
