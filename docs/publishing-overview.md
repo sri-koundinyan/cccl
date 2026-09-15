@@ -84,8 +84,8 @@ files, which means **the two `latest/` trees and nowhere else**:
 | a new release, `cpp/3.5.0/` | lands in an empty directory, so it cannot have any |
 | a published release, `cpp/3.4.2/` | never rewritten, so it stays exactly as shipped |
 
-Releases are what people pin to and cite, and they are precisely the ones that
-cannot go stale. `latest` is the moving target anyway.
+So the versions people usually pin to and cite are the ones that cannot go
+stale. Only `latest` can, and `latest` is expected to change.
 
 **Versions accumulate forever.** Nothing retires automatically. A C++ release is
 about 118 MB and GitHub Pages refuses a site over 1 GB. The site is at 314 MB
