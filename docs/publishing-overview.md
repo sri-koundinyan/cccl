@@ -72,13 +72,15 @@ Rename a page and the old URL keeps serving the old content until somebody
 deletes it from the `gh-pages` branch by hand. Nothing links to it any more, but
 it stays reachable.
 
-cuda-python lives with the same behaviour, at a larger scale: its site still
-serves 25 directories from a URL scheme it no longer uses. This is automatable
-in principle, by comparing the deployed tree against a fresh build and removing
-whatever is no longer produced. The catch is that such a step has to be scoped
-to the directory being published. Applied site-wide it would invert the property
-that makes additive deployment safe, and a partial or failed build could delete
-another product's documentation.
+cuda-python has the same problem, larger: 25 directories from a URL scheme it
+abandoned are still served today.
+
+Cleanup could be automated. Finding the orphans is easy: list the files on
+`gh-pages`, list the files in a fresh build, and anything in the first but not
+the second is dead. Deleting them is the risky half. The step would have to be
+restricted to the one directory being published, because "this file is missing
+from the build" and "this build failed halfway" look identical from the outside.
+Run site-wide, one bad build could wipe the other product's documentation.
 
 **Versions accumulate forever.** Nothing retires automatically. A C++ release is
 about 118 MB and GitHub Pages refuses a site over 1 GB. The site is at 314 MB
