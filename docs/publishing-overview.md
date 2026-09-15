@@ -23,10 +23,8 @@ all. Now each is its own versioned site.
 
 Readers pick a version from a dropdown in the page header.
 
-**Every patch release gets its own directory**, named for the full version:
-`3.4.2`, `3.4.3`, `3.5.0`, `1.1.2`, `1.2.0`. There is no `3.4/` tracking the
-newest 3.4.x, because a rolling URL changes underneath the reader and cannot be
-cited. `/cccl/cpp/3.4.2/` documents 3.4.2 and always will.
+**Every patch release gets its own directory**, named for the full version
+(e.g. `3.4.2`, `3.4.3`, `3.5.0`, `1.1.2`, `1.2.0`).
 
 ---
 
