@@ -8,15 +8,13 @@ from datetime import datetime
 # Add extension directory to path
 sys.path.insert(0, os.path.abspath("_ext"))
 
-# Add Python CCCL packages to path for autodoc. cuda-cccl and cuda-stf are
-# separate distributions that both contribute to the shared ``cuda`` namespace.
-for _pkg in ("../python/cuda_cccl", "../python/cuda_stf"):
-    python_package_path = os.path.abspath(_pkg)
-    if os.path.exists(python_package_path):
-        sys.path.insert(0, python_package_path)
-
-# Note: numpy is installed as a real dependency (see requirements.txt)
-# This avoids issues with type annotations using union syntax (ndarray | type)
+# This configuration builds the C++ component only.
+#
+# The Python libraries ship on their own release line (cuda-cccl 1.x) and are
+# published as their own versioned site under /python/, built by
+# docs/gen_python_docs.bash with docs/python_conf/conf.py. Nothing here imports
+# a Python package, mocks one, or resolves a Python cross-reference: a C++ build
+# must succeed with the Python sources absent from the workspace entirely.
 
 # -- Project information -----------------------------------------------------
 
@@ -40,10 +38,10 @@ version = release
 # -- General configuration ---------------------------------------------------
 
 extensions = [
-    "sphinx.ext.autodoc",
-    "sphinx.ext.autosummary",
-    "sphinx.ext.intersphinx",
-    "sphinx.ext.napoleon",
+    # No autodoc/autosummary/napoleon: those exist to document Python modules by
+    # importing them, which this component does not do. No intersphinx either --
+    # cross-component links are ordinary hyperlinks, so a C++ build never fetches
+    # another project's inventory and cannot fail because one is unreachable.
     "sphinx.ext.extlinks",
     "sphinx.ext.mathjax",
     "sphinx.ext.graphviz",
@@ -111,6 +109,10 @@ templates_path = ["_templates"]
 
 # Exclude patterns
 exclude_patterns = [
+    # The Python libraries are a separate versioned product under /python/.
+    # Excluding them here is what stops a C++ release publishing Python pages
+    # labelled with a C++ version they never shipped under.
+    "python",
     "_build",
     "_repo",
     "tools",
@@ -130,10 +132,19 @@ html_theme = "nvidia_sphinx_theme"
 
 html_logo = "_static/nvidia-logo.png"
 
-html_baseurl = (
+# Where this component's versions live, e.g. https://nvidia.github.io/cccl/ .
+# The switcher manifest sits here, alongside the version directories.
+_component_root = (
     os.environ.get("CCCL_DOCS_BASE_URL", "https://nvidia.github.io/cccl/").rstrip("/")
     + "/"
 )
+
+# Sphinx defines html_baseurl as the root of *this* generated documentation and
+# writes it into every page as the canonical link. These pages are served from
+# <component root>/<version>/, so the version has to be part of it -- otherwise
+# every version claims the same canonical URL and the archive competes with
+# itself for indexing.
+html_baseurl = f"{_component_root}{release}/"
 
 html_theme_options = {
     "icon_links": [
@@ -153,7 +164,13 @@ html_theme_options = {
     "sidebar_includehidden": True,
     "collapse_navigation": False,
     "switcher": {
-        "json_url": f"{html_baseurl}nv-versions.json",
+        # Deliberately the component root, not html_baseurl: the manifest lists
+        # every version, so it cannot live inside one of them.
+        "json_url": f"{_component_root}nv-versions.json",
+        # Must equal the directory this build is served from ("unstable" or
+        # "X.Y"), never the full patch. gen_docs.bash validates that and exports
+        # it as SPHINX_CCCL_VER; a disagreement leaves the switcher unable to
+        # highlight the current page while every route still returns 200.
         "version_match": release,
     },
 }
@@ -170,11 +187,9 @@ html_title = "CUDA Core Compute Libraries"
 
 # -- Options for extensions --------------------------------------------------
 
-# Intersphinx mapping
-intersphinx_mapping = {
-    "python": ("https://docs.python.org/3/", None),
-    "numpy": ("https://numpy.org/doc/stable/", None),
-}
+# No intersphinx_mapping: the Python and NumPy inventories exist to resolve
+# Python references, and this component has none. Links to the Python
+# documentation site are ordinary hyperlinks.
 
 # MyST parser configuration
 myst_enable_extensions = [
@@ -183,74 +198,10 @@ myst_enable_extensions = [
     "html_image",
 ]
 
-# Napoleon settings
-napoleon_google_docstring = True
-napoleon_numpy_docstring = True
-napoleon_include_init_with_doc = False
-napoleon_include_private_with_doc = False
-napoleon_include_special_with_doc = True
-napoleon_use_admonition_for_examples = False
-napoleon_use_admonition_for_notes = False
-napoleon_use_admonition_for_references = False
-napoleon_use_ivar = False
-napoleon_use_param = True
-napoleon_use_rtype = True
-napoleon_preprocess_types = False
-napoleon_type_aliases = None
-
-# Autodoc settings
-autodoc_default_options = {
-    "members": True,
-    "member-order": "bysource",
-    "special-members": "__init__",
-    "undoc-members": True,
-    "exclude-members": "__weakref__",
-}
-
-# Enable type hints to be shown in the documentation
-autodoc_type_hints = "description"
-autodoc_type_aliases = {
-    "Operator": "Operator",
-}
-
-# Set Python domain primary for intersphinx
-primary_domain = "py"
-
-# Mock imports for Python documentation - these modules may not be installed
-autodoc_mock_imports = [
-    "numba",
-    "numba.core",
-    "numba.core.cgutils",
-    "numba.core.extending",
-    "numba.core.typing",
-    "numba.core.typing.ctypes_utils",
-    "numba.core.typing.templates",
-    "numba.cuda",
-    "numba.cuda.cudadecl",
-    "numba.cuda.dispatcher",
-    "numba.extending",
-    "numba.types",
-    "cuda.bindings",
-    "cuda.bindings.driver",
-    "cuda.bindings.runtime",
-    "cuda.core",
-    "cuda.core.experimental",
-    "cuda.core.experimental._utils",
-    "cuda.core.experimental._utils.cuda_utils",
-    "cuda.pathfinder",
-    "llvmlite",
-    "llvmlite.ir",
-    # numpy is installed as a real dependency (see requirements.txt)
-    "numpydoc_test_module",  # Mock to avoid import errors
-    "cupy",
-    "cuda.compute._bindings",
-    "cuda.compute._bindings_impl",
-    # STF's public API lives in a compiled Cython extension that is not built
-    # at docs time; mock it so the pure-Python helper layers in stf_api.rst
-    # (task_graph, interop.numba, interop.pytorch) can still be imported by autodoc.
-    "cuda.stf._experimental._stf_bindings",
-    "cuda.stf._experimental._stf_bindings_impl",
-]
+# No Napoleon, Autodoc, or mock-import configuration. Those settings govern how
+# Python modules are imported and rendered; they moved to docs/python_conf/conf.py
+# with the component they serve. Leaving them here would let a Python-only
+# dependency break the C++ build.
 
 # External links configuration
 extlinks = {
@@ -260,10 +211,6 @@ extlinks = {
 
 # Exhale not used - API documentation is handled directly through breathe directives
 
-# Napoleon configuration (handles NumPy-style docstrings)
-# Note: numpydoc settings removed as Napoleon is used instead
-
-# Config copybutton
 # Suppress specific warning categories that arise from breathe (Doxygen-to-Sphinx
 # bridge) limitations.  These cannot be fixed in our source headers or RST files.
 #
@@ -286,9 +233,6 @@ suppress_warnings = [
 ]
 
 copybutton_prompt_text = ">>> |$ |# "
-autosummary_imported_members = False
-autosummary_generate = True
-autoclass_content = "class"
 
 
 def setup(app):

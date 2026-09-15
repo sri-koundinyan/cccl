@@ -17,14 +17,21 @@ set -euo pipefail
 ALLOW_DEP_INSTALL=false
 CLEAN=false
 CLEAN_ALL=false
+VERSION_DIR=""
 
-for arg in "$@"; do
-    case "$arg" in
+while [[ $# -gt 0 ]]; do
+    case "$1" in
         --allow-dep-install) ALLOW_DEP_INSTALL=true ;;
         clean)               CLEAN=true ;;
         --all)               CLEAN_ALL=true ;;
-        *)                   echo "Unknown argument: $arg"; exit 1 ;;
+        # The directory this build will be served from: "unstable" or "X.Y".
+        # Production always supplies it from the validated plan, so the stamp
+        # never depends on an inherited environment value.
+        --version-dir)       VERSION_DIR="${2:-}"; shift ;;
+        --version-dir=*)     VERSION_DIR="${1#*=}" ;;
+        *)                   echo "Unknown argument: $1"; exit 1 ;;
     esac
+    shift
 done
 
 SCRIPT_PATH=$(cd "$(dirname "${0}")"; pwd -P)
@@ -259,10 +266,26 @@ else
     echo "Skipping Doxygen (not installed)"
 fi
 
-VERSION="${SPHINX_CCCL_VER:-unstable}"
-BASE_URL="${CCCL_DOCS_BASE_URL:-https://nvidia.github.io/cccl/}"
-BASE_URL="${BASE_URL%/}/"
-IS_LATEST="${CCCL_DOCS_IS_LATEST:-true}"
+# The destination directory decides the rendered version stamp, and the two must
+# agree or the theme's switcher can never highlight the current page -- a failure
+# that renders perfectly and is invisible to a page-level smoke test.
+#
+# Precedence: explicit argument, then environment, then "unstable". The argument
+# exists so production never depends on an inherited value; the environment path
+# remains for the historical 3.4 build, whose script predates this interface.
+VERSION="${VERSION_DIR:-${SPHINX_CCCL_VER:-unstable}}"
+
+if [[ ! "${VERSION}" =~ ^(unstable|[0-9]+\.[0-9]+)$ ]]; then
+    echo "Error: version directory must be 'unstable' or MAJOR.MINOR, got '${VERSION}'." >&2
+    echo "       A full patch release such as 3.4.2 is not a directory label:" >&2
+    echo "       /cccl/3.4/ means 'the 3.4 line, newest patch'." >&2
+    exit 1
+fi
+
+# Exported so conf.py resolves `release` from the same value that names the
+# output directory. Without the export the Sphinx subprocess does not inherit it
+# and conf.py silently falls back to VERSION.md.
+export SPHINX_CCCL_VER="${VERSION}"
 
 HTML_DIR="${BUILDDIR}/html"
 VERSIONED_HTML_DIR="${HTML_DIR}/${VERSION}"
@@ -279,36 +302,26 @@ mkdir -p "${VERSIONED_HTML_DIR}"
 # Use the virtual environment's Python
 python -m sphinx.cmd.build -b html -d "${BUILDDIR}/doctrees" -j auto "." "${VERSIONED_HTML_DIR}" "${SPHINXOPTS[@]}"
 
-# Copy objects.inv to the root to support intersphinx consumers
-if [[ -f "${VERSIONED_HTML_DIR}/objects.inv" ]]; then
-    cp "${VERSIONED_HTML_DIR}/objects.inv" "${HTML_DIR}/objects.inv"
+# This script produces one component artifact and nothing else. It does not
+# assemble a website: no switcher manifest, no inventory alias, no landing page,
+# no 404 handler, no .nojekyll.
+#
+# Those files describe the site as a whole -- which versions exist, which
+# component a reader chose -- and a single build cannot know any of that. They
+# are written by docs/publish_site.py from the complete published tree, which
+# can see every version. A build that guessed at them would overwrite the real
+# answer with a one-version view of the world.
+
+# A pre-split source builds the Python pages into this tree, which would publish
+# them under a C++ version they never shipped under. The planner rejects such a
+# source up front; this is the check that the produced artifact actually honours
+# it, and it costs one test.
+if [[ -d "${VERSIONED_HTML_DIR}/python" ]]; then
+    echo "Error: the C++ artifact contains a top-level python/ directory." >&2
+    echo "       This source does not exclude docs/python from the C++ build," >&2
+    echo "       so it predates the C++/Python split. Publishing it would put" >&2
+    echo "       Python pages under ${VERSION}/python/ labelled '${VERSION}'." >&2
+    exit 1
 fi
 
-# Scrape docs to generate page list
-./scrape_docs.bash "${VERSIONED_HTML_DIR}"
-
-cp "./404.html" "${HTML_DIR}/404.html"
-cp "./index.html" "${HTML_DIR}/index.html"
-
-# Provide version metadata for the theme switcher
-cat > "${HTML_DIR}/nv-versions.json" <<EOF
-[
-  {
-    "name": "${VERSION}",
-    "version": "${VERSION}",
-    "url": "${BASE_URL}${VERSION}/",
-    "latest": ${IS_LATEST},
-    "preferred": ${IS_LATEST}
-  }
-]
-EOF
-
-cat > "${HTML_DIR}/versions.json" <<EOF
-{
-  "${VERSION}": "${VERSION}"
-}
-EOF
-
-touch "${HTML_DIR}/.nojekyll"
-
-echo "Documentation build complete! HTML output is in ${BUILDDIR}/html/"
+echo "C++ documentation build complete: ${VERSIONED_HTML_DIR}"
