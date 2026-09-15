@@ -19,14 +19,15 @@ set -euo pipefail
 
 ALLOW_DEP_INSTALL=false
 CLEAN=false
-VERSION_DIR=""
+LABEL=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --allow-dep-install) ALLOW_DEP_INSTALL=true ;;
         clean)               CLEAN=true ;;
-        --version-dir)       VERSION_DIR="${2:-}"; shift ;;
-        --version-dir=*)     VERSION_DIR="${1#*=}" ;;
+        --label)             LABEL="${2:-}"; shift ;;
+        --label=*)           LABEL="${1#*=}" ;;
+        latest-only)         LABEL="latest" ;;
         *)                   echo "Unknown argument: $1"; exit 1 ;;
     esac
     shift
@@ -36,20 +37,19 @@ SCRIPT_PATH=$(cd "$(dirname "${0}")"; pwd -P)
 cd "$SCRIPT_PATH"
 
 BUILDDIR="_build"
-HTML_DIR="${BUILDDIR}/python-html"
+HTML_DIR="${BUILDDIR}/artifacts/docs/python"
 
-# Same rule as the C++ build: the directory name is the rendered version stamp,
-# and a full patch release is never a directory label.
-VERSION="${VERSION_DIR:-${SPHINX_CCCL_VER:-unstable}}"
+# Same rule as the C++ build: the directory name is the rendered stamp.
+VERSION="${LABEL:-${CCCL_DOCS_LABEL:-latest}}"
 
-if [[ ! "${VERSION}" =~ ^(unstable|[0-9]+\.[0-9]+)$ ]]; then
-    echo "Error: version directory must be 'unstable' or MAJOR.MINOR, got '${VERSION}'." >&2
-    echo "       A full patch release such as 1.1.1 is not a directory label:" >&2
-    echo "       /cccl/python/1.1/ means 'the 1.1 line, newest patch'." >&2
+if [[ ! "${VERSION}" =~ ^(latest|[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+    echo "Error: --label must be 'latest' or an exact MAJOR.MINOR.PATCH release," >&2
+    echo "       got '${VERSION}'." >&2
     exit 1
 fi
 
-export SPHINX_CCCL_VER="${VERSION}"
+export CCCL_DOCS_LABEL="${VERSION}"
+export SPHINX_CCCL_VER="${SPHINX_CCCL_VER:-${VERSION}}"
 
 VERSIONED_HTML_DIR="${HTML_DIR}/${VERSION}"
 
@@ -114,8 +114,37 @@ if [[ ! -f "${VERSIONED_HTML_DIR}/objects.inv" ]]; then
     exit 1
 fi
 
-# Like the C++ build, this produces one component artifact. The switcher
-# manifest, inventory alias, landing page and 404 handler describe the site as a
-# whole and are written by docs/publish_site.py from the complete published tree.
+# This component's manifest and landing redirect travel with its documentation,
+# as cuda-python's component builds do. The manifest is checked-in release data:
+# this release's copy of the version list ships with this release's docs.
+cp "${SCRIPT_PATH}/python_site/nv-versions.json" "${HTML_DIR}/nv-versions.json"
+cp "${SCRIPT_PATH}/python_site/index.html" "${HTML_DIR}/index.html"
+
+# Convenience inventory at the component root, tracking development docs.
+if [[ "${VERSION}" == "latest" && -f "${VERSIONED_HTML_DIR}/objects.inv" ]]; then
+    cp "${VERSIONED_HTML_DIR}/objects.inv" "${HTML_DIR}/objects.inv"
+fi
+
+# The pages must claim the directory they are served from, or the switcher
+# silently never highlights the current entry.
+if ! grep -q "version_match = '${VERSION}'" "${VERSIONED_HTML_DIR}/index.html"; then
+    echo "Error: pages are not stamped '${VERSION}'." >&2
+    echo "       The switcher matches this stamp against its manifest entry." >&2
+    exit 1
+fi
+
+# And the manifest must list what is being published, or readers cannot reach
+# it. Cheap guard against the drift visible on cuda-python's own site, where a
+# component's two manifests disagree because each is whatever the last build
+# happened to copy to the component root.
+if ! python3 -c "
+import json, sys
+entries = json.load(open('${HTML_DIR}/nv-versions.json'))
+sys.exit(0 if any(e.get('version') == '${VERSION}' for e in entries) else 1)
+"; then
+    echo "Error: nv-versions.json does not list '${VERSION}'." >&2
+    echo "       Add it during release preparation, before tagging." >&2
+    exit 1
+fi
 
 echo "Python documentation build complete: ${VERSIONED_HTML_DIR}"

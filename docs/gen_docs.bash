@@ -17,18 +17,21 @@ set -euo pipefail
 ALLOW_DEP_INSTALL=false
 CLEAN=false
 CLEAN_ALL=false
-VERSION_DIR=""
+LABEL=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --allow-dep-install) ALLOW_DEP_INSTALL=true ;;
         clean)               CLEAN=true ;;
         --all)               CLEAN_ALL=true ;;
-        # The directory this build will be served from: "unstable" or "X.Y".
-        # Production always supplies it from the validated plan, so the stamp
+        # The directory this build is served from, which is also the switcher
+        # entry representing it: "latest" for a development build, or the exact
+        # MAJOR.MINOR.PATCH for a release. Supplied explicitly so the stamp
         # never depends on an inherited environment value.
-        --version-dir)       VERSION_DIR="${2:-}"; shift ;;
-        --version-dir=*)     VERSION_DIR="${1#*=}" ;;
+        --label)             LABEL="${2:-}"; shift ;;
+        --label=*)           LABEL="${1#*=}" ;;
+        # cuda-python's mode name, kept so the two read alike.
+        latest-only)         LABEL="latest" ;;
         *)                   echo "Unknown argument: $1"; exit 1 ;;
     esac
     shift
@@ -267,27 +270,27 @@ else
 fi
 
 # The destination directory decides the rendered version stamp, and the two must
-# agree or the theme's switcher can never highlight the current page -- a failure
-# that renders perfectly and is invisible to a page-level smoke test.
-#
-# Precedence: explicit argument, then environment, then "unstable". The argument
-# exists so production never depends on an inherited value; the environment path
-# remains for the historical 3.4 build, whose script predates this interface.
-VERSION="${VERSION_DIR:-${SPHINX_CCCL_VER:-unstable}}"
+# agree or the switcher can never highlight the current page -- a failure that
+# renders perfectly and is invisible to a page-level smoke test.
+VERSION="${LABEL:-${CCCL_DOCS_LABEL:-latest}}"
 
-if [[ ! "${VERSION}" =~ ^(unstable|[0-9]+\.[0-9]+)$ ]]; then
-    echo "Error: version directory must be 'unstable' or MAJOR.MINOR, got '${VERSION}'." >&2
-    echo "       A full patch release such as 3.4.2 is not a directory label:" >&2
-    echo "       /cccl/3.4/ means 'the 3.4 line, newest patch'." >&2
+if [[ ! "${VERSION}" =~ ^(latest|[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+    echo "Error: --label must be 'latest' or an exact MAJOR.MINOR.PATCH release," >&2
+    echo "       got '${VERSION}'." >&2
+    echo "       'latest' is the development branch; a release uses its full" >&2
+    echo "       version, e.g. 3.4.2. There is no rolling MAJOR.MINOR directory." >&2
     exit 1
 fi
 
-# Exported so conf.py resolves `release` from the same value that names the
-# output directory. Without the export the Sphinx subprocess does not inherit it
-# and conf.py silently falls back to VERSION.md.
-export SPHINX_CCCL_VER="${VERSION}"
+# conf.py reads the label for the canonical URL and the switcher entry, and
+# SPHINX_CCCL_VER for the displayed release. For a stable build these are the
+# same; for a development build the source version differs from "latest".
+export CCCL_DOCS_LABEL="${VERSION}"
+export SPHINX_CCCL_VER="${SPHINX_CCCL_VER:-${VERSION}}"
 
-HTML_DIR="${BUILDDIR}/html"
+# Artifact layout matches what the deploy action uploads: artifacts/docs/ is
+# copied onto gh-pages:docs/, so every path here is a final site path.
+HTML_DIR="${BUILDDIR}/artifacts/docs/cpp"
 VERSIONED_HTML_DIR="${HTML_DIR}/${VERSION}"
 
 # Full builds validate the regenerated API sources from a fresh Sphinx state.
@@ -321,6 +324,42 @@ if [[ -d "${VERSIONED_HTML_DIR}/python" ]]; then
     echo "       This source does not exclude docs/python from the C++ build," >&2
     echo "       so it predates the C++/Python split. Publishing it would put" >&2
     echo "       Python pages under ${VERSION}/python/ labelled '${VERSION}'." >&2
+    exit 1
+fi
+
+# Each component build ships its own switcher manifest and landing redirect
+# alongside the version directory, as cuda-python's component builds do. The
+# manifest is checked-in release data: this release's copy of the version list
+# travels with this release's documentation.
+cp "${SCRIPT_PATH}/cpp_site/nv-versions.json" "${HTML_DIR}/nv-versions.json"
+cp "${SCRIPT_PATH}/cpp_site/index.html" "${HTML_DIR}/index.html"
+
+# The convenience inventory at the component root, for intersphinx consumers
+# who want a stable URL. It tracks the development documentation.
+if [[ "${VERSION}" == "latest" && -f "${VERSIONED_HTML_DIR}/objects.inv" ]]; then
+    cp "${VERSIONED_HTML_DIR}/objects.inv" "${HTML_DIR}/objects.inv"
+fi
+
+# The published entry must claim the directory it is served from, or the
+# switcher silently never highlights the current page.
+if ! grep -q "version_match = '${VERSION}'" "${VERSIONED_HTML_DIR}/index.html"; then
+    echo "Error: pages are not stamped '${VERSION}'." >&2
+    echo "       The switcher matches this stamp against its manifest entry;" >&2
+    echo "       a mismatch renders correctly and is invisible to a page check." >&2
+    exit 1
+fi
+
+# The manifest must list the version being published, or the reader has no way
+# to reach it. This is the cheap guard against the drift visible on
+# cuda-python's own site, where a component's two manifests disagree because
+# each is whatever the last build happened to copy.
+if ! python3 -c "
+import json, sys
+entries = json.load(open('${HTML_DIR}/nv-versions.json'))
+sys.exit(0 if any(e.get('version') == '${VERSION}' for e in entries) else 1)
+"; then
+    echo "Error: nv-versions.json does not list '${VERSION}'." >&2
+    echo "       Add it during release preparation, before tagging." >&2
     exit 1
 fi
 

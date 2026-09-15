@@ -1,0 +1,171 @@
+# Build and optionally deploy CCCL documentation.
+#
+# Modelled on cuda-python's build-docs.yml. One reusable workflow serves both
+# publication paths, so development and release publishing cannot drift apart:
+#
+#   main CI      component=all,    is-release=false  ->  both latest/ trees
+#   release      component=cpp,    is-release=true   ->  cpp/<version>/
+#                component=python, is-release=true   ->  python/<version>/
+#
+# Deployment is additive. `clean: false` means an artifact only adds or replaces
+# the paths it actually contains, so a Python release cannot remove C++ content
+# or any earlier version -- which is what lets exact versions accumulate without
+# a custom publisher arbitrating between them.
+name: Build documentation
+
+on:
+  workflow_call:
+    inputs:
+      component:
+        description: "Which documentation to build: all, cpp, or python"
+        required: false
+        type: string
+        default: all
+      git-tag:
+        description: "Exact source tag for a stable build; empty builds the caller's SHA"
+        required: false
+        type: string
+        default: ""
+      is-release:
+        description: "Publish under the exact version rather than latest/"
+        required: false
+        type: boolean
+        default: false
+      deploy-docs:
+        description: "Deploy the artifact, or only upload it for inspection"
+        required: false
+        type: boolean
+        default: false
+      docs-branch:
+        description: "Target branch: gh-pages in production, or a rehearsal branch"
+        required: false
+        type: string
+        default: gh-pages
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ inputs.component }} documentation
+    runs-on: ${{ github.repository == 'NVIDIA/cccl' && 'linux-amd64-cpu32' || 'ubuntu-latest' }}
+    permissions:
+      contents: write
+    steps:
+      # A stable build documents the tag; a development build documents the
+      # caller's commit. fetch-depth: 0 because a tag needs its object, and an
+      # annotated tag may point through another before reaching a commit.
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
+        with:
+          ref: ${{ inputs.git-tag || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      # The tag alone determines the component and the destination. Nothing
+      # else supplies a directory name, so a Python release cannot be routed
+      # into the C++ namespace and one version cannot be published under
+      # another's name.
+      - name: Resolve the publication label
+        id: label
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          IS_RELEASE: ${{ inputs.is-release }}
+          GIT_TAG: ${{ inputs.git-tag }}
+          COMPONENT: ${{ inputs.component }}
+        run: |
+          if [[ "${IS_RELEASE}" != "true" ]]; then
+            echo "label=latest" >> "${GITHUB_OUTPUT}"
+            echo "components=${COMPONENT}" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          if [[ "${GIT_TAG}" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "label=${BASH_REMATCH[1]}" >> "${GITHUB_OUTPUT}"
+            echo "components=cpp" >> "${GITHUB_OUTPUT}"
+          elif [[ "${GIT_TAG}" =~ ^python-([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "label=${BASH_REMATCH[1]}" >> "${GITHUB_OUTPUT}"
+            echo "components=python" >> "${GITHUB_OUTPUT}"
+          else
+            echo "error: '${GIT_TAG}' is not an exact final release tag." >&2
+            echo "       Expected vMAJOR.MINOR.PATCH or python-MAJOR.MINOR.PATCH." >&2
+            echo "       Pre-release tags are not published to the stable switcher." >&2
+            exit 1
+          fi
+
+      # Development: both components from one commit, plus the site shell.
+      - name: Build both components
+        if: ${{ !inputs.is-release && inputs.component == 'all' }}
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: ./docs/gen_all_docs.bash --allow-dep-install
+
+      # Release, or a single-component development build: one component only,
+      # and never the shell.
+      - name: Build C++
+        if: ${{ steps.label.outputs.components == 'cpp' }}
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: ./docs/gen_docs.bash --allow-dep-install --label "${{ steps.label.outputs.label }}"
+
+      - name: Build Python
+        if: ${{ steps.label.outputs.components == 'python' }}
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: ./docs/gen_python_docs.bash --allow-dep-install --label "${{ steps.label.outputs.label }}"
+
+      # Artifact checks, per §7.2. These inspect what was built; they are not a
+      # Pages-state verifier.
+      - name: Check the artifact
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          LABEL: ${{ steps.label.outputs.label }}
+          COMPONENTS: ${{ steps.label.outputs.components }}
+        run: |
+          root="docs/_build/artifacts/docs"
+          [[ -d "${root}" ]] || { echo "error: no artifact at ${root}" >&2; exit 1; }
+
+          for c in ${COMPONENTS//all/cpp python}; do
+            dir="${root}/${c}/${LABEL}"
+            for required in index.html objects.inv; do
+              [[ -f "${dir}/${required}" ]] || {
+                echo "error: ${dir}/${required} missing" >&2; exit 1; }
+            done
+            python3 -c "import json; json.load(open('${root}/${c}/nv-versions.json'))"
+            echo "  ${c}/${LABEL}: ok"
+          done
+
+          # A C++ artifact carrying a Python subtree means the source predates
+          # the split and would publish Python pages under a C++ version.
+          if [[ -d "${root}/cpp/${LABEL}/python" ]]; then
+            echo "error: the C++ artifact contains a python/ subtree." >&2
+            exit 1
+          fi
+
+          # Only the combined development artifact carries the site shell.
+          if [[ "${COMPONENTS}" == "all" ]]; then
+            for required in index.html .nojekyll; do
+              [[ -e "${root}/${required}" ]] || {
+                echo "error: ${root}/${required} missing from the full artifact" >&2
+                exit 1; }
+            done
+          fi
+
+      - name: Upload the artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
+        with:
+          name: docs-${{ inputs.component }}-${{ steps.label.outputs.label }}
+          path: docs/_build/artifacts/docs/
+          compression-level: 0
+
+      # clean: false is the essential behaviour: the artifact adds or replaces
+      # only the paths it contains, leaving every other component and every
+      # earlier version untouched.
+      #
+      # single-commit is deliberately not set, so the branch keeps ordinary
+      # deployment commits rather than being recreated as an orphan.
+      - name: Deploy documentation
+        if: ${{ inputs.deploy-docs }}
+        uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445  # v4.9.0
+        with:
+          branch: ${{ inputs.docs-branch }}
+          folder: docs/_build/artifacts/docs/
+          target-folder: docs/
+          clean: false

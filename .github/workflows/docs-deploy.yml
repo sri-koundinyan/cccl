@@ -1,19 +1,15 @@
 # Publish CCCL documentation.
 #
-# Two entry points, and no third:
+# Both entry points call one reusable workflow, so development and release
+# publishing cannot drift apart:
 #
-#   push to main           -> both components, as unstable, from one commit
-#   dispatch + release_tag -> the one component that exact tag names
+#   push to main            -> both latest/ trees, from one commit
+#   dispatch with a tag     -> that tag's component, under its exact version
 #
-# A caller cannot choose the component, the source ref, the destination
-# directory, the output branch, or permission to roll back or publish over
-# missing provenance. Those inputs do not exist; an option that is absent
-# cannot be misused.
-#
-# The job that writes production is deliberately the only one holding write
-# permission, and the only one in the shared writer queue. Everything expensive
-# -- planning, both builds -- happens outside it with read-only permissions, so
-# a fifteen-minute Doxygen build never occupies the lock.
+# A release publishes only the component its tag names, and `clean: false` in
+# the reusable workflow means it adds paths rather than replacing the site. So a
+# C++ release leaves every Python path untouched, and publishing a new version
+# leaves every earlier version in place.
 name: Deploy CCCL Documentation
 
 on:
@@ -22,264 +18,43 @@ on:
       - main
   workflow_dispatch:
     inputs:
-      release_tag:
+      git-tag:
         description: "Exact final tag to publish: vMAJOR.MINOR.PATCH or python-MAJOR.MINOR.PATCH"
         required: true
         type: string
+      docs-branch:
+        description: "Target branch. Use a rehearsal branch to preview without touching production."
+        required: false
+        type: string
+        default: gh-pages
 
-# Read-only by default. The publish job raises this for itself and nothing else.
 permissions:
   contents: read
 
-env:
-  PAGES_BRANCH: gh-pages
-  PAGES_DIR: docs
-
 jobs:
-  # ------------------------------------------------------------------
-  # Decide what to build and where it goes. No repository writes.
-  # ------------------------------------------------------------------
-  plan:
-    name: Plan the publication
-    runs-on: ubuntu-latest
-    outputs:
-      mode: ${{ steps.plan.outputs.mode }}
-      components: ${{ steps.plan.outputs.components }}
-      component_plan: ${{ steps.plan.outputs.component_plan }}
-      version_dir: ${{ steps.plan.outputs.version_dir }}
-      release: ${{ steps.plan.outputs.release }}
-      release_tag: ${{ steps.plan.outputs.release_tag }}
-      source_sha: ${{ steps.plan.outputs.source_sha }}
-      checkout_ref: ${{ steps.plan.outputs.checkout_ref }}
-    steps:
-      # fetch-depth: 0 literally, not "enough history". The default is depth
-      # one, and in a shallow checkout Git cannot tell "not an ancestor" from
-      # "not downloaded" -- so an ancestry or tag-peeling answer derived there
-      # is not evidence. Jobs do not share checkouts, so the publisher below
-      # sets this independently.
-      - name: Checkout with complete history
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Plan
-        id: plan
-        shell: bash --noprofile --norc -euo pipefail {0}
-        # Passed as environment variables rather than interpolated into the
-        # script: ${{ }} substitutes before bash sees it, so a tag named
-        # `"; curl … | sh; #` would execute.
-        env:
-          EVENT: ${{ github.event_name }}
-          RELEASE_TAG: ${{ github.event.inputs.release_tag }}
-          SOURCE_SHA: ${{ github.sha }}
-        run: |
-          args=(--event "${EVENT}")
-          if [[ "${EVENT}" == "push" ]]; then
-            args+=(--source-sha "${SOURCE_SHA}")
-          else
-            args+=(--release-tag "${RELEASE_TAG}")
-          fi
-          python3 docs/deploy_plan.py "${args[@]}"
-
-  # ------------------------------------------------------------------
-  # Build. Read-only, and free to overlap with other runs' builds.
-  # ------------------------------------------------------------------
-  build:
-    name: Build documentation
-    needs: plan
-    runs-on: ${{ github.repository == 'NVIDIA/cccl' && 'linux-amd64-cpu32' || 'ubuntu-latest' }}
-    steps:
-      # The documentation source. For a release this is the tag; the publishing
-      # tools deliberately come from protected main instead (below), because a
-      # release tag supplies documentation source, not deployment authority.
-      - name: Checkout the source being documented
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
-        with:
-          ref: ${{ needs.plan.outputs.checkout_ref }}
-          path: source
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Build C++ docs
-        if: ${{ contains(needs.plan.outputs.components, 'cpp') }}
-        working-directory: source
-        shell: bash --noprofile --norc -euo pipefail {0}
-        env:
-          VERSION_DIR: ${{ needs.plan.outputs.version_dir }}
-        run: ./docs/gen_docs.bash --allow-dep-install --version-dir "${VERSION_DIR}"
-
-      - name: Build Python docs
-        if: ${{ contains(needs.plan.outputs.components, 'python') }}
-        working-directory: source
-        shell: bash --noprofile --norc -euo pipefail {0}
-        env:
-          VERSION_DIR: ${{ needs.plan.outputs.version_dir }}
-        run: ./docs/gen_python_docs.bash --allow-dep-install --version-dir "${VERSION_DIR}"
-
-      - name: Upload C++ artifact
-        if: ${{ contains(needs.plan.outputs.components, 'cpp') }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
-        with:
-          name: docs-cpp
-          path: source/docs/_build/html/
-          compression-level: 0
-
-      - name: Upload Python artifact
-        if: ${{ contains(needs.plan.outputs.components, 'python') }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
-        with:
-          name: docs-python
-          path: source/docs/_build/python-html/
-          compression-level: 0
-
-  # ------------------------------------------------------------------
-  # The only job that writes production.
-  # ------------------------------------------------------------------
-  publish:
-    name: Publish to GitHub Pages
-    needs: [plan, build]
-    runs-on: ubuntu-latest
+  # Development documentation. Both components come from the same commit
+  # because one push advances both; only their releases are independent.
+  development:
+    if: ${{ github.event_name == 'push' }}
+    uses: ./.github/workflows/build-docs.yml
     permissions:
       contents: write
-    environment: docs-production
+    with:
+      component: all
+      is-release: false
+      deploy-docs: true
+      docs-branch: gh-pages
 
-    # The writer lock. Job-level, not workflow-level: putting it on the
-    # workflow would serialize the builds too, and a fifteen-minute build inside
-    # the lock roughly halves how many publications a day can complete.
-    #
-    # queue: max keeps up to 100 pending jobs. The default allows exactly one
-    # pending run, so a third trigger displaces the one waiting -- which for a
-    # queued stable release means those docs silently never publish. If the
-    # platform displaces one anyway it surfaces as a visible cancellation, and
-    # a cancelled stable run is not a successful release: it must be retried.
-    concurrency:
-      group: cccl-docs-production
-      cancel-in-progress: false
-      queue: max
-
-    steps:
-      # Trusted publishing tools, always from the ref this workflow runs on --
-      # never from the release tag being documented.
-      - name: Checkout publishing tools
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
-        with:
-          fetch-depth: 0
-          path: tools
-          persist-credentials: false
-
-      - name: Download built artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
-        with:
-          path: artifacts
-
-      # Decided before anything else runs, and "I could not tell" must never
-      # collapse into "there is nothing there": the publish below replaces the
-      # Pages directory wholesale, so that reading would delete the archive.
-      #
-      # git ls-remote --exit-code exits 2, and only 2, for "no matching ref".
-      # Transport, authentication and server errors use other codes.
-      - name: Check the Pages branch exists
-        id: pages
-        shell: bash --noprofile --norc -euo pipefail {0}
-        run: |
-          set +e
-          probe="$(git ls-remote --exit-code --heads \
-            "https://github.com/${GITHUB_REPOSITORY}.git" \
-            "refs/heads/${PAGES_BRANCH}" 2>&1)"
-          status=$?
-          set -e
-          case "${status}" in
-            0) echo "exists=true"  >> "${GITHUB_OUTPUT}" ;;
-            2) echo "exists=false" >> "${GITHUB_OUTPUT}"
-               echo "::notice::${PAGES_BRANCH} does not exist yet" ;;
-            *) echo "error: could not determine whether ${PAGES_BRANCH} exists." >&2
-               echo "       git ls-remote exited ${status} (2 would mean absent):" >&2
-               printf '%s\n' "${probe}" | sed 's/^/       /' >&2
-               echo "       Refusing to continue: treating this as an empty site" >&2
-               echo "       would delete every published version." >&2
-               exit 1 ;;
-          esac
-
-      # The complete live site. It becomes the staging tree, which is what makes
-      # publishing the whole thing safe rather than destructive: it already is
-      # the desired state except for the directories being replaced.
-      - name: Seed from the published site
-        if: ${{ steps.pages.outputs.exists == 'true' }}
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
-        with:
-          ref: ${{ env.PAGES_BRANCH }}
-          path: pages
-          fetch-depth: 0
-          persist-credentials: true
-
-      - name: Assemble and validate
-        shell: bash --noprofile --norc -euo pipefail {0}
-        env:
-          MODE: ${{ needs.plan.outputs.mode }}
-          COMPONENT_PLAN: ${{ needs.plan.outputs.component_plan }}
-          VERSION_DIR: ${{ needs.plan.outputs.version_dir }}
-          RELEASE: ${{ needs.plan.outputs.release }}
-          RELEASE_TAG: ${{ needs.plan.outputs.release_tag }}
-          SOURCE_SHA: ${{ needs.plan.outputs.source_sha }}
-          PUBLISHER_SHA: ${{ github.sha }}
-        run: |
-          site="pages/${PAGES_DIR}"
-          if [[ ! -d "${site}" ]]; then
-            echo "error: the seeded checkout has no ${PAGES_DIR}/ directory." >&2
-            echo "       Refusing to publish: a failed read is not an empty site." >&2
-            exit 1
-          fi
-
-          python3 - <<'PY' > plan.json
-          import json, os, pathlib
-          plan = {
-              "mode": os.environ["MODE"],
-              "version_dir": os.environ["VERSION_DIR"],
-              "release": os.environ["RELEASE"] or None,
-              "release_tag": os.environ["RELEASE_TAG"] or None,
-              "release_source_sha": os.environ["SOURCE_SHA"],
-              "overlay_sha": None,
-              "publisher_sha": os.environ["PUBLISHER_SHA"],
-              "source_checkout": "tools",
-              "components": [],
-          }
-          for entry in json.loads(os.environ["COMPONENT_PLAN"]):
-              artifact = pathlib.Path("artifacts") / f"docs-{entry['id']}" / plan["version_dir"]
-              plan["components"].append({"id": entry["id"], "artifact": str(artifact)})
-          print(json.dumps(plan, indent=2))
-          PY
-
-          python3 tools/docs/publish_site.py "${site}" --plan plan.json
-
-      - name: Commit and push
-        working-directory: pages
-        shell: bash --noprofile --norc -euo pipefail {0}
-        env:
-          VERSION_DIR: ${{ needs.plan.outputs.version_dir }}
-          COMPONENTS: ${{ needs.plan.outputs.components }}
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Line-ending conversion would change blob contents, and with them the
-          # tree identity, for a reason unrelated to the published bytes.
-          git config core.autocrlf false
-
-          git add -A -- "${PAGES_DIR}"
-          if git diff --cached --quiet; then
-            echo "::notice::nothing changed; no commit created"
-            exit 0
-          fi
-
-          # The identity of what is published is the Pages source *subtree*,
-          # never the branch root tree: the root also spans files outside the
-          # Pages source -- a CNAME, for instance -- and a staging repository's
-          # root need not match production's.
-          subtree="$(git rev-parse "$(git write-tree):${PAGES_DIR}")"
-          echo "pages subtree: ${subtree}"
-
-          git commit -q -m "docs: publish ${COMPONENTS} as ${VERSION_DIR}"
-
-          # An ordinary child commit, pushed without force. A non-fast-forward
-          # push is an error, not permission to overwrite another writer.
-          git push origin "HEAD:${PAGES_BRANCH}"
+  # Stable release. The tag decides the component and the destination; no
+  # separate directory input exists.
+  release:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    uses: ./.github/workflows/build-docs.yml
+    permissions:
+      contents: write
+    with:
+      component: all
+      git-tag: ${{ inputs.git-tag }}
+      is-release: true
+      deploy-docs: true
+      docs-branch: ${{ inputs.docs-branch }}
