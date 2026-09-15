@@ -281,7 +281,7 @@ def test_maintainer_docs_are_not_sphinx_sources():
     these builds treat as an error. Excluding it is what keeps it a file rather
     than a page."""
     config = (DOCS / "conf.py").read_text(encoding="utf-8")
-    for name in ("PUBLISHING.md",):
+    for name in ("PUBLISHING.md", "publishing-design.md"):
         assert name in config, f"{name} is not excluded from the C++ build"
         assert (DOCS / name).exists(), f"{name} is excluded but does not exist"
 

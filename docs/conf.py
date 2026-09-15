@@ -119,7 +119,10 @@ exclude_patterns = [
     "VERSION.md",
     # Maintainer documentation for publishing this site. It lives beside the
     # sources rather than inside them, and belongs in no reader-facing toctree.
+    # MyST would otherwise treat each as a document, and a document in no
+    # toctree is a warning -- which these builds treat as an error.
     "PUBLISHING.md",
+    "publishing-design.md",
     "Thumbs.db",
     ".DS_Store",
     "env/**",  # Virtual environment
@@ -135,18 +138,18 @@ html_theme = "nvidia_sphinx_theme"
 
 html_logo = "_static/nvidia-logo.png"
 
+# Where this site is served from. The switcher manifest is fetched by the
+# reader's browser at read time, so these URLs must name the host actually
+# serving the page. A fork is a different origin: pages built for production
+# would tell the browser to fetch production's manifest, which renders
+# perfectly and leaves the version dropdown empty. The workflow derives this
+# from the repository, so NVIDIA/cccl gets the production URL unchanged.
+_site_root = os.environ.get("CCCL_DOCS_SITE_URL", "https://nvidia.github.io/cccl").rstrip("/")
+
 # Where this component's versions live. C++ and Python are sibling products
 # under a neutral root, so each gets its own namespace and its own switcher
 # manifest -- the same shape cuda-python uses for cuda-core and cuda-bindings.
-#
 # The site root itself is a chooser and claims no version.
-# Where this site is served from. The switcher is fetched by the browser at
-# read time, so these URLs must match the host actually serving the page. A
-# rehearsal on a fork is a different origin, and pages built for production
-# would tell the reader's browser to fetch the manifest from production --
-# which renders perfectly and leaves the version dropdown empty.
-_site_root = os.environ.get("CCCL_DOCS_SITE_URL", "https://nvidia.github.io/cccl").rstrip("/")
-
 _component_root = (
     os.environ.get("CCCL_DOCS_BASE_URL", f"{_site_root}/cpp/").rstrip("/") + "/"
 )
