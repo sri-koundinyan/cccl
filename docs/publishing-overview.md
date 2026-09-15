@@ -36,8 +36,6 @@ describe different commits. Released versions are not touched.
 
 ## Publishing a tagged release
 
-Three steps. The only one that is easy to forget is the first.
-
 **1. Before tagging, add the version to that product's two manifest files.**
 
 For C++ that is `docs/cpp_site/nv-versions.json` and
