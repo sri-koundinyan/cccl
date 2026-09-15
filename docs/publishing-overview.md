@@ -26,7 +26,7 @@ dropdown lists only that product's versions.
 
 ---
 
-## What happens automatically
+## `latest` updates automatically
 
 **Merging to `main` republishes both `latest/` trees.** Nothing to do. Both
 products are rebuilt from that one commit, so their development docs never
@@ -34,7 +34,7 @@ describe different commits. Released versions are not touched.
 
 ---
 
-## What you do for a release
+## Publishing a tagged release
 
 Three steps. The only one that is easy to forget is the first.
 
