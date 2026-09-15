@@ -45,16 +45,6 @@ like any other change.
 
 **2. Tag the release**, e.g. `v3.5.0` or `python-1.2.0`.
 
-> **Why both, when they hold the same number?** They do different jobs. The tag
-> says *which source to build*: it pins a commit. The manifest is *content that
-> gets published*, the list of versions the dropdown offers, which has to name
-> every version, not just the new one.
->
-> And the order matters, because a release build copies the manifest out of the
-> tag's own tree. Tag first and the tag points at a commit whose manifest has
-> never heard of the new version, so the build stops instead of publishing docs
-> nothing links to.
-
 **3. Run the workflow.** *Actions → Deploy CCCL Documentation → Run workflow*,
 and give it the exact tag.
 
