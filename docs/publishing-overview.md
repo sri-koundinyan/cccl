@@ -1,4 +1,4 @@
-# CCCL documentation: what changed
+# CCCL documentation versioning
 
 ## What happens automatically
 
