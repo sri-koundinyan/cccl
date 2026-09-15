@@ -3,8 +3,8 @@
 # Build the CCCL Python documentation as a standalone component.
 #
 # Usage:
-#   ./gen_python_docs.bash                        - Build into _build/python-html/unstable
-#   ./gen_python_docs.bash --version-dir 1.1      - Build into _build/python-html/1.1
+#   ./gen_python_docs.bash                        - Build into _build/python-html/1.1.1
+#   ./gen_python_docs.bash --version-dir 1.1.1    - The same, stated explicitly
 #   ./gen_python_docs.bash --allow-dep-install    - Build, installing missing deps
 #   ./gen_python_docs.bash clean                  - Remove the Python build output
 #
@@ -38,14 +38,19 @@ cd "$SCRIPT_PATH"
 BUILDDIR="_build"
 HTML_DIR="${BUILDDIR}/python-html"
 
-# Same rule as the C++ build: the directory name is the rendered version stamp,
-# and a full patch release is never a directory label.
-VERSION="${VERSION_DIR:-${SPHINX_CCCL_VER:-unstable}}"
+# This branch exists to rebuild one already-released version, python-1.1.1,
+# into the component layout that did not exist when it was tagged. The default
+# is the exact release so the branch reproduces its one artifact on its own.
+#
+# Every release gets its own exact directory and no rolling MAJOR.MINOR
+# directory is created, so 1.1.1 is the label -- the inverse of the earlier
+# rule this script was written under, which rejected patch releases outright.
+VERSION="${VERSION_DIR:-${SPHINX_CCCL_VER:-1.1.1}}"
 
-if [[ ! "${VERSION}" =~ ^(unstable|[0-9]+\.[0-9]+)$ ]]; then
-    echo "Error: version directory must be 'unstable' or MAJOR.MINOR, got '${VERSION}'." >&2
-    echo "       A full patch release such as 1.1.1 is not a directory label:" >&2
-    echo "       /cccl/python/1.1/ means 'the 1.1 line, newest patch'." >&2
+if [[ ! "${VERSION}" =~ ^(latest|[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+    echo "Error: version directory must be 'latest' or MAJOR.MINOR.PATCH," >&2
+    echo "       got '${VERSION}'. Each release is served from its own exact" >&2
+    echo "       version directory; there is no rolling MAJOR.MINOR alias." >&2
     exit 1
 fi
 
