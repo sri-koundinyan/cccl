@@ -116,6 +116,97 @@ def peel_tag(checkout, tag):
     return rev(f"refs/tags/{tag}"), rev(f"refs/tags/{tag}^{{commit}}")
 
 
+def require_complete_history(checkout):
+    """Refuse to decide ancestry from a partial clone.
+
+    ``actions/checkout`` defaults to depth one. In a shallow checkout Git cannot
+    distinguish "the older commit is not an ancestor" from "the connecting
+    commits were never downloaded", so an ancestry answer derived there is not
+    evidence of anything. Every job that peels a tag or decides ancestry needs
+    ``fetch-depth: 0``.
+    """
+    result = subprocess.run(
+        ["git", "rev-parse", "--is-shallow-repository"],
+        cwd=checkout, capture_output=True, text=True, check=False,
+    )
+    if result.returncode != 0:
+        raise IdentityError(
+            f"error: {checkout} is not a git repository, so ancestry and tag\n"
+            "       resolution cannot be verified."
+        )
+    if result.stdout.strip() != "false":
+        raise IdentityError(
+            f"error: {checkout} is a shallow checkout.\n"
+            "       Ancestry cannot be decided from partial history: 'not an\n"
+            "       ancestor' and 'not downloaded' are indistinguishable.\n"
+            "       Check out with fetch-depth: 0."
+        )
+
+
+def is_ancestor(checkout, ancestor, descendant):
+    """Does ``descendant`` contain ``ancestor`` in its history?
+
+    Used to stop an older main build that finished later from overwriting a
+    newer unstable site. Jobs can finish out of order, so arrival order proves
+    nothing; the commit graph does.
+    """
+    require_complete_history(checkout)
+    if ancestor == descendant:
+        return True
+    result = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", ancestor, descendant],
+        cwd=checkout, capture_output=True, text=True, check=False,
+    )
+    if result.returncode == 0:
+        return True
+    if result.returncode == 1:
+        return False
+    raise IdentityError(
+        f"error: cannot decide whether {ancestor} precedes {descendant}.\n"
+        f"       {result.stderr.strip()}\n"
+        "       Refusing to publish rather than guess."
+    )
+
+
+def require_unstable_pair_agrees(site_root, component_paths):
+    """Both unstable trees must name the same source commit.
+
+    A push to main publishes both components from one commit, in one commit, so
+    the two records agreeing is a property the system maintains. If they ever
+    disagree that invariant has already been broken somewhere upstream, and no
+    ordinary publication should choose one of them as the truth -- it stops for
+    an operator instead.
+
+    Returns the agreed source SHA, or ``None`` when neither is published yet
+    (the state immediately after launch seeds an empty component).
+    """
+    seen = {}
+    for component_id, path in component_paths.items():
+        directory = Path(site_root) / path / TIP
+        if not directory.is_dir():
+            continue
+        record = read_provenance(directory)
+        if record is None:
+            raise IdentityError(
+                f"error: {component_id}/{TIP} records no valid provenance.\n"
+                "       Ordinary publication stops: the published state cannot\n"
+                "       identify itself, so nothing can be safely layered on it."
+            )
+        seen[component_id] = record.get("release_source_sha")
+
+    distinct = set(seen.values())
+    if len(distinct) > 1:
+        detail = ", ".join(f"{k}={v}" for k, v in sorted(seen.items()))
+        raise IdentityError(
+            "error: the two unstable trees disagree about their source: "
+            f"{detail}.\n"
+            "       They are published together from one commit, so this means\n"
+            "       the atomic-pair invariant was already broken. Publication\n"
+            "       stops for an operator rather than choosing one as truth."
+        )
+    return next(iter(distinct), None)
+
+
 def require_split_build_contract(checkout):
     """Reject a source that predates the C++/Python split, before building it.
 

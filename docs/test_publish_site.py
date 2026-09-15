@@ -478,3 +478,199 @@ def test_git_control_file_makes_identity_ambiguous(tmp_path):
     (site / ".gitattributes").write_text("* text=auto\n", encoding="utf-8")
     with pytest.raises(SystemExit):
         publish_site.subtree_identity(site)
+
+
+# --------------------------------------------------------------------------
+# Unstable invariants: ancestry and the atomic pair
+# --------------------------------------------------------------------------
+
+
+def _repo_with_two_commits(tmp_path):
+    repo = tmp_path / "src"
+    repo.mkdir()
+    run = lambda *a: subprocess.run(
+        a, cwd=repo, check=True, capture_output=True
+    )
+    run("git", "init", "-q", ".")
+    env = ("-c", "user.email=t@t", "-c", "user.name=t")
+    run("git", *env, "commit", "-q", "--allow-empty", "-m", "first")
+    first = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo,
+                           capture_output=True, text=True, check=True).stdout.strip()
+    run("git", *env, "commit", "-q", "--allow-empty", "-m", "second")
+    second = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo,
+                            capture_output=True, text=True, check=True).stdout.strip()
+    return repo, first, second
+
+
+def test_descendant_is_allowed_forward(tmp_path):
+    repo, first, second = _repo_with_two_commits(tmp_path)
+    assert release_version.is_ancestor(repo, first, second) is True
+    assert release_version.is_ancestor(repo, first, first) is True
+
+
+def test_older_commit_is_not_a_descendant(tmp_path):
+    """An older build finishing later must not overwrite a newer site."""
+    repo, first, second = _repo_with_two_commits(tmp_path)
+    assert release_version.is_ancestor(repo, second, first) is False
+
+
+def test_shallow_history_cannot_decide_ancestry(tmp_path):
+    """'Not an ancestor' and 'not downloaded' are indistinguishable when shallow."""
+    repo, _, _ = _repo_with_two_commits(tmp_path)
+    shallow = tmp_path / "shallow"
+    subprocess.run(
+        ["git", "clone", "-q", "--depth", "1", f"file://{repo}", str(shallow)],
+        check=True, capture_output=True,
+    )
+    with pytest.raises(SystemExit) as excinfo:
+        release_version.require_complete_history(shallow)
+    assert "shallow" in str(excinfo.value)
+
+
+def test_complete_history_is_accepted(tmp_path):
+    """The negative test above must fail for depth, not for something else."""
+    repo, _, _ = _repo_with_two_commits(tmp_path)
+    release_version.require_complete_history(repo)
+
+
+def test_unstable_pair_must_agree(tmp_path):
+    """Both unstable trees are published from one commit, in one commit."""
+    site = make_site(tmp_path)
+    paths = {"cpp": "", "python": "python"}
+    for component, path, sha in (("cpp", "", "aaa"), ("python", "python", "bbb")):
+        d = site / path / "unstable"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / release_version.PROVENANCE_FILE).write_text(
+            json.dumps(release_version.build_provenance(
+                component, "unstable", release_source_sha=sha)),
+            encoding="utf-8",
+        )
+    with pytest.raises(SystemExit) as excinfo:
+        release_version.require_unstable_pair_agrees(site, paths)
+    assert "disagree about their source" in str(excinfo.value)
+
+
+def test_agreeing_pair_returns_the_source(tmp_path):
+    site = make_site(tmp_path)
+    paths = {"cpp": "", "python": "python"}
+    for component, path in (("cpp", ""), ("python", "python")):
+        d = site / path / "unstable"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / release_version.PROVENANCE_FILE).write_text(
+            json.dumps(release_version.build_provenance(
+                component, "unstable", release_source_sha="same")),
+            encoding="utf-8",
+        )
+    assert release_version.require_unstable_pair_agrees(site, paths) == "same"
+
+
+def test_stale_unstable_publication_is_refused(tmp_path):
+    """End to end: an older main SHA cannot replace a newer unstable site."""
+    repo, first, second = _repo_with_two_commits(tmp_path)
+    site = make_site(tmp_path)
+
+    newer = plan_file(
+        tmp_path, mode="unstable", version_dir="unstable", release=None,
+        release_source_sha=second, publisher_sha="p", source_checkout=str(repo),
+        components=[
+            {"id": "cpp", "artifact": str(make_artifact(tmp_path, "c1", "unstable"))},
+            {"id": "python", "artifact": str(make_artifact(tmp_path, "p1", "unstable"))},
+        ],
+    )
+    publish(site, newer)
+
+    older = plan_file(
+        tmp_path, mode="unstable", version_dir="unstable", release=None,
+        release_source_sha=first, publisher_sha="p", source_checkout=str(repo),
+        components=[
+            {"id": "cpp", "artifact": str(make_artifact(tmp_path, "c2", "unstable"))},
+            {"id": "python", "artifact": str(make_artifact(tmp_path, "p2", "unstable"))},
+        ],
+    )
+    with pytest.raises(SystemExit) as excinfo:
+        publish(site, older)
+    assert "does not descend" in str(excinfo.value)
+
+
+# --------------------------------------------------------------------------
+# Workflow structure
+#
+# These are properties of the deployment workflow rather than of any module,
+# and they are exactly the ones whose violation is invisible in review: a
+# concurrency group that silently drops a queued release, a second job that can
+# write production, a checkout shallow enough to make ancestry meaningless.
+# --------------------------------------------------------------------------
+
+import pathlib
+
+import yaml
+
+WORKFLOW = pathlib.Path(__file__).resolve().parents[1] / ".github/workflows/docs-deploy.yml"
+
+
+@pytest.fixture(scope="module")
+def workflow():
+    return yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
+
+
+def test_only_two_triggers(workflow):
+    # PyYAML parses a bare `on:` key as the boolean True.
+    assert set(workflow[True]) == {"push", "workflow_dispatch"}
+    assert workflow[True]["push"]["branches"] == ["main"]
+
+
+def test_dispatch_takes_one_input(workflow):
+    """No component, destination, branch, rollback or provenance override."""
+    assert set(workflow[True]["workflow_dispatch"]["inputs"]) == {"release_tag"}
+
+
+def test_exactly_one_job_can_write(workflow):
+    writers = [
+        name for name, job in workflow["jobs"].items()
+        if job.get("permissions", {}).get("contents") == "write"
+    ]
+    assert writers == ["publish"]
+
+
+def test_writer_group_is_static_and_bounded(workflow):
+    """A dynamic suffix would let two jobs edit the same branch at once."""
+    concurrency = workflow["jobs"]["publish"]["concurrency"]
+    assert concurrency["group"] == "cccl-docs-production"
+    assert "${{" not in concurrency["group"]
+    assert concurrency["cancel-in-progress"] is False
+    assert concurrency["queue"] == "max"
+
+
+def test_builds_are_outside_the_writer_group(workflow):
+    """A build inside the lock roughly halves daily publication capacity."""
+    assert "concurrency" not in workflow["jobs"]["build"]
+    assert "concurrency" not in workflow["jobs"]["plan"]
+    assert "concurrency" not in workflow
+
+
+def test_every_checkout_has_complete_history(workflow):
+    """Shallow history cannot distinguish 'not an ancestor' from 'not fetched'."""
+    depths = [
+        step.get("with", {}).get("fetch-depth")
+        for job in workflow["jobs"].values()
+        for step in job["steps"]
+        if "actions/checkout" in str(step.get("uses", ""))
+    ]
+    assert depths and all(depth == 0 for depth in depths)
+
+
+def test_no_orphan_or_force_publication():
+    """force_orphan discards the history that version preservation requires."""
+    text = WORKFLOW.read_text(encoding="utf-8")
+    for forbidden in ("peaceiris", "force_orphan", "keep_files", "--force"):
+        assert forbidden not in text, forbidden
+
+
+def test_no_fuzzy_404_artifacts_remain():
+    """The static 404 guesses nothing and needs no generated page list."""
+    docs = pathlib.Path(__file__).resolve().parent
+    for gone in ("scrape_docs.bash", "404_helper.rst", "404_helper.inc.html"):
+        assert not (docs / gone).exists(), gone
+    text = (docs / "404.html").read_text(encoding="utf-8")
+    assert "<script" not in text.lower()
+    assert "pagelist" not in text and "404_helper" not in text

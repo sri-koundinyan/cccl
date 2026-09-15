@@ -48,7 +48,9 @@ from release_version import (
     IdentityError,
     build_provenance,
     classify_target,
+    is_ancestor,
     read_provenance,
+    require_unstable_pair_agrees,
     same_content_identity,
 )
 
@@ -448,6 +450,24 @@ def main(argv=None):
     planned = [c for c in COMPONENTS if c["id"] in {p["id"] for p in plan["components"]}]
 
     before = snapshot(site_root)
+
+    # Invariants 4 and 5 for an unstable publication, checked against the seed
+    # before a single file is replaced.
+    if plan["mode"] == "unstable" and not args.verify_only:
+        published = require_unstable_pair_agrees(
+            site_root, {c["id"]: c["path"] for c in COMPONENTS}
+        )
+        incoming = plan.get("release_source_sha")
+        if published and incoming and plan.get("source_checkout"):
+            if not is_ancestor(plan["source_checkout"], published, incoming):
+                raise IdentityError(
+                    f"error: {incoming} does not descend from the published "
+                    f"unstable source {published}.\n"
+                    "       Jobs can finish out of order, so an older build "
+                    "finishing later\n"
+                    "       must not overwrite a newer site."
+                )
+            print(f"  ancestry: {published[:12]} -> {incoming[:12]} ok")
 
     if not args.verify_only:
         for entry in plan["components"]:

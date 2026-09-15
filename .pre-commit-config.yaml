@@ -149,8 +149,14 @@ repos:
         name: docs publication invariants
         entry: python -m pytest -q docs/test_publish_site.py
         language: python
-        additional_dependencies: [pytest]
-        files: ^docs/(publish_site|deploy_plan|release_version|test_publish_site)\.py$
+        additional_dependencies: [pytest, pyyaml]
+        # The workflow is in scope because the suite asserts its structure:
+        # one writable job, a static bounded writer group, builds outside the
+        # lock, complete history in every checkout, and no orphan publication.
+        files: >-
+          ^(docs/(publish_site|deploy_plan|release_version|test_publish_site)\.py
+          |\.github/workflows/docs-deploy\.yml
+          |docs/404\.html)$
         pass_filenames: false
 
 default_language_version:
