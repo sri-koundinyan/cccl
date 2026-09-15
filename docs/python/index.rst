@@ -15,7 +15,7 @@ abstractions for CUDA Python developers.
   writing highly efficient CUDA kernels with `Numba CUDA <https://nvidia.github.io/numba-cuda/>`_.
 
 These libraries expose the generic, highly-optimized algorithms from the
-`CCCL C++ libraries <https://nvidia.github.io/cccl/cpp.html>`_,
+`CCCL C++ libraries <https://nvidia.github.io/cccl/3.4/>`_,
 which have been tuned to provide optimal performance across GPU architectures.
 
 Who is this for?

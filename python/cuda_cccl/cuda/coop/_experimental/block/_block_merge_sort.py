@@ -36,12 +36,12 @@ def make_merge_sort_keys(
 ):
     """
     Creates a block-wide merge sort primitive over a
-    :ref:`blocked arrangement <flexible-data-arrangement>` of keys.
+    `blocked arrangement <https://nvidia.github.io/cccl/3.4/cub/index.html#flexible-data-arrangement>`_ of keys.
 
     Example:
         The code snippet below illustrates a sort of 512 integer keys
         partitioned in a
-        :ref:`blocked arrangement <flexible-data-arrangement>` across
+        `blocked arrangement <https://nvidia.github.io/cccl/3.4/cub/index.html#flexible-data-arrangement>`_ across
         128 threads where each thread owns 4 consecutive keys.
 
         .. literalinclude:: ../../python/cuda_cccl/tests/coop/_experimental/test_block_merge_sort_api.py

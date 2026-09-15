@@ -135,12 +135,12 @@ def _radix_sort(
 def make_radix_sort_keys(dtype, threads_per_block, items_per_thread):
     """
     Creates an ascending block-wide radix sort primitive over a
-    :ref:`blocked arrangement <flexible-data-arrangement>` of keys.
+    `blocked arrangement <https://nvidia.github.io/cccl/3.4/cub/index.html#flexible-data-arrangement>`_ of keys.
 
     Example:
         The code snippet below illustrates a sort of 512 integer keys
         partitioned in a
-        :ref:`blocked arrangement <flexible-data-arrangement>` across
+        `blocked arrangement <https://nvidia.github.io/cccl/3.4/cub/index.html#flexible-data-arrangement>`_ across
         128 threads where each thread owns 4 consecutive keys.
 
         .. literalinclude:: ../../python/cuda_cccl/tests/coop/_experimental/test_block_radix_sort_api.py
@@ -181,12 +181,12 @@ def make_radix_sort_keys(dtype, threads_per_block, items_per_thread):
 def make_radix_sort_keys_descending(dtype, threads_per_block, items_per_thread):
     """
     Creates a descending block-wide radix sort primitive over a
-    :ref:`blocked arrangement <flexible-data-arrangement>` of keys.
+    `blocked arrangement <https://nvidia.github.io/cccl/3.4/cub/index.html#flexible-data-arrangement>`_ of keys.
 
     Example:
         The code snippet below illustrates a sort of 512 integer keys
         partitioned in a
-        :ref:`blocked arrangement <flexible-data-arrangement>` across
+        `blocked arrangement <https://nvidia.github.io/cccl/3.4/cub/index.html#flexible-data-arrangement>`_ across
         128 threads where each thread owns 4 consecutive keys.
 
         .. literalinclude:: ../../python/cuda_cccl/tests/coop/_experimental/test_block_radix_sort_api.py

@@ -66,7 +66,7 @@ def make_load(dtype, threads_per_block, items_per_thread=1, algorithm="direct"):
       warp at a time.
 
     For more details, read the corresponding CUB C++ documentation:
-    https://nvidia.github.io/cccl/cub/api/classcub_1_1BlockLoad.html
+    https://nvidia.github.io/cccl/3.4/cub/api/classcub_1_1BlockLoad.html
 
     Args:
         dtype: Data type being loaded
@@ -168,7 +168,7 @@ def make_store(dtype, threads_per_block, items_per_thread=1, algorithm="direct")
       worth of shared memory is provisioned and time-sliced across warps.
 
     For more details, read the corresponding CUB C++ documentation:
-    https://nvidia.github.io/cccl/cub/api/classcub_1_1BlockStore.html
+    https://nvidia.github.io/cccl/3.4/cub/api/classcub_1_1BlockStore.html
 
     Args:
         dtype: Data type being stored

@@ -23,12 +23,12 @@ def make_merge_sort_keys(
 ):
     """
     Creates a warp-wide merge sort primitive over a
-    :ref:`blocked arrangement <flexible-data-arrangement>` of keys.
+    `blocked arrangement <https://nvidia.github.io/cccl/3.4/cub/index.html#flexible-data-arrangement>`_ of keys.
 
     Example:
         The code snippet below illustrates a sort of 128 integer keys that
         are partitioned in a
-        :ref:`blocked arrangement <flexible-data-arrangement>` across a
+        `blocked arrangement <https://nvidia.github.io/cccl/3.4/cub/index.html#flexible-data-arrangement>`_ across a
         warp of 32 threads where each thread owns 4 consecutive keys.
 
         The following snippet shows how to invoke the returned

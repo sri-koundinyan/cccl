@@ -671,7 +671,7 @@ def make_exclusive_sum(
     Example:
         The code snippet below illustrates an exclusive prefix sum of
         512 integer items in a
-        :ref:`blocked arrangement <flexible-data-arrangement>` across
+        `blocked arrangement <https://nvidia.github.io/cccl/3.4/cub/index.html#flexible-data-arrangement>`_ across
         128 threads where each thread owns 4 consecutive items.
 
         .. literalinclude:: ../../python/cuda_cccl/tests/coop/_experimental/test_block_scan_api.py
