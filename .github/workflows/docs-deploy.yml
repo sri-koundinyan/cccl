@@ -27,6 +27,11 @@ on:
         required: false
         type: string
         default: gh-pages
+      site-url:
+        description: "Site root, if rehearsing on another origin (e.g. https://USER.github.io/cccl). Leave blank for production."
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -58,3 +63,4 @@ jobs:
       is-release: true
       deploy-docs: true
       docs-branch: ${{ inputs.docs-branch }}
+      site-url: ${{ inputs.site-url }}

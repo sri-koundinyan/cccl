@@ -65,11 +65,35 @@ def check(component_root, version):
     return nv
 
 
+def retarget(component_root, component, site_root):
+    """Point the manifest's URLs at the host actually serving this build.
+
+    The switcher entries are absolute URLs and the browser follows them, so a
+    rehearsal published to a fork would otherwise offer a dropdown whose every
+    option navigates to production.
+    """
+    root = pathlib.Path(component_root)
+    path = root / "nv-versions.json"
+    entries = json.loads(path.read_text(encoding="utf-8"))
+    for entry in entries:
+        entry["url"] = f"{site_root.rstrip('/')}/{component}/{entry['version']}/"
+    path.write_text(json.dumps(entries, indent=2) + "\n", encoding="utf-8")
+    return entries
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("component_root", help="directory holding both manifests")
     parser.add_argument("version", help="the version being published")
+    parser.add_argument("--component", help="cpp or python, for --site-url")
+    parser.add_argument("--site-url", help="retarget manifest URLs to this site root")
     args = parser.parse_args(argv)
+
+    if args.site_url:
+        if not args.component:
+            raise SystemExit("error: --site-url requires --component")
+        retarget(args.component_root, args.component, args.site_url)
+        print(f"  manifest URLs retargeted to {args.site_url.rstrip('/')}/{args.component}/")
 
     listed = check(args.component_root, args.version)
     print(f"  manifests agree, and list {args.version}: {', '.join(listed)}")

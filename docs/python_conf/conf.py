@@ -91,11 +91,13 @@ html_title = "CCCL Python Libraries"
 # Where this component's versions live. Note the /python/ segment: this is a
 # separate namespace from the C++ component at the site root, with its own
 # switcher manifest and its own version list.
+# Where this site is served from. See the note in docs/conf.py: the switcher is
+# fetched by the browser at read time, so a rehearsal on a different origin
+# must be built for that origin or its version dropdown is silently empty.
+_site_root = os.environ.get("CCCL_DOCS_SITE_URL", "https://nvidia.github.io/cccl").rstrip("/")
+
 _component_root = (
-    os.environ.get(
-        "CCCL_DOCS_BASE_URL", "https://nvidia.github.io/cccl/python/"
-    ).rstrip("/")
-    + "/"
+    os.environ.get("CCCL_DOCS_BASE_URL", f"{_site_root}/python/").rstrip("/") + "/"
 )
 
 # Canonical URL of this build. The version is part of it because these pages are

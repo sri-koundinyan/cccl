@@ -102,8 +102,32 @@ def main(argv=None):
             stamp = found.group(1) if found else None
             report.check(f"/{component}/{label}/ is stamped '{label}'",
                          stamp == label, f"stamped {stamp!r}")
-            report.check(f"/{component}/{label}/ stamp is in the manifest",
-                         stamp in listed, f"{stamp!r} not in {listed}")
+
+            # Follow the URL the page itself declares, not the one we expect.
+            # The switcher is client-side: the browser fetches whatever this
+            # says. A page served from one host while pointing at another --
+            # a fork, a rename, a stale CCCL_DOCS_BASE_URL -- renders perfectly
+            # with an empty dropdown, and checking our own manifest instead
+            # would not notice.
+            declared = re.search(r"theme_switcher_json_url = '([^']*)'", text) \
+                or re.search(r"json_url = '([^']*)'", text)
+            url = declared.group(1) if declared else None
+            if not report.check(f"/{component}/{label}/ declares a switcher URL", bool(url)):
+                continue
+            if not url.startswith("http"):
+                url = f"{base}/{component}/{label}/".rstrip("/") + "/" + url.lstrip("/")
+            served = report.route(url)
+            if served is None:
+                report.check(f"  ^ the switcher on /{component}/{label}/ will be empty",
+                             False, f"page points at {url}")
+                continue
+            try:
+                reachable = [entry["version"] for entry in json.loads(served)]
+            except (ValueError, KeyError, TypeError) as exc:
+                report.check(f"{url} parses", False, str(exc))
+                continue
+            report.check(f"/{component}/{label}/ stamp is in the manifest it fetches",
+                         stamp in reachable, f"{stamp!r} not in {reachable}")
 
     print("\nstatic assets (what .nojekyll protects)")
     for component, version in COMPONENTS:

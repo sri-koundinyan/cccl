@@ -324,6 +324,20 @@ def test_smoke_matrix_covers_every_launch_route():
     assert smoke_site.DEFAULT_BASE == "https://nvidia.github.io/cccl"
 
 
+def test_rehearsal_can_name_its_own_origin(build_workflow):
+    """A rehearsal on a fork is a different origin. The switcher is fetched by
+    the browser, so pages built for production point it at production and the
+    dropdown comes up empty -- a failure that renders perfectly."""
+    # YAML 1.1 reads a bare `on:` key as the boolean true, so the trigger block
+    # is keyed by True rather than "on".
+    triggers = build_workflow.get("on") or build_workflow[True]
+    assert "site-url" in triggers["workflow_call"]["inputs"]
+    for name in ("Build both components", "Build C++", "Build Python"):
+        step = next(s for s in build_workflow["jobs"]["build"]["steps"]
+                    if s.get("name") == name)
+        assert "CCCL_DOCS_SITE_URL" in step.get("env", {}), name
+
+
 def test_release_and_development_share_one_workflow():
     """Two publication paths, one implementation, so they cannot drift."""
     deploy = yaml.safe_load(DEPLOY_WORKFLOW.read_text(encoding="utf-8"))

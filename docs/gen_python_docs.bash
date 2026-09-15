@@ -139,6 +139,10 @@ fi
 # visible on cuda-python's own site, where cuda-core's versions.json stops at
 # 0.3.2 while its nv-versions.json reaches 1.2.0 -- each is whatever the last
 # build happened to copy to the component root.
-python3 "${SCRIPT_PATH}/check_manifests.py" "${HTML_DIR}" "${VERSION}"
+CHECK_ARGS=("${HTML_DIR}" "${VERSION}")
+if [[ -n "${CCCL_DOCS_SITE_URL:-}" ]]; then
+    CHECK_ARGS+=(--component python --site-url "${CCCL_DOCS_SITE_URL}")
+fi
+python3 "${SCRIPT_PATH}/check_manifests.py" "${CHECK_ARGS[@]}"
 
 echo "Python documentation build complete: ${VERSIONED_HTML_DIR}"

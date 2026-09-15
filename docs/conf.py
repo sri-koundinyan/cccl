@@ -140,9 +140,15 @@ html_logo = "_static/nvidia-logo.png"
 # manifest -- the same shape cuda-python uses for cuda-core and cuda-bindings.
 #
 # The site root itself is a chooser and claims no version.
+# Where this site is served from. The switcher is fetched by the browser at
+# read time, so these URLs must match the host actually serving the page. A
+# rehearsal on a fork is a different origin, and pages built for production
+# would tell the reader's browser to fetch the manifest from production --
+# which renders perfectly and leaves the version dropdown empty.
+_site_root = os.environ.get("CCCL_DOCS_SITE_URL", "https://nvidia.github.io/cccl").rstrip("/")
+
 _component_root = (
-    os.environ.get("CCCL_DOCS_BASE_URL", "https://nvidia.github.io/cccl/cpp/").rstrip("/")
-    + "/"
+    os.environ.get("CCCL_DOCS_BASE_URL", f"{_site_root}/cpp/").rstrip("/") + "/"
 )
 
 # The directory this build is served from, which is also the switcher entry
