@@ -19,6 +19,7 @@ import json
 import pathlib
 import subprocess
 
+import check_manifests
 import pytest
 import release_label
 import yaml
@@ -155,6 +156,37 @@ def test_manifests_list_only_their_own_component(tmp_path):
     assert not set(manifest_versions(cpp)) & {"1.1.1"}
 
 
+def test_the_two_manifests_must_agree(tmp_path):
+    """Nothing reads versions.json today -- until something does. cuda-python's
+    cuda_core ships a versions.json stopping at 0.3.2 beside an nv-versions.json
+    reaching 1.2.0, because each is whatever the last build copied."""
+    comp = tmp_path / "cpp"
+    comp.mkdir()
+    (comp / "nv-versions.json").write_text(
+        json.dumps([{"version": v, "url": f"https://x/{v}/"} for v in ("latest", "3.4.2")])
+    )
+    (comp / "versions.json").write_text(json.dumps({"latest": "latest"}))
+    with pytest.raises(SystemExit, match="disagree"):
+        check_manifests.check(comp, "3.4.2")
+
+
+def test_unlisted_version_is_refused(tmp_path):
+    comp = tmp_path / "cpp"
+    comp.mkdir()
+    (comp / "nv-versions.json").write_text(
+        json.dumps([{"version": "latest", "url": "https://x/latest/"}])
+    )
+    (comp / "versions.json").write_text(json.dumps({"latest": "latest"}))
+    with pytest.raises(SystemExit, match="does not list"):
+        check_manifests.check(comp, "3.4.2")
+
+
+@pytest.mark.parametrize("component,version", [("cpp", "3.4.2"), ("python", "1.1.1")])
+def test_shipped_manifests_pass_their_own_check(component, version):
+    for label in ("latest", version):
+        assert check_manifests.check(DOCS / f"{component}_site", label)
+
+
 def test_checked_in_manifests_match_the_launch_set():
     """The real manifests, as shipped."""
     cpp = json.loads((DOCS / "cpp_site" / "nv-versions.json").read_text())
@@ -206,6 +238,14 @@ def _label_accepted(script, label):
         check=False,
     )
     return check.returncode == 0
+
+
+def test_build_scripts_run_the_manifest_check():
+    """A guard that is written but not wired in protects nothing."""
+    for script in ("gen_docs.bash", "gen_python_docs.bash"):
+        body = (DOCS / script).read_text(encoding="utf-8")
+        assert "check_manifests.py" in body, script
+        assert "versions.json" in body, script
 
 
 def test_build_scripts_are_syntactically_valid():

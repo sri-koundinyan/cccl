@@ -118,6 +118,7 @@ fi
 # as cuda-python's component builds do. The manifest is checked-in release data:
 # this release's copy of the version list ships with this release's docs.
 cp "${SCRIPT_PATH}/python_site/nv-versions.json" "${HTML_DIR}/nv-versions.json"
+cp "${SCRIPT_PATH}/python_site/versions.json" "${HTML_DIR}/versions.json"
 cp "${SCRIPT_PATH}/python_site/index.html" "${HTML_DIR}/index.html"
 
 # Convenience inventory at the component root, tracking development docs.
@@ -134,17 +135,10 @@ if ! grep -q "version_match = '${VERSION}'" "${VERSIONED_HTML_DIR}/index.html"; 
 fi
 
 # And the manifest must list what is being published, or readers cannot reach
-# it. Cheap guard against the drift visible on cuda-python's own site, where a
-# component's two manifests disagree because each is whatever the last build
-# happened to copy to the component root.
-if ! python3 -c "
-import json, sys
-entries = json.load(open('${HTML_DIR}/nv-versions.json'))
-sys.exit(0 if any(e.get('version') == '${VERSION}' for e in entries) else 1)
-"; then
-    echo "Error: nv-versions.json does not list '${VERSION}'." >&2
-    echo "       Add it during release preparation, before tagging." >&2
-    exit 1
-fi
+# it, and the two manifests must agree (§4.2). Cheap guard against the drift
+# visible on cuda-python's own site, where cuda-core's versions.json stops at
+# 0.3.2 while its nv-versions.json reaches 1.2.0 -- each is whatever the last
+# build happened to copy to the component root.
+python3 "${SCRIPT_PATH}/check_manifests.py" "${HTML_DIR}" "${VERSION}"
 
 echo "Python documentation build complete: ${VERSIONED_HTML_DIR}"
