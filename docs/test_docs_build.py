@@ -191,18 +191,28 @@ def test_build_scripts_reject_bad_labels(label):
 def _label_accepted(script, label):
     """Run only the script's label validation, without building anything."""
     check = subprocess.run(
-        ["bash", "-c",
-         'VERSION="$1"; '
-         'if [[ ! "${VERSION}" =~ ^(latest|[0-9]+\\.[0-9]+\\.[0-9]+)$ ]]; then exit 1; fi',
-         "_", label],
+        [
+            "bash",
+            "-c",
+            (
+                'VERSION="$1"; '
+                'if [[ ! "${VERSION}" =~ ^(latest|[0-9]+\\.[0-9]+\\.[0-9]+)$ ]]; '
+                "then exit 1; fi"
+            ),
+            "_",
+            label,
+        ],
         capture_output=True,
+        check=False,
     )
     return check.returncode == 0
 
 
 def test_build_scripts_are_syntactically_valid():
     for script in ("gen_docs.bash", "gen_python_docs.bash", "gen_all_docs.bash"):
-        result = subprocess.run(["bash", "-n", str(DOCS / script)], capture_output=True)
+        result = subprocess.run(
+            ["bash", "-n", str(DOCS / script)], capture_output=True, check=False
+        )
         assert result.returncode == 0, f"{script}: {result.stderr.decode()}"
 
 
@@ -216,6 +226,13 @@ def build_workflow():
     return yaml.safe_load(BUILD_WORKFLOW.read_text(encoding="utf-8"))
 
 
+def _deploy_step(workflow):
+    return next(
+        s for s in workflow["jobs"]["build"]["steps"]
+        if "github-pages-deploy-action" in str(s.get("uses", ""))
+    )
+
+
 def test_deployment_is_additive(build_workflow):
     """clean: false is what lets exact versions accumulate. Without it a Python
     release would remove the C++ tree and every earlier version."""
@@ -227,16 +244,14 @@ def test_deployment_is_additive(build_workflow):
 
 
 def test_deploy_action_is_pinned_to_a_sha(build_workflow):
-    deploy = [s for s in build_workflow["jobs"]["build"]["steps"]
-              if "github-pages-deploy-action" in str(s.get("uses", ""))][0]
+    deploy = _deploy_step(build_workflow)
     ref = deploy["uses"].split("@")[1]
     assert len(ref) == 40 and all(c in "0123456789abcdef" for c in ref), ref
 
 
 def test_branch_is_not_recreated_as_an_orphan(build_workflow):
     """single-commit would discard the deployment history."""
-    deploy = [s for s in build_workflow["jobs"]["build"]["steps"]
-              if "github-pages-deploy-action" in str(s.get("uses", ""))][0]
+    deploy = _deploy_step(build_workflow)
     assert "single-commit" not in deploy["with"]
 
 
