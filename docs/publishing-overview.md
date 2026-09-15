@@ -87,17 +87,6 @@ files, which means **the two `latest/` trees and nowhere else**:
 Releases are what people pin to and cite, and they are precisely the ones that
 cannot go stale. `latest` is the moving target anyway.
 
-cuda-python has the same behaviour at a larger scale: 25 directories from a URL
-scheme it abandoned are still served today.
-
-Cleanup could be automated, and half of it is trivial: list the files on
-`gh-pages`, list the files in a fresh build, and anything in the first but not
-the second is a leftover. Deleting them is the half to be careful about, and
-scoping the deletion does not make it safe. A build that dies halfway looks
-exactly like a build where those pages were deliberately removed, so the
-directory gets emptied instead of updated. This setup takes the other side of
-that trade: better a stale page than a deleted live one.
-
 **Versions accumulate forever.** Nothing retires automatically. A C++ release is
 about 118 MB and GitHub Pages refuses a site over 1 GB. The site is at 314 MB
 today, so there is room for roughly six more C++ releases. Python is tiny by
