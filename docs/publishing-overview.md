@@ -1,5 +1,31 @@
 # CCCL documentation versioning
 
+CCCL's C++ and Python libraries release on their own schedules, but their
+documentation was published as one combined tree with no release versions at
+all. Now each is its own versioned site.
+
+**Before**
+
+```
+/cccl/unstable/                 everything, built from main
+/cccl/unstable/python/          Python docs nested inside the C++ tree
+```
+
+**Now**
+
+```
+/cccl/                          a chooser: C++ or Python
+/cccl/cpp/latest/               C++, built from main
+/cccl/cpp/3.4.2/                C++ release 3.4.2
+/cccl/python/latest/            Python, built from main
+/cccl/python/1.1.1/             Python release 1.1.1
+```
+
+Readers pick a version from a dropdown in the page header. Each product's
+dropdown lists only that product's versions.
+
+---
+
 ## What happens automatically
 
 **Merging to `main` republishes both `latest/` trees.** Nothing to do. Both
