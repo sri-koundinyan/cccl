@@ -560,6 +560,30 @@ C++ version they never shipped under.
 **Guard:** the C++ build fails if its output contains a top-level `python/`
 directory — which is the signature of a source predating the split.
 
+### How the guards are checked
+
+A guard that does not actually fire is worse than no guard, because it is
+believed. Three levels:
+
+**The tests** (`docs/test_docs_build.py`) cover tag mapping, manifest membership
+and agreement, stamp-versus-directory, product isolation, and the shape of the
+workflow — including that the workflow *calls* each guard, since one written but
+not wired in protects nothing.
+
+**Mutation testing.** Each guard was deliberately broken to confirm the
+corresponding test fails: flipping `clean: false` to `true`, unpinning the deploy
+action, accepting pre-release tags, and regressing the build gating. All four
+were caught, and the suite passed again once restored.
+
+**Negative tests in CI**, which is the only level that proves a guard stops a
+*real* publication. Dispatching a pre-release tag fails at label resolution with
+every later step skipped — including the deploy — rather than publishing
+anything.
+
+The suite deliberately does not test Sphinx, the theme, or the deploy action.
+Those are other people's software, and testing them here would mostly detect
+their upgrades.
+
 ---
 
 ## 8. Where this departs from cuda-python
