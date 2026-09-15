@@ -77,10 +77,13 @@ abandoned are still served today.
 
 Cleanup could be automated. Finding the orphans is easy: list the files on
 `gh-pages`, list the files in a fresh build, and anything in the first but not
-the second is dead. Deleting them is the risky half. The step would have to be
-restricted to the one directory being published, because "this file is missing
-from the build" and "this build failed halfway" look identical from the outside.
-Run site-wide, one bad build could wipe the other product's documentation.
+the second is dead.
+
+Deleting them is the part to be careful about, and scoping the deletion to the
+directory being published does not fix it. A build that dies halfway looks
+exactly like a build where those pages were deliberately removed, so the
+version gets emptied instead of updated. The current setup takes the other
+side of that trade: it would rather serve a stale page than delete a live one.
 
 **Versions accumulate forever.** Nothing retires automatically. A C++ release is
 about 118 MB and GitHub Pages refuses a site over 1 GB. The site is at 314 MB
