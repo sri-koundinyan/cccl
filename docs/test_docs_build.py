@@ -240,6 +240,17 @@ def _label_accepted(script, label):
     return check.returncode == 0
 
 
+def test_maintainer_docs_are_not_sphinx_sources():
+    """PUBLISHING.md sits in docs/ beside the sources. MyST picks up any .md
+    there as a document, and a document in no toctree is a warning -- which
+    these builds treat as an error. Excluding it is what keeps it a file rather
+    than a page."""
+    config = (DOCS / "conf.py").read_text(encoding="utf-8")
+    for name in ("PUBLISHING.md",):
+        assert name in config, f"{name} is not excluded from the C++ build"
+        assert (DOCS / name).exists(), f"{name} is excluded but does not exist"
+
+
 def test_build_scripts_run_the_manifest_check():
     """A guard that is written but not wired in protects nothing."""
     for script in ("gen_docs.bash", "gen_python_docs.bash"):

@@ -30,14 +30,16 @@ Nothing to do. A push to `main` builds both components and replaces both
 
 ## Publishing a release
 
-### 1. Add the version to the component's manifest, before tagging
+### 1. Add the version to the component's manifests, before tagging
 
 The switcher reads a checked-in manifest, so the release that introduces a
 version must also introduce its entry. This is the same ownership model
 cuda-python uses: the version list travels with the release.
 
-For a C++ release, edit `docs/cpp_site/nv-versions.json`; for Python,
-`docs/python_site/nv-versions.json`. Newest first, after `latest`:
+Each component has **two** manifest files, and both need the new version. For
+a C++ release edit `docs/cpp_site/`; for Python, `docs/python_site/`.
+
+`nv-versions.json` is the one the theme reads. Newest first, after `latest`:
 
 ```json
 [
@@ -47,10 +49,22 @@ For a C++ release, edit `docs/cpp_site/nv-versions.json`; for Python,
 ]
 ```
 
-Forgetting this does not publish a broken site — the build stops and says so.
-That guard exists because cuda-python's own site currently serves one component
-manifest listing 7 versions beside another listing 19: each is whatever the
-last build happened to copy, and nothing compares them to reality.
+`versions.json` is the cuda-python-style compatibility file. Same versions:
+
+```json
+{
+    "latest" : "latest",
+    "3.5.0"  : "3.5.0",
+    "3.4.2"  : "3.4.2"
+}
+```
+
+Forgetting either does not publish a broken site — the build stops and says so.
+That guard exists because nothing reads `versions.json` today, so a
+disagreement between the two is invisible until something does. cuda-python
+shows exactly that: its `cuda_core` ships a `versions.json` stopping at `0.3.2`
+next to an `nv-versions.json` reaching `1.2.0`, because each file is whatever
+the last build happened to copy.
 
 ### 2. Run the documentation workflow with the tag
 

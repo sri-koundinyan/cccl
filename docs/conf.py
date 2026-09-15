@@ -117,6 +117,9 @@ exclude_patterns = [
     "_repo",
     "tools",
     "VERSION.md",
+    # Maintainer documentation for publishing this site. It lives beside the
+    # sources rather than inside them, and belongs in no reader-facing toctree.
+    "PUBLISHING.md",
     "Thumbs.db",
     ".DS_Store",
     "env/**",  # Virtual environment
