@@ -394,10 +394,13 @@ were not kept in the repository.
 
 ## 5. The two manifests
 
-Each product directory carries two files listing its versions.
+Each product directory carries **its own** pair of files listing **only its own**
+versions. There are four manifests on the site and no site-root manifest —
+`/cccl/nv-versions.json` is deliberately a 404, because the root is a chooser
+and belongs to neither product.
 
 **`nv-versions.json`** is the real one — the file the theme fetches to build the
-dropdown:
+dropdown. The C++ copy, at `/cccl/cpp/nv-versions.json`:
 
 ```json
 [
@@ -406,14 +409,28 @@ dropdown:
 ]
 ```
 
-**`versions.json`** is a simpler compatibility file that cuda-python also ships:
+and the Python copy, at `/cccl/python/nv-versions.json`, listing entirely
+different versions:
 
 ```json
-{ "latest" : "latest", "3.4.2"  : "3.4.2" }
+[
+  { "version": "latest", "url": "https://nvidia.github.io/cccl/python/latest/" },
+  { "version": "1.1.1",  "url": "https://nvidia.github.io/cccl/python/1.1.1/" }
+]
+```
+
+**`versions.json`** is a simpler compatibility file that cuda-python also ships.
+Again one per product — C++ on the left, Python on the right:
+
+```json
+{ "latest": "latest", "3.4.2": "3.4.2" }      { "latest": "latest", "1.1.1": "1.1.1" }
 ```
 
 Nothing reads `versions.json` today. It is carried to stay aligned with the
 reference implementation, and because something may read it later.
+
+This separation is what makes the two dropdowns independent. The C++ switcher
+cannot offer `1.1.1` because the file it fetches has never heard of it.
 
 ### The manifests are checked in, not discovered
 
