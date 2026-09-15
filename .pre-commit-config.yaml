@@ -140,5 +140,18 @@ repos:
         language: python
         types: [text]
 
+      # Every failure these cover is silent: a switcher that never highlights
+      # the current page, a release quietly replaced by an older one, a site
+      # served without .nojekyll that returns 200 everywhere and has no styles.
+      # They use stubbed Sphinx output and run in well under a second, so they
+      # can gate the files they protect without invoking Sphinx or Doxygen.
+      - id: docs-publish-site
+        name: docs publication invariants
+        entry: python -m pytest -q docs/test_publish_site.py
+        language: python
+        additional_dependencies: [pytest]
+        files: ^docs/(publish_site|deploy_plan|release_version|test_publish_site)\.py$
+        pass_filenames: false
+
 default_language_version:
   python: python3
