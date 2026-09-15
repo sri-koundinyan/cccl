@@ -55,14 +55,14 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'cub/api/classcub_1_1WarpStore';</script>
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.21.0';
-        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://nvidia.github.io/cccl/cpp/nv-versions.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://sri-koundinyan.github.io/cccl/cpp/nv-versions.json';
         DOCUMENTATION_OPTIONS.theme_switcher_version_match = '3.4.2';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             false;
         </script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
 
-    <link rel="canonical" href="https://nvidia.github.io/cccl/cpp/3.4.2/cub/api/classcub_1_1WarpStore.html" />
+    <link rel="canonical" href="https://sri-koundinyan.github.io/cccl/cpp/3.4.2/cub/api/classcub_1_1WarpStore.html" />
     <link rel="icon" href="../../_static/favicon.png"/>
 
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -648,7 +648,7 @@
 <h1>cub::WarpStore<a class="headerlink" href="#cub-warpstore" title="Link to this heading">#</a></h1>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4I0_i_18WarpStoreAlgorithm_iEN3cub9WarpStoreE">
-<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">ITEMS_PER_THREAD</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="namespacecub_1ab9f09b230f6c6566d12470872db88048.html#_CPPv4N3cub18WarpStoreAlgorithmE" title="cub::WarpStoreAlgorithm"><span class="n"><span class="pre">WarpStoreAlgorithm</span></span></a><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">ALGORITHM</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="namespacecub_1ab9f09b230f6c6566d12470872db88048.html#_CPPv4N3cub18WarpStoreAlgorithm17WARP_STORE_DIRECTE" title="cub::WARP_STORE_DIRECT"><span class="n"><span class="pre">WARP_STORE_DIRECT</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">LOGICAL_WARP_THREADS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">detail</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">warp_threads</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classcub_1_1WarpStore"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WarpStore</span></span></span><a class="headerlink" href="#_CPPv4I0_i_18WarpStoreAlgorithm_iEN3cub9WarpStoreE" title="Link to this definition">#</a><br /></dt>
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">ITEMS_PER_THREAD</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="namespacecub_1ab9f09b230f6c6566d12470872db88048.html#_CPPv4N3cub18WarpStoreAlgorithmE" title="cub::WarpStoreAlgorithm"><span class="n"><span class="pre">WarpStoreAlgorithm</span></span></a><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">ALGORITHM</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">WARP_STORE_DIRECT</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">LOGICAL_WARP_THREADS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">detail</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">warp_threads</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classcub_1_1WarpStore"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WarpStore</span></span></span><a class="headerlink" href="#_CPPv4I0_i_18WarpStoreAlgorithm_iEN3cub9WarpStoreE" title="Link to this definition">#</a><br /></dt>
 <dd><p><p>The WarpStore class provides <a class="reference internal" href="../index.html#collective-primitives"><span class="std std-ref">collective</span></a>
 data movement methods for writing a <a class="reference internal" href="../index.html#flexible-data-arrangement"><span class="std std-ref">blocked arrangement</span></a>
 of items partitioned across a CUDA warp to a linear segment of memory.</p>
@@ -661,16 +661,16 @@ facilitates different performance policies for different architectures,
 data types, granularity sizes, etc.</p></li>
 <li><p>WarpStore can be optionally specialized by different data movement strategies:</p>
 <ol class="arabic simple">
-<li><p><a class="reference internal" href="namespacecub_1ab9f09b230f6c6566d12470872db88048.html#_CPPv4N3cub18WarpStoreAlgorithm17WARP_STORE_DIRECTE" title="cub::WARP_STORE_DIRECT"><code class="xref cpp cpp-enumerator docutils literal notranslate"><span class="pre">cub::WARP_STORE_DIRECT</span></code></a>:
+<li><p><code class="xref cpp cpp-enumerator docutils literal notranslate"><span class="pre">cub::WARP_STORE_DIRECT</span></code>:
 a <a class="reference internal" href="../index.html#flexible-data-arrangement"><span class="std std-ref">blocked arrangement</span></a> of data is written directly to
 memory.</p></li>
-<li><p><a class="reference internal" href="namespacecub_1ab9f09b230f6c6566d12470872db88048.html#_CPPv4N3cub18WarpStoreAlgorithm18WARP_STORE_STRIPEDE" title="cub::WARP_STORE_STRIPED"><code class="xref cpp cpp-enumerator docutils literal notranslate"><span class="pre">cub::WARP_STORE_STRIPED</span></code></a>:
+<li><p><code class="xref cpp cpp-enumerator docutils literal notranslate"><span class="pre">cub::WARP_STORE_STRIPED</span></code>:
 a <a class="reference internal" href="../index.html#flexible-data-arrangement"><span class="std std-ref">striped arrangement</span></a> of data is written directly to
 memory.</p></li>
-<li><p><a class="reference internal" href="namespacecub_1ab9f09b230f6c6566d12470872db88048.html#_CPPv4N3cub18WarpStoreAlgorithm20WARP_STORE_VECTORIZEE" title="cub::WARP_STORE_VECTORIZE"><code class="xref cpp cpp-enumerator docutils literal notranslate"><span class="pre">cub::WARP_STORE_VECTORIZE</span></code></a>:
+<li><p><code class="xref cpp cpp-enumerator docutils literal notranslate"><span class="pre">cub::WARP_STORE_VECTORIZE</span></code>:
 a <a class="reference internal" href="../index.html#flexible-data-arrangement"><span class="std std-ref">blocked arrangement</span></a> of data is written directly to
 memory using CUDA’s built-in vectorized stores as a coalescing optimization.</p></li>
-<li><p><a class="reference internal" href="namespacecub_1ab9f09b230f6c6566d12470872db88048.html#_CPPv4N3cub18WarpStoreAlgorithm20WARP_STORE_TRANSPOSEE" title="cub::WARP_STORE_TRANSPOSE"><code class="xref cpp cpp-enumerator docutils literal notranslate"><span class="pre">cub::WARP_STORE_TRANSPOSE</span></code></a>:
+<li><p><code class="xref cpp cpp-enumerator docutils literal notranslate"><span class="pre">cub::WARP_STORE_TRANSPOSE</span></code>:
 a <a class="reference internal" href="../index.html#flexible-data-arrangement"><span class="std std-ref">blocked arrangement</span></a> is locally transposed into a
 <a class="reference internal" href="../index.html#flexible-data-arrangement"><span class="std std-ref">striped arrangement</span></a> which is then written to memory.</p></li>
 </ol>

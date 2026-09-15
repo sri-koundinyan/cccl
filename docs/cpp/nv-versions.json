@@ -1,10 +1,10 @@
 [
   {
     "version": "latest",
-    "url": "https://nvidia.github.io/cccl/cpp/latest/"
+    "url": "https://sri-koundinyan.github.io/cccl/cpp/latest/"
   },
   {
     "version": "3.4.2",
-    "url": "https://nvidia.github.io/cccl/cpp/3.4.2/"
+    "url": "https://sri-koundinyan.github.io/cccl/cpp/3.4.2/"
   }
 ]

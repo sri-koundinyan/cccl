@@ -55,14 +55,14 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'libcudacxx/runtime/device';</script>
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.21.0';
-        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://nvidia.github.io/cccl/cpp/nv-versions.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://sri-koundinyan.github.io/cccl/cpp/nv-versions.json';
         DOCUMENTATION_OPTIONS.theme_switcher_version_match = '3.4.2';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             false;
         </script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
 
-    <link rel="canonical" href="https://nvidia.github.io/cccl/cpp/3.4.2/libcudacxx/runtime/device.html" />
+    <link rel="canonical" href="https://sri-koundinyan.github.io/cccl/cpp/3.4.2/libcudacxx/runtime/device.html" />
     <link rel="icon" href="../../_static/favicon.png"/>
 
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -702,7 +702,7 @@ Compared to <code class="docutils literal notranslate"><span class="pre">cuda::d
 structure that describes common characteristics of all devices of an architecture, while attributes are run-time
 queries of a single characteristic of a specific device.</p>
 <ul class="simple">
-<li><p><a class="reference internal" href="../api/namespacecuda_1a2949dcbe6325192221ae9bcf52a80106.html#_CPPv4I_7arch_idEN4cuda11arch_traitsE13arch_traits_tv" title="cuda::arch_traits"><code class="xref cpp cpp-any docutils literal notranslate"><span class="pre">cuda::arch_traits()</span></code></a> and <a class="reference internal" href="../api/namespacecuda_1ac57d54def7c07bcc028384691803211d.html#_CPPv4N4cuda15arch_traits_forE7arch_id" title="cuda::arch_traits_for"><code class="xref cpp cpp-any docutils literal notranslate"><span class="pre">cuda::arch_traits_for()</span></code></a> (compile-time and run-time forms).</p></li>
+<li><p><a class="reference internal" href="../api/namespacecuda_1a2949dcbe6325192221ae9bcf52a80106.html#_CPPv4I_7arch_idEN4cuda11arch_traitsE13arch_traits_tv" title="cuda::arch_traits"><code class="xref cpp cpp-any docutils literal notranslate"><span class="pre">cuda::arch_traits()</span></code></a> and <a class="reference internal" href="../api/namespacecuda_1ac57d54def7c07bcc028384691803211d.html#_CPPv4N4cuda15arch_traits_forE18compute_capability" title="cuda::arch_traits_for"><code class="xref cpp cpp-any docutils literal notranslate"><span class="pre">cuda::arch_traits_for()</span></code></a> (compile-time and run-time forms).</p></li>
 <li><p>Returns a <a class="reference internal" href="../api/structcuda_1_1arch__traits__t.html#_CPPv4N4cuda13arch_traits_tE" title="cuda::arch_traits_t"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">cuda::arch_traits_t</span></code></a> with fields like
 <code class="docutils literal notranslate"><span class="pre">max_threads_per_block</span></code>, <code class="docutils literal notranslate"><span class="pre">max_shared_memory_per_block</span></code>, <code class="docutils literal notranslate"><span class="pre">cluster_supported</span></code> and other capability flags.</p></li>
 <li><p>Traits for the current architecture can be accessed with <code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">cuda::device::current_arch_traits()</span></code></p></li>

@@ -55,14 +55,14 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'cub/api/classcub_1_1WarpLoad';</script>
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.21.0';
-        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://nvidia.github.io/cccl/cpp/nv-versions.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://sri-koundinyan.github.io/cccl/cpp/nv-versions.json';
         DOCUMENTATION_OPTIONS.theme_switcher_version_match = '3.4.2';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             false;
         </script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
 
-    <link rel="canonical" href="https://nvidia.github.io/cccl/cpp/3.4.2/cub/api/classcub_1_1WarpLoad.html" />
+    <link rel="canonical" href="https://sri-koundinyan.github.io/cccl/cpp/3.4.2/cub/api/classcub_1_1WarpLoad.html" />
     <link rel="icon" href="../../_static/favicon.png"/>
 
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -648,7 +648,7 @@
 <h1>cub::WarpLoad<a class="headerlink" href="#cub-warpload" title="Link to this heading">#</a></h1>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4I0_i_17WarpLoadAlgorithm_iEN3cub8WarpLoadE">
-<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">InputT</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">ITEMS_PER_THREAD</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="namespacecub_1a4eeeb4ce5215aa8f6f394db9b3ff0de1.html#_CPPv4N3cub17WarpLoadAlgorithmE" title="cub::WarpLoadAlgorithm"><span class="n"><span class="pre">WarpLoadAlgorithm</span></span></a><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">ALGORITHM</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="namespacecub_1a4eeeb4ce5215aa8f6f394db9b3ff0de1.html#_CPPv4N3cub17WarpLoadAlgorithm16WARP_LOAD_DIRECTE" title="cub::WARP_LOAD_DIRECT"><span class="n"><span class="pre">WARP_LOAD_DIRECT</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">LOGICAL_WARP_THREADS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">detail</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">warp_threads</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classcub_1_1WarpLoad"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WarpLoad</span></span></span><a class="headerlink" href="#_CPPv4I0_i_17WarpLoadAlgorithm_iEN3cub8WarpLoadE" title="Link to this definition">#</a><br /></dt>
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">InputT</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">ITEMS_PER_THREAD</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="namespacecub_1a4eeeb4ce5215aa8f6f394db9b3ff0de1.html#_CPPv4N3cub17WarpLoadAlgorithmE" title="cub::WarpLoadAlgorithm"><span class="n"><span class="pre">WarpLoadAlgorithm</span></span></a><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">ALGORITHM</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">WARP_LOAD_DIRECT</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname sig-name-template"><span class="n"><span class="pre">LOGICAL_WARP_THREADS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">detail</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">warp_threads</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classcub_1_1WarpLoad"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WarpLoad</span></span></span><a class="headerlink" href="#_CPPv4I0_i_17WarpLoadAlgorithm_iEN3cub8WarpLoadE" title="Link to this definition">#</a><br /></dt>
 <dd><p><p>The WarpLoad class provides <a class="reference internal" href="../index.html#collective-primitives"><span class="std std-ref">collective</span></a> data movement methods for
 loading a linear segment of items from memory into a
 <a class="reference internal" href="../index.html#flexible-data-arrangement"><span class="std std-ref">blocked arrangement</span></a> across a CUDA thread warp.</p>
@@ -661,16 +661,16 @@ facilitates different performance policies for different architectures, data
 types, granularity sizes, etc.</p></li>
 <li><p>WarpLoad can be optionally specialized by different data movement strategies:</p>
 <ol class="arabic simple">
-<li><p><a class="reference internal" href="namespacecub_1a4eeeb4ce5215aa8f6f394db9b3ff0de1.html#_CPPv4N3cub17WarpLoadAlgorithm16WARP_LOAD_DIRECTE" title="cub::WARP_LOAD_DIRECT"><code class="xref cpp cpp-enumerator docutils literal notranslate"><span class="pre">cub::WARP_LOAD_DIRECT</span></code></a>:
+<li><p><code class="xref cpp cpp-enumerator docutils literal notranslate"><span class="pre">cub::WARP_LOAD_DIRECT</span></code>:
 a <a class="reference internal" href="../index.html#flexible-data-arrangement"><span class="std std-ref">blocked arrangement</span></a> of data is read directly from
 memory.</p></li>
-<li><p><a class="reference internal" href="namespacecub_1a4eeeb4ce5215aa8f6f394db9b3ff0de1.html#_CPPv4N3cub17WarpLoadAlgorithm17WARP_LOAD_STRIPEDE" title="cub::WARP_LOAD_STRIPED"><code class="xref cpp cpp-enumerator docutils literal notranslate"><span class="pre">cub::WARP_LOAD_STRIPED</span></code></a>:
+<li><p><code class="xref cpp cpp-enumerator docutils literal notranslate"><span class="pre">cub::WARP_LOAD_STRIPED</span></code>:
 a <a class="reference internal" href="../index.html#flexible-data-arrangement"><span class="std std-ref">striped arrangement</span></a> of data is read directly from
 memory.</p></li>
-<li><p><a class="reference internal" href="namespacecub_1a4eeeb4ce5215aa8f6f394db9b3ff0de1.html#_CPPv4N3cub17WarpLoadAlgorithm19WARP_LOAD_VECTORIZEE" title="cub::WARP_LOAD_VECTORIZE"><code class="xref cpp cpp-enumerator docutils literal notranslate"><span class="pre">cub::WARP_LOAD_VECTORIZE</span></code></a>:
+<li><p><code class="xref cpp cpp-enumerator docutils literal notranslate"><span class="pre">cub::WARP_LOAD_VECTORIZE</span></code>:
 a <a class="reference internal" href="../index.html#flexible-data-arrangement"><span class="std std-ref">blocked arrangement</span></a> of data is read directly from
 memory using CUDA’s built-in vectorized loads as a coalescing optimization.</p></li>
-<li><p><a class="reference internal" href="namespacecub_1a4eeeb4ce5215aa8f6f394db9b3ff0de1.html#_CPPv4N3cub17WarpLoadAlgorithm19WARP_LOAD_TRANSPOSEE" title="cub::WARP_LOAD_TRANSPOSE"><code class="xref cpp cpp-enumerator docutils literal notranslate"><span class="pre">cub::WARP_LOAD_TRANSPOSE</span></code></a>:
+<li><p><code class="xref cpp cpp-enumerator docutils literal notranslate"><span class="pre">cub::WARP_LOAD_TRANSPOSE</span></code>:
 a <a class="reference internal" href="../index.html#flexible-data-arrangement"><span class="std std-ref">striped arrangement</span></a> of data is read directly from
 memory and is then locally transposed into a
 <a class="reference internal" href="../index.html#flexible-data-arrangement"><span class="std std-ref">blocked arrangement</span></a>.</p></li>
