@@ -98,11 +98,6 @@ runs the build scripts found in the tag's own source, and `v3.4.2` and
 all. They were published once from one-off compatibility branches. Any release
 tagged from now on re-publishes normally.
 
-**Expect small diffs between rebuilds.** Rebuilding the same commit on a
-different machine changes a handful of pages out of 1,439, because a
-cross-reference to an inherited member can legitimately resolve to either page
-that documents it. Both links work. It is churn, not a fault.
-
 ---
 
 ## If something goes wrong
