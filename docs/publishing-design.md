@@ -273,6 +273,38 @@ v3.4           rejected — no rolling MAJOR.MINOR directory exists
 3.4.2          rejected — which product?
 ```
 
+### Only tags newer than this change can be rebuilt
+
+A release build checks out **the tag's own source**, and runs the build scripts
+found there. So the release path works only for tags cut *after* this system
+landed. The two launch tags cannot be rebuilt by it:
+
+- `python-1.1.1` contains no `gen_python_docs.bash` and no `python_conf/` at
+  all — the Python build did not exist as a separate thing yet;
+- `v3.4.2` has a `gen_docs.bash`, but one that does not understand `--label`.
+
+This is not a defect; it is what "the documentation build travels with the
+source" means. It is also why the initial site could not simply be produced by
+running the workflow twice.
+
+### The one-time conversion
+
+The permanent workflow assumes the component namespaces already exist, and
+`clean: false` means it can only add and replace — never remove. So the move
+from the old combined layout to this one could not be performed by it.
+
+That conversion was a separate, deliberately disposable operation: build the
+four initial trees, assemble them, replace `gh-pages:docs/` wholesale, and
+delete the machinery afterwards. The two historical releases were built from
+small **compatibility overlay** branches — one per tag, each a recorded commit
+on top of the tag that adapts only its documentation configuration to the new
+layout. An overlay changes where the documentation is served and what it claims
+as canonical; it does not change which release source the documentation
+describes.
+
+Those overlays and the assembly scripts are not part of the ongoing system, and
+were not kept in the repository.
+
 ---
 
 ## 5. The two manifests
