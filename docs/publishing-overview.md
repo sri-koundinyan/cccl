@@ -95,10 +95,10 @@ branches. Any release tagged from now on re-publishes normally.
 **Re-run the workflow.** Deployment is additive, so a re-run cannot damage
 another product or an earlier version.
 
-**If a release published wrong content**, the fix is a corrective release: fix
-the source, tag a new patch, publish that. There is no rollback button, but the
-`gh-pages` history is ordinary commits, so a maintainer can revert one if it
-comes to that.
+**If a release published wrong content**, fix the source and publish again,
+either by moving that release's tag to the corrected commit and re-running, or
+by tagging a new patch. The `gh-pages` history is ordinary commits, so a
+maintainer can revert one if it comes to that.
 
 **To check a published site**, run:
 
