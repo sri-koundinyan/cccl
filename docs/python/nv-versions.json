@@ -1,14 +1,10 @@
 [
   {
-    "version": "unstable",
-    "url": "https://sri-koundinyan.github.io/cccl/python/unstable/",
-    "latest": false,
-    "preferred": false
+    "version": "latest",
+    "url": "https://nvidia.github.io/cccl/python/latest/"
   },
   {
-    "version": "1.1",
-    "url": "https://sri-koundinyan.github.io/cccl/python/1.1/",
-    "latest": true,
-    "preferred": true
+    "version": "1.1.1",
+    "url": "https://nvidia.github.io/cccl/python/1.1.1/"
   }
 ]
