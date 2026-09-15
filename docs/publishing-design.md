@@ -64,6 +64,38 @@ repository. The reference implementation reviewed for this design is
 [`db53e1438e`](https://github.com/NVIDIA/cuda-python/tree/db53e1438e86289bc83a8814597c12e51b45c352).
 Section 8 records every place CCCL departs from it, and why.
 
+### The whole system on one page
+
+Everything that follows is detail on this picture. It is worth a minute now, so
+the details have somewhere to attach.
+
+```
+   SOURCE                    BUILD                      PUBLISHED SITE
+   ──────                    ─────                      ──────────────
+
+   push to main   ─────►  build both  ──────────►  cpp/latest/      replaced
+                          products                 python/latest/   replaced
+                                                   everything else  untouched
+
+   tag v3.5.0     ─────►  build C++   ──────────►  cpp/3.5.0/       added
+   (dispatched              only                   python/**        untouched
+    by hand)                                       cpp/latest/      untouched
+                                                   cpp/3.4.2/       untouched
+```
+
+Three ideas carry the whole design, and each maps to one column:
+
+1. **Two products, two namespaces.** `/cccl/cpp/` and `/cccl/python/` are
+   siblings. Nothing is nested inside anything else.
+2. **A build emits only what it owns.** A C++ release artifact physically
+   contains no Python files, so it cannot disturb them.
+3. **Deployment adds and replaces; it never deletes.** Whatever an artifact
+   does not mention survives.
+
+Put together: *independent versioning falls out of what each artifact contains,
+rather than from a system that decides what may overwrite what.* There is no
+publisher, no lock, no plan. That is the point.
+
 ---
 
 ## 2. A tour of the machinery
@@ -272,6 +304,53 @@ v3.5.0-rc0     rejected — a pre-release must not occupy the release's URL
 v3.4           rejected — no rolling MAJOR.MINOR directory exists
 3.4.2          rejected — which product?
 ```
+
+### Worked example: a pull request merges
+
+Someone fixes a docstring in `cub/` and merges to `main`.
+
+1. The push triggers **Deploy CCCL Documentation**.
+2. The workflow resolves the label: this is not a release, so it is `latest`,
+   for `component: all`.
+3. It resolves the site URL from the repository: `https://nvidia.github.io/cccl`.
+4. `gen_all_docs.bash` builds **both** products from that one commit — C++ into
+   `artifacts/docs/cpp/latest/`, Python into `artifacts/docs/python/latest/` —
+   then adds the chooser and `.nojekyll`.
+5. Checks run: does each product's `index.html` and `objects.inv` exist, do the
+   manifests parse and agree, does the C++ tree wrongly contain a `python/`
+   subtree, does the full artifact carry `.nojekyll`.
+6. The artifact is copied onto `gh-pages:docs/` with `clean: false`.
+
+**Result:** both `latest/` trees are replaced. `cpp/3.4.2/` and `python/1.1.1/`
+are not in the artifact, so they are not touched. The Python docs were rebuilt
+even though only C++ changed — both `latest` trees always come from the same
+commit, which is what keeps them consistent with each other.
+
+### Worked example: releasing C++ 3.5.0
+
+1. **Before tagging**, a pull request adds `3.5.0` to
+   `docs/cpp_site/nv-versions.json` *and* `docs/cpp_site/versions.json`. This is
+   ordinary reviewable source, in the release-preparation commit.
+2. The tag `v3.5.0` is created.
+3. A maintainer dispatches the workflow with `git-tag: v3.5.0`.
+4. `release_label.py` maps the tag to `("cpp", "3.5.0")`. **Nothing else is
+   consulted** — no destination input exists.
+5. The workflow checks out **the tag**, and runs `gen_docs.bash --label 3.5.0`.
+   Only the C++ build step runs; the Python step's condition is false.
+6. The build refuses to finish unless the pages it produced are stamped `3.5.0`
+   *and* `3.5.0` appears in the manifest it is shipping. (Step 1 is what
+   satisfies the second condition. Skip it and the release stops here rather
+   than publishing something unreachable.)
+7. The artifact — containing only `cpp/3.5.0/` and the two C++ manifests — is
+   deployed with `clean: false`.
+
+**Result:** `/cccl/cpp/3.5.0/` appears. `cpp/3.4.2/` is untouched. `cpp/latest/`
+is untouched. Every path under `python/` is untouched. The chooser is untouched,
+because a release artifact does not contain one.
+
+The only file the release *modifies* rather than adds is the pair of C++
+manifests — which is exactly the change that makes the new version appear in the
+dropdown.
 
 ### Only tags newer than this change can be rebuilt
 
@@ -592,6 +671,21 @@ If a release published *wrong content*, the repair is a corrective publication:
 fix the source, tag a new patch, publish that. There is no rollback button,
 deliberately. The deployment history on `gh-pages` is ordinary commits, and a
 maintainer can revert one.
+
+### Expect a little churn between builds
+
+The documentation build is not byte-reproducible across machines, and that is
+normal rather than a symptom. Rebuilding the same commit on a different machine
+changed **6 pages out of 1,439**.
+
+The cause is benign. When a class inherits a documented member, that member is
+rendered on more than one page, and a cross-reference to it may legitimately
+resolve to either. Which one Breathe picks depends on the order Sphinx processed
+the documents, which depends on how the parallel build was scheduled. Both
+targets contain the anchor, so both links work.
+
+Worth knowing only so that a deployment diff touching a handful of unrelated API
+pages does not look like a problem.
 
 ### Capacity
 
