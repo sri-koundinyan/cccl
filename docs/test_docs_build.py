@@ -315,7 +315,15 @@ def test_release_and_development_share_one_workflow():
 
 def test_no_legacy_unstable_paths_remain():
     """The old combined scheme is retired; nothing should still point at it."""
-    for name in ("index.html", "404.html"):
-        text = (DOCS / name).read_text(encoding="utf-8")
-        assert "/cccl/unstable" not in text
-        assert "python/unstable" not in text
+    text = (DOCS / "index.html").read_text(encoding="utf-8")
+    assert "/cccl/unstable" not in text
+    assert "python/unstable" not in text
+
+
+def test_no_custom_404_is_shipped():
+    """A missing URL gets an ordinary 404. Fuzzy routing is out of scope, and
+    Pages serves one 404.html per site, so a component cannot own one anyway."""
+    assert not (DOCS / "404.html").exists()
+    for script in ("gen_docs.bash", "gen_python_docs.bash", "gen_all_docs.bash"):
+        body = (DOCS / script).read_text(encoding="utf-8")
+        assert 'cp "./404.html"' not in body, script
