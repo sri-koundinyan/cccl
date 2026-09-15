@@ -1,7 +1,6 @@
 # CCCL documentation: what changed
 
-*A short orientation. For the full design and its rationale, see
-[publishing-design.md](publishing-design.md). For the release procedure, see
+*A short orientation. For the release procedure, see
 [PUBLISHING.md](PUBLISHING.md).*
 
 ---
@@ -150,5 +149,4 @@ The model is lifted from [cuda-python](https://github.com/NVIDIA/cuda-python),
 which solves the same problem: several independently released components in one
 repository. CCCL follows its architecture — the same reusable workflow shape,
 the same deploy action at the same pinned commit, the same meaning of `latest` —
-with a small number of deliberate differences, all recorded in
-[publishing-design.md](publishing-design.md).
+with a small number of deliberate differences.
