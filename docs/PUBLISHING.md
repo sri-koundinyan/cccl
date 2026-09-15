@@ -122,11 +122,25 @@ maintainer can revert one if it comes to that.
 
 ## Things worth knowing
 
-**Exact versions accumulate.** Nothing is retired automatically. A C++ release
-is roughly 110 MB and GitHub Pages refuses a site over 1 GB, so with both
-`latest` trees at ~190 MB the ceiling arrives at roughly eight releases of each
-component. When it approaches, retiring old versions is a deliberate decision —
-delete the directory and its manifest entry.
+**Exact versions accumulate.** Nothing is retired automatically, and GitHub
+Pages refuses a site over 1 GB. Measured at launch:
+
+| | size |
+|---|---|
+| `cpp/latest` | 180 MB |
+| `cpp/3.4.2` | 118 MB |
+| `python/latest` | 8 MB |
+| `python/1.1.1` | 8 MB |
+| **total** | **314 MB**, leaving 710 MB |
+
+C++ is what consumes the budget: about 118 MB per release against 8 MB for
+Python. That headroom is roughly **six more C++ releases**. Python is not a
+practical constraint at this ratio.
+
+When the ceiling approaches, retiring old versions is a deliberate decision —
+delete the directory and its manifest entry from both manifest files. Because
+deployment is additive, deleting a hosted directory is a manual operation on
+the Pages branch, not something a build can do.
 
 **The old URL scheme is gone.** `/cccl/unstable/...` and
 `/cccl/unstable/python/...` are not preserved or redirected. Readers arrive
