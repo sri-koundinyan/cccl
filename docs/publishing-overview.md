@@ -30,9 +30,9 @@ Readers pick a version from a dropdown in the page header.
 
 ## `latest` updates automatically
 
-**Merging to `main` republishes both `latest/` trees.** Nothing to do. Both
-products are rebuilt from that one commit, so their development docs never
-describe different commits. Released versions are not touched.
+**Merging to `main` republishes both `latest/` trees.** Both products are
+rebuilt from that one commit, so their development docs never describe
+different commits. Released versions are not touched.
 
 ---
 
