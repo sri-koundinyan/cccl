@@ -59,12 +59,9 @@ documentation that nothing links to.
 
 ## Things to keep in mind
 
-**`latest` means "built from `main`". It is not the newest release.** The name
-naturally reads the other way, so it is worth pausing on. `latest` is the
-replacement for `unstable`: same content, less alarming name. It documents code
-that is not in any release yet, and it changes every time `main` changes.
-Someone who wants "docs for the version I installed" wants `/cccl/cpp/3.4.2/`.
-Pages under `latest/` carry a banner saying so.
+**`latest` means "built from `main`". It is not the newest release.** It
+documents code that is not in any release yet, and it changes every time `main`
+changes.
 
 **The old URLs are gone.** `/cccl/unstable/...` returns 404, with no redirect.
 Existing links and bookmarks break. This was deliberate: the old tree contained
