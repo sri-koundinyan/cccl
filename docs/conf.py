@@ -123,6 +123,7 @@ exclude_patterns = [
     # toctree is a warning -- which these builds treat as an error.
     "PUBLISHING.md",
     "publishing-design.md",
+    "publishing-overview.md",
     "Thumbs.db",
     ".DS_Store",
     "env/**",  # Virtual environment

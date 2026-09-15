@@ -3,8 +3,12 @@
 *How the documentation site is built, versioned, and published — and why it is
 built that way.*
 
-This document explains the system. For the day-to-day procedure — "I am cutting
-a release, what do I do?" — see [PUBLISHING.md](PUBLISHING.md).
+This document explains the system in full, including the reasoning behind each
+decision. Two shorter documents cover narrower needs:
+
+- **New to this change?** [publishing-overview.md](publishing-overview.md) — what
+  changed, what happens automatically, and the caveats that will surprise you.
+- **Cutting a release?** [PUBLISHING.md](PUBLISHING.md) — the procedure.
 
 ---
 
@@ -918,5 +922,6 @@ and manifest agreement, product isolation, and the shape of the workflow.
 | file | role |
 |---|---|
 | `docs/test_docs_build.py` | the silent-failure guards |
+| `docs/publishing-overview.md` | short orientation for newcomers |
 | `docs/PUBLISHING.md` | the maintainer procedure |
 | `docs/publishing-design.md` | this document |
