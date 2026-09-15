@@ -63,27 +63,40 @@ documentation that nothing links to.
 documents code that is not in any release yet, and it changes every time `main`
 changes.
 
-**Publishing never deletes.** A deployment adds and replaces the files it
-carries and touches nothing else. That is what lets a Python release leave every
-C++ path alone, and lets old versions accumulate safely.
+**Publishing never deletes.** A deployment copies in the files it carries and
+touches nothing else. It is a copy, not a sync, so it never compares and never
+removes. That is what lets a Python release leave every C++ path alone, and lets
+old versions accumulate safely.
 
-The flip side: **a page removed from a build is not removed from the site.**
-Rename a page and the old URL keeps serving the old content until somebody
-deletes it from the `gh-pages` branch by hand. Nothing links to it any more, but
-it stays reachable.
+The flip side: **a page dropped from a build is not dropped from the site.**
+Rename `foo.html` to `foo2.html` and both stay live. Nothing links to
+`foo.html` any more, because the sidebars, the search index and `objects.inv`
+were all rebuilt without it, but the URL still works and still serves the old
+content. It does not even look stale: the same deploy replaced `_static/`, so
+the leftover page renders with current styling.
 
-cuda-python has the same problem, larger: 25 directories from a URL scheme it
-abandoned are still served today.
+This only happens where a deployment writes into a directory that already has
+files, which means **the two `latest/` trees and nowhere else**:
 
-Cleanup could be automated. Finding the orphans is easy: list the files on
+| | |
+|---|---|
+| `cpp/latest/`, `python/latest/` | rewritten on every merge, so leftovers collect here |
+| a new release, `cpp/3.5.0/` | lands in an empty directory, so it cannot have any |
+| a published release, `cpp/3.4.2/` | never rewritten, so it stays exactly as shipped |
+
+Releases are what people pin to and cite, and they are precisely the ones that
+cannot go stale. `latest` is the moving target anyway.
+
+cuda-python has the same behaviour at a larger scale: 25 directories from a URL
+scheme it abandoned are still served today.
+
+Cleanup could be automated, and half of it is trivial: list the files on
 `gh-pages`, list the files in a fresh build, and anything in the first but not
-the second is dead.
-
-Deleting them is the part to be careful about, and scoping the deletion to the
-directory being published does not fix it. A build that dies halfway looks
+the second is a leftover. Deleting them is the half to be careful about, and
+scoping the deletion does not make it safe. A build that dies halfway looks
 exactly like a build where those pages were deliberately removed, so the
-version gets emptied instead of updated. The current setup takes the other
-side of that trade: it would rather serve a stale page than delete a live one.
+directory gets emptied instead of updated. This setup takes the other side of
+that trade: better a stale page than a deleted live one.
 
 **Versions accumulate forever.** Nothing retires automatically. A C++ release is
 about 118 MB and GitHub Pages refuses a site over 1 GB. The site is at 314 MB
