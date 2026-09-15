@@ -87,7 +87,14 @@ def main(argv=None):
     parser.add_argument("--publisher-sha", required=True, help="the trusted tooling commit")
     parser.add_argument(
         "--artifact", action="append", default=[], metavar="ID=PATH",
-        help="component artifact, e.g. cpp=/path/to/html/unstable",
+        help="unstable component artifact, e.g. cpp=/path/to/html/unstable",
+    )
+    parser.add_argument(
+        "--archive", action="append", default=[], metavar="ID:DIR:RELEASE:TAG:SRC:OVERLAY=PATH",
+        help=(
+            "historical archive built from an immutable overlay, e.g. "
+            "cpp:3.4:3.4.2:v3.4.2:d360122:377ba28=/path/to/html/3.4"
+        ),
     )
     args = parser.parse_args(argv)
 
@@ -125,6 +132,31 @@ def main(argv=None):
         )
         place_component(site_root, component, artifacts[component["id"]], TIP, provenance)
         print(f"  {component['id']}/{TIP}: placed with provenance")
+
+    # The historical archives. Each is built from an immutable reviewed overlay
+    # on top of the exact peeled release source, and records both: the release
+    # source says what shipped, the overlay says what was changed to build it.
+    #
+    # These exist only here. The permanent workflow requires a source carrying
+    # the split-build contract, which by definition a pre-split release does
+    # not, so it will refuse these tags -- deliberately. Publishing an old
+    # release is a scoped project, not a switch in the steady-state publisher.
+    for entry in args.archive:
+        spec, _, path = entry.partition("=")
+        component_id, version_dir, release, tag, source_sha, overlay_sha = spec.split(":")
+        component = next(c for c in COMPONENTS if c["id"] == component_id)
+        provenance = build_provenance(
+            component=component_id,
+            version_directory=version_dir,
+            release=release,
+            release_tag=tag,
+            release_source_sha=source_sha,
+            overlay_sha=overlay_sha,
+            publisher_sha=args.publisher_sha,
+            artifact_sha256=None,
+        )
+        place_component(site_root, component, path, version_dir, provenance)
+        print(f"  {component_id}/{version_dir}: placed ({release} via overlay {overlay_sha[:10]})")
 
     write_shell(site_root, args.docs_dir)
 
