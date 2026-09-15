@@ -63,10 +63,6 @@ documentation that nothing links to.
 documents code that is not in any release yet, and it changes every time `main`
 changes.
 
-**The old URLs are gone.** `/cccl/unstable/...` returns 404, with no redirect.
-Existing links and bookmarks break. This was deliberate: the old tree contained
-no release versions, so most of it had no successor to redirect to.
-
 **Publishing never deletes.** A deployment adds and replaces the files it
 carries and touches nothing else. That is what lets a Python release leave every
 C++ path alone, and lets old versions accumulate safely.
