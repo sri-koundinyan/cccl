@@ -1,6 +1,6 @@
 # CCCL documentation versioning
 
-**[https://nvidia.github.io/cccl/](https://nvidia.github.io/cccl/)**
+**[https://sri-koundinyan.github.io/cccl/](https://sri-koundinyan.github.io/cccl/)**
 
 CCCL's C++ and Python libraries release on their own schedules, but their
 documentation was published as one combined tree with no release versions at
