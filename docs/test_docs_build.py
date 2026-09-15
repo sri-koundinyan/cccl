@@ -306,6 +306,13 @@ def test_every_build_path_builds_something(build_workflow):
     assert "steps.label.outputs.components == 'python'" in steps["Build Python"]
 
 
+def test_smoke_matrix_covers_every_launch_route():
+    """The §7.3 matrix. A route that is not listed is never checked."""
+    import smoke_site
+    assert dict(smoke_site.COMPONENTS) == {"cpp": "3.4.2", "python": "1.1.1"}
+    assert smoke_site.DEFAULT_BASE == "https://nvidia.github.io/cccl"
+
+
 def test_release_and_development_share_one_workflow():
     """Two publication paths, one implementation, so they cannot drift."""
     deploy = yaml.safe_load(DEPLOY_WORKFLOW.read_text(encoding="utf-8"))

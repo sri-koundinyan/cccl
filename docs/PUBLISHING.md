@@ -71,8 +71,17 @@ release they precede.
 
 ### 3. Check the result
 
-The affected URLs, plus one `_static` asset — without `.nojekyll`, Pages drops
-underscore-prefixed directories and every page returns 200 with no styling.
+Look at the affected URLs. For a rehearsal, or if anything looks off, run the
+full check:
+
+```bash
+python3 docs/smoke_site.py
+```
+
+It checks every route, that each page's version stamp is one its switcher
+manifest actually lists, and that `_static` loads. That last one matters
+because without `.nojekyll` GitHub Pages drops underscore-prefixed directories:
+every page still returns 200, with no styling and no version switcher.
 
 ---
 
