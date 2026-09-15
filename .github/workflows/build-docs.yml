@@ -80,18 +80,8 @@ jobs:
             exit 0
           fi
 
-          if [[ "${GIT_TAG}" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
-            echo "label=${BASH_REMATCH[1]}" >> "${GITHUB_OUTPUT}"
-            echo "components=cpp" >> "${GITHUB_OUTPUT}"
-          elif [[ "${GIT_TAG}" =~ ^python-([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
-            echo "label=${BASH_REMATCH[1]}" >> "${GITHUB_OUTPUT}"
-            echo "components=python" >> "${GITHUB_OUTPUT}"
-          else
-            echo "error: '${GIT_TAG}' is not an exact final release tag." >&2
-            echo "       Expected vMAJOR.MINOR.PATCH or python-MAJOR.MINOR.PATCH." >&2
-            echo "       Pre-release tags are not published to the stable switcher." >&2
-            exit 1
-          fi
+          # In a file rather than inline here, so the mapping can be tested.
+          python3 docs/release_label.py "${GIT_TAG}"
 
       # Development: both components from one commit, plus the site shell.
       - name: Build both components
