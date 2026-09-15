@@ -21,8 +21,20 @@ all. Now each is its own versioned site.
 /cccl/python/1.1.1/             Python release 1.1.1
 ```
 
-Readers pick a version from a dropdown in the page header. Each product's
-dropdown lists only that product's versions.
+Readers pick a version from a dropdown in the page header.
+
+**Every patch release gets its own directory.** The version in the URL is the
+full release number, never a truncated line:
+
+```
+3.4.2   3.4.3   3.4.4   3.5.0        C++
+1.1.1   1.1.2   1.2.0                Python
+```
+
+There is no `3.4/` meaning "the newest 3.4.x". A rolling directory would be a
+URL whose content changes underneath the reader, which is no use for citing and
+confusing to land on from a search result. `/cccl/cpp/3.4.2/` documents 3.4.2
+and keeps documenting 3.4.2.
 
 ---
 
