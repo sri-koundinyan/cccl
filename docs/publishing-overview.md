@@ -1,51 +1,5 @@
 # CCCL documentation: what changed
 
-*A short orientation. For the release procedure, see
-[PUBLISHING.md](PUBLISHING.md).*
-
----
-
-## The short version
-
-CCCL's C++ and Python libraries release on their own schedules, but their
-documentation was published as one combined tree with no release versions at
-all. Now each is its own versioned site.
-
-**Before**
-
-```
-/cccl/unstable/                 everything, built from main
-/cccl/unstable/python/          Python docs nested inside the C++ tree
-```
-
-**Now**
-
-```
-/cccl/                          a chooser: C++ or Python
-/cccl/cpp/latest/               C++, built from main
-/cccl/cpp/3.4.2/                C++ release 3.4.2
-/cccl/python/latest/            Python, built from main
-/cccl/python/1.1.1/             Python release 1.1.1
-```
-
-Readers pick a version from a dropdown in the page header. Each product's
-dropdown lists only that product's versions.
-
----
-
-## The one thing to internalise
-
-> **`latest` means "built from `main`". It is not the newest release.**
-
-The name naturally reads the other way, so it is worth pausing on. `latest` is
-the replacement for `unstable` — same content, less alarming name. It documents
-code that is not in any release yet, and it changes every time `main` changes.
-
-Someone who wants "docs for the version I installed" wants `/cccl/cpp/3.4.2/`.
-Pages under `latest/` carry a banner saying so.
-
----
-
 ## What happens automatically
 
 **Merging to `main` republishes both `latest/` trees.** Nothing to do. Both
@@ -90,6 +44,13 @@ documentation that nothing links to.
 ---
 
 ## Things to keep in mind
+
+**`latest` means "built from `main`" — it is not the newest release.** The name
+naturally reads the other way, so it is worth pausing on. `latest` is the
+replacement for `unstable`: same content, less alarming name. It documents code
+that is not in any release yet, and it changes every time `main` changes.
+Someone who wants "docs for the version I installed" wants `/cccl/cpp/3.4.2/`.
+Pages under `latest/` carry a banner saying so.
 
 **The old URLs are gone.** `/cccl/unstable/...` returns 404, with no redirect.
 Existing links and bookmarks break. This was deliberate: the old tree contained
