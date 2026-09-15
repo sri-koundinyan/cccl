@@ -181,6 +181,41 @@ def test_unlisted_version_is_refused(tmp_path):
         check_manifests.check(comp, "3.4.2")
 
 
+def test_retarget_moves_every_absolute_url(tmp_path):
+    """Three places name a host absolutely: the manifest entries the switcher
+    navigates to, the landing redirect's canonical, and (via conf.py) the
+    json_url each page fetches. A rehearsal on another origin needs all of
+    them, and the checked-in sources must not be touched."""
+    comp = tmp_path / "cpp"
+    comp.mkdir()
+    (comp / "nv-versions.json").write_text(json.dumps(
+        [{"version": v, "url": f"https://nvidia.github.io/cccl/cpp/{v}/"}
+         for v in ("latest", "3.4.2")]))
+    (comp / "versions.json").write_text(json.dumps({"latest": "latest", "3.4.2": "3.4.2"}))
+    (comp / "index.html").write_text(
+        '<link rel="canonical" href="https://nvidia.github.io/cccl/cpp/latest/">')
+
+    check_manifests.retarget(comp, "cpp", "https://fork.example/cccl")
+
+    urls = [e["url"] for e in json.loads((comp / "nv-versions.json").read_text())]
+    assert urls == ["https://fork.example/cccl/cpp/latest/",
+                    "https://fork.example/cccl/cpp/3.4.2/"]
+    assert "fork.example/cccl/cpp/latest/" in (comp / "index.html").read_text()
+    assert "nvidia.github.io" not in (comp / "index.html").read_text()
+    # Still a valid manifest pair afterwards.
+    assert check_manifests.check(comp, "3.4.2") == ["latest", "3.4.2"]
+
+
+def test_checked_in_sources_still_name_production():
+    """retarget edits the built artifact. A real release goes to production, so
+    the sources in the repository must keep pointing there."""
+    for component in ("cpp", "python"):
+        manifest = (DOCS / f"{component}_site" / "nv-versions.json").read_text()
+        redirect = (DOCS / f"{component}_site" / "index.html").read_text()
+        assert "https://nvidia.github.io/cccl/" in manifest, component
+        assert "https://nvidia.github.io/cccl/" in redirect, component
+
+
 @pytest.mark.parametrize("component,version", [("cpp", "3.4.2"), ("python", "1.1.1")])
 def test_shipped_manifests_pass_their_own_check(component, version):
     for label in ("latest", version):
