@@ -359,6 +359,33 @@ def test_smoke_matrix_covers_every_launch_route():
     assert smoke_site.DEFAULT_BASE == "https://nvidia.github.io/cccl"
 
 
+@pytest.mark.parametrize("repository,expected", [
+    ("NVIDIA/cccl", "https://nvidia.github.io/cccl"),
+    ("sri-koundinyan/cccl", "https://sri-koundinyan.github.io/cccl"),
+    ("Some-Org/cccl", "https://some-org.github.io/cccl"),
+])
+def test_site_url_derives_from_the_repository(repository, expected):
+    """Pages serves <owner>.github.io/<repo> with the owner lowercased, which
+    for NVIDIA/cccl is exactly the production URL -- so one rule covers
+    production and every fork, and a fork need not pass anything.
+
+    Runs the workflow's own expression rather than a restatement of it."""
+    script = 'owner="${REPOSITORY%%/*}"; name="${REPOSITORY#*/}"; ' \
+             'echo "https://${owner,,}.github.io/${name}"'
+    out = subprocess.run(["bash", "-c", script], capture_output=True, check=True,
+                         env={"REPOSITORY": repository, "PATH": "/usr/bin:/bin"})
+    assert out.stdout.decode().strip() == expected
+
+
+def test_explicit_site_url_wins(build_workflow):
+    """A custom domain is not derivable from the repository name."""
+    step = next(s for s in build_workflow["jobs"]["build"]["steps"]
+                if s.get("id") == "site")
+    body = step["run"]
+    assert 'if [[ -n "${SITE_URL}" ]]' in body
+    assert body.index("SITE_URL}\"") < body.index("github.io")
+
+
 def test_rehearsal_can_name_its_own_origin(build_workflow):
     """A rehearsal on a fork is a different origin. The switcher is fetched by
     the browser, so pages built for production point it at production and the
@@ -370,7 +397,10 @@ def test_rehearsal_can_name_its_own_origin(build_workflow):
     for name in ("Build both components", "Build C++", "Build Python"):
         step = next(s for s in build_workflow["jobs"]["build"]["steps"]
                     if s.get("name") == name)
-        assert "CCCL_DOCS_SITE_URL" in step.get("env", {}), name
+        env = step.get("env", {})
+        assert "CCCL_DOCS_SITE_URL" in env, name
+        # The derived value, not the raw input: the input is usually empty.
+        assert "steps.site.outputs.url" in env["CCCL_DOCS_SITE_URL"], name
 
 
 def test_release_and_development_share_one_workflow():

@@ -88,17 +88,39 @@ jobs:
           # In a file rather than inline here, so the mapping can be tested.
           python3 docs/release_label.py "${GIT_TAG}"
 
+      # The switcher is fetched by the reader's browser, so these URLs must name
+      # the host actually serving the page. A build published to a different
+      # origin otherwise tells the browser to fetch production's manifest, which
+      # renders perfectly and leaves the version dropdown empty.
+      #
+      # Pages serves a project site at https://<owner>.github.io/<repo> with the
+      # owner lowercased, which for NVIDIA/cccl is exactly the production URL.
+      # So one rule covers production and every fork, and a fork does not have
+      # to remember to pass anything. A site on a custom domain needs the
+      # site-url input, since the domain is not derivable from the repository.
+      - name: Resolve the site URL
+        id: site
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          SITE_URL: ${{ inputs.site-url }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          if [[ -n "${SITE_URL}" ]]; then
+            url="${SITE_URL}"
+          else
+            owner="${REPOSITORY%%/*}"
+            name="${REPOSITORY#*/}"
+            url="https://${owner,,}.github.io/${name}"
+          fi
+          echo "url=${url}" >> "${GITHUB_OUTPUT}"
+          echo "Building for ${url}"
+
       # Development: both components from one commit, plus the site shell.
-      # The switcher is fetched by the reader's browser, so these URLs must
-      # name the host actually serving the page. A rehearsal published to a
-      # different origin -- a fork, or a renamed site -- otherwise tells the
-      # browser to fetch production's manifest, which renders perfectly and
-      # leaves the version dropdown empty.
       - name: Build both components
         if: ${{ !inputs.is-release && inputs.component == 'all' }}
         shell: bash --noprofile --norc -euo pipefail {0}
         env:
-          CCCL_DOCS_SITE_URL: ${{ inputs.site-url }}
+          CCCL_DOCS_SITE_URL: ${{ steps.site.outputs.url }}
         run: ./docs/gen_all_docs.bash --allow-dep-install
 
       # Release, or a single-component development build: one component only,
@@ -107,14 +129,14 @@ jobs:
         if: ${{ steps.label.outputs.components == 'cpp' }}
         shell: bash --noprofile --norc -euo pipefail {0}
         env:
-          CCCL_DOCS_SITE_URL: ${{ inputs.site-url }}
+          CCCL_DOCS_SITE_URL: ${{ steps.site.outputs.url }}
         run: ./docs/gen_docs.bash --allow-dep-install --label "${{ steps.label.outputs.label }}"
 
       - name: Build Python
         if: ${{ steps.label.outputs.components == 'python' }}
         shell: bash --noprofile --norc -euo pipefail {0}
         env:
-          CCCL_DOCS_SITE_URL: ${{ inputs.site-url }}
+          CCCL_DOCS_SITE_URL: ${{ steps.site.outputs.url }}
         run: ./docs/gen_python_docs.bash --allow-dep-install --label "${{ steps.label.outputs.label }}"
 
       # Artifact checks, per §7.2. These inspect what was built; they are not a

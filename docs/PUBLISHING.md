@@ -104,23 +104,26 @@ every page still returns 200, with no styling and no version switcher.
 The workflow takes a `docs-branch` input. Point it at a branch other than
 `gh-pages` to publish a full artifact somewhere harmless.
 
-**If the rehearsal is served from a different origin — a fork, say — also set
-`site-url`:**
+**A fork needs nothing extra.** The build derives its own site URL from the
+repository: Pages serves `https://<owner>.github.io/<repo>` with the owner
+lowercased, which for `NVIDIA/cccl` is the production URL and for a fork is the
+fork's. One rule, no flag to remember.
+
+This matters because the version switcher is fetched by the reader's browser at
+the URL the page names. Pages built for production name production, so a fork
+build that did not do this would look completely correct and have an empty
+version dropdown — the browser fetching a manifest from a host that does not
+serve this layout.
+
+Set `site-url` explicitly only for a **custom domain**, which cannot be derived
+from the repository name:
 
 ```
-docs-branch:  gh-pages
-site-url:     https://YOUR-USER.github.io/cccl
+site-url:  https://docs.example.com/cccl
 ```
-
-The version switcher is fetched by the reader's browser at the URL the page
-names. Pages built for production name production, so a fork rehearsal without
-`site-url` looks completely correct and has an empty version dropdown — the
-browser is fetching a manifest from a host that does not serve this layout.
-`site-url` rebases the canonical URLs and retargets the manifest entries onto
-the host actually serving the pages.
 
 `docs/smoke_site.py` follows the URL each page declares, rather than assuming
-it, so it catches exactly this.
+it, so it catches this class of failure rather than passing through it.
 
 ---
 
