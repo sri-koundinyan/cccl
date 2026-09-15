@@ -147,6 +147,12 @@ when you publish many versions — it tells search engines which one to index.
 like a function. **`workflow_dispatch`** means a workflow can be started by hand
 from the Actions tab, optionally with inputs.
 
+**A note on vocabulary.** This document says **product** for "the C++ libraries"
+or "the Python packages", because that is what they are to a reader. The code
+and the workflow inputs call the same thing a **component** — `component: cpp`,
+`components=python` — following cuda-python, where the word arrived from its
+`cuda-core` and `cuda-bindings` packages. They mean the same thing.
+
 ---
 
 ## 3. What a reader sees
@@ -368,7 +374,7 @@ running the workflow twice.
 
 ### The one-time conversion
 
-The permanent workflow assumes the component namespaces already exist, and
+The permanent workflow assumes the two product namespaces already exist, and
 `clean: false` means it can only add and replace — never remove. So the move
 from the old combined layout to this one could not be performed by it.
 
@@ -549,7 +555,7 @@ were gated on the *caller's* `component` input, but a release passes
 `component: all` and lets the tag decide. Every path was traced; one produced
 nothing.
 
-**Guard:** steps key off the *resolved* component, and a test asserts every
+**Guard:** steps key off the *resolved* product, and a test asserts every
 publication path builds something.
 
 ### A C++ artifact contains the Python tree
@@ -663,7 +669,7 @@ The architecture, and its consequences, are inherited as-is:
 - one reusable workflow serving both publication paths;
 - `clean: false` additive deployment, with the same deploy action at the same
   pinned SHA;
-- checked-in per-component manifests owned by the release;
+- checked-in per-product manifests owned by the release;
 - `latest` meaning the development branch;
 - exact `MAJOR.MINOR.PATCH` directories with no rolling alias;
 - no automatic retirement of old versions;
@@ -689,7 +695,7 @@ untouched.
 1. **Before tagging**, add the version to both manifest files for that product
    (`docs/cpp_site/` or `docs/python_site/`). The build stops if you forget.
 2. **Actions → Deploy CCCL Documentation → Run workflow**, and give it the exact
-   tag. The tag alone decides component and destination.
+   tag. The tag alone decides product and destination.
 3. **Check** the affected URLs, or run `python3 docs/smoke_site.py`.
 
 ### Rehearsing
