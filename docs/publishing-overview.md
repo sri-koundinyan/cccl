@@ -50,11 +50,8 @@ like any other change.
 **3. Run the workflow.** *Actions → Deploy CCCL Documentation → Run workflow*,
 and give it the exact tag.
 
-The tag alone decides everything: which product, and which directory. There is
-no "publish to" field, so a Python release cannot land in the C++ namespace and
-no version can be published under another version's name.
-
-If you skip step 1, the build **stops and tells you**. It does not publish
+The tag alone decides everything: which product, and which directory. If you
+skip step 1, the build **stops and tells you**. It does not publish
 documentation that nothing links to.
 
 ---
