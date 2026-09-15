@@ -594,12 +594,19 @@ their upgrades.
 
 ## 8. Where this departs from cuda-python
 
-The instruction was to follow cuda-python's model rather than invent one. These
-are the deviations, each with the reason. Everything not listed here follows the
-reference implementation.
+The instruction was to follow cuda-python's model rather than invent one. This
+section records the differences in **both** directions, so the comparison is not
+flattering by omission:
 
-At a glance — note that every one is a *correctness* fix or a small robustness
-addition. None changes the architecture:
+- eight places CCCL is stricter, each fixing something demonstrably wrong in the
+  reference;
+- one place the two diverge on policy rather than correctness;
+- four things cuda-python has that CCCL does not.
+
+Everything not listed here follows the reference implementation.
+
+At a glance — note that every one of the eight is a *correctness* fix or a small
+robustness addition. None changes the architecture:
 
 | # | Deviation | Why |
 |---|---|---|
@@ -661,6 +668,60 @@ line in its own script ("ensure that the Sphinx reference uses the latest docs")
 
 **8. `.nojekyll` is emitted by the build** rather than existing only on the
 deployment branch (§7).
+
+### One divergence of policy, not correctness: the old scheme is removed
+
+cuda-python still serves its previous URL scheme. Its `gh-pages` carries 25
+CUDA-Toolkit-versioned directories from before it moved to per-component
+namespaces, and they are live today:
+
+```
+/cuda-python/12.6.1/   200
+/cuda-python/13.4.1/   200
+```
+
+That is not a decision so much as the default behaviour of the model:
+`clean: false` never deletes, so a retired layout persists indefinitely unless
+somebody removes it by hand.
+
+CCCL chose the other way. `/cccl/unstable/` and its Python subtree return 404,
+because the one-time conversion deleted them. Neither choice is wrong. The
+trade-off is:
+
+| | keeps old URLs alive | cost |
+|---|---|---|
+| cuda-python | yes | the site carries two schemes indefinitely; old paths document versions under a naming convention that no longer applies |
+| CCCL | no | existing links break; there is no redirect, by design (§3) |
+
+CCCL's old tree had no release versions in it at all, so most of it had no
+successor to redirect *to* — preserving it would have meant serving a permanent
+copy of one moment of the development branch under a name (`unstable`) the
+project no longer uses.
+
+### What cuda-python has that CCCL does not
+
+Recording these so the comparison is not one-sided. None of them touch the
+versioning model; all are CI facilities built around it.
+
+**Rendered-link checking.** cuda-python runs `lycheeverse/lychee-action` over
+the built HTML with `--include-fragments=full`, failing the build on a broken
+link or a dangling anchor. CCCL has no equivalent. This is the most substantive
+gap.
+
+**Per-pull-request documentation previews.** Their site has a `pr-preview/`
+tree, so a reviewer can read a branch's rendered documentation before it merges.
+
+**Release-workflow integration.** Their `build-docs.yml` is called from
+`release.yml`, gated on release-notes checks, with a first-class dry-run mode
+that redirects the deployment to a named branch. CCCL's release publication is a
+standalone manual dispatch — the same capability, not wired into a release
+process, because CCCL's release process has a different shape.
+
+**Coverage reporting** is published to the same site (`/coverage/`).
+
+They also carry a `run-id` input, used to fetch wheel artifacts built earlier in
+their pipeline. That is package plumbing rather than part of the versioning
+model, and was deliberately not copied.
 
 ### Followed exactly
 
@@ -769,6 +830,26 @@ considered and rejected:
 - **automatic retirement** — nothing deletes an old version on its own;
 - **a release compatibility matrix** — no database claiming which C++ release
   "goes with" which Python release. Cross-product links are ordinary links.
+
+### How this list compares to cuda-python
+
+Seven of the eight are equally absent from the reference implementation, which
+is the main reason to be comfortable leaving them out: this is not a stripped-
+down version of a richer system, it is the same system.
+
+The exception is **legacy URL preservation**. cuda-python retains its previous
+scheme — 25 CUDA-Toolkit-versioned directories still served — while CCCL removed
+its old layout during the conversion. Section 8 covers the trade-off.
+
+A note on how firmly each is established, since "the reference does not do this
+either" is load-bearing. The absence of 404 routing, automatic retirement, and
+the retained legacy scheme were confirmed against the **live site**: stock
+GitHub 404s, `cuda-core/0.1.0` still returning 200 beside a 19-entry manifest,
+and the old directories serving. Checked-in rather than generated manifests, and
+the lack of rollback machinery, were confirmed by reading the repository and its
+workflows. The absence of provenance files and of a compatibility matrix rests
+on searching the source tree and the rendered site — reasonable, but a search
+rather than a proof.
 
 The test suite is scoped the same way. It does not test Sphinx, the theme, or
 the deploy action. It tests the things that fail *silently*: tag mapping, stamp
