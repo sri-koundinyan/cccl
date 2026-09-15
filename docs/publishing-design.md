@@ -592,6 +592,20 @@ The instruction was to follow cuda-python's model rather than invent one. These
 are the deviations, each with the reason. Everything not listed here follows the
 reference implementation.
 
+At a glance — note that every one is a *correctness* fix or a small robustness
+addition. None changes the architecture:
+
+| # | Deviation | Why |
+|---|---|---|
+| 1 | Stamp pages with the served directory | otherwise the dropdown never highlights the current page |
+| 2 | Check the two manifests agree | they have silently drifted in the reference |
+| 3 | Derive the site URL from the repository | otherwise a fork's switcher is empty |
+| 4 | Refuse to publish a version the manifest omits | otherwise it publishes unreachable |
+| 5 | Two build modes, not build-then-delete | a release never creates a `latest/` it must remember to remove |
+| 6 | Root `objects.inv` only from a `latest` build | otherwise a release downgrades it |
+| 7 | Reject pre-release tags explicitly | not left to convention |
+| 8 | Emit `.nojekyll` from the build | otherwise nothing can restore it |
+
 ### Deviations
 
 **1. Pages are stamped with the directory they are served from.**
