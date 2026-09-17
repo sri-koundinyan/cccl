@@ -3,7 +3,7 @@
 # Both entry points call one reusable workflow, so development and release
 # publishing cannot drift apart:
 #
-#   push to main            -> both latest/ trees, from one commit
+#   push to main            -> both unstable/ trees, from one commit
 #   dispatch with a tag     -> that tag's component, under its exact version
 #
 # A release publishes only the component its tag names, and `clean: false` in

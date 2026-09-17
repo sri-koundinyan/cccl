@@ -148,9 +148,9 @@ Pages refuses a site over 1 GB. Measured at launch:
 
 | | size |
 |---|---|
-| `cpp/latest` | 180 MB |
+| `cpp/unstable` | 180 MB |
 | `cpp/3.4.2` | 118 MB |
-| `python/latest` | 8 MB |
+| `python/unstable` | 8 MB |
 | `python/1.1.1` | 8 MB |
 | **total** | **314 MB**, leaving 710 MB |
 
