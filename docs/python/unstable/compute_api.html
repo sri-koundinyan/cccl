@@ -3533,7 +3533,7 @@ architecture is used.</p></li>
 <dt class="sig sig-object py" id="cuda.compute.iterators.ConstantIterator">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">ConstantIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">number</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.ConstantIterator" title="Link to this definition">#</a></dt>
 <dd><p>Iterator representing a sequence of constant values.</p>
-<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/cpp/latest/thrust/api/classthrust_1_1constant__iterator.html">thrust::constant_iterator</a>.</p>
+<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/cpp/unstable/thrust/api/classthrust_1_1constant__iterator.html">thrust::constant_iterator</a>.</p>
 <p>Every dereference returns the same constant value.</p>
 <p class="rubric">Example</p>
 <p>The code snippet below demonstrates the usage of a <code class="docutils literal notranslate"><span class="pre">ConstantIterator</span></code>
@@ -3609,7 +3609,7 @@ representing a sequence of constant values:</p>
 <dt class="sig sig-object py" id="cuda.compute.iterators.CountingIterator">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">CountingIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">number</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.CountingIterator" title="Link to this definition">#</a></dt>
 <dd><p>Iterator representing a sequence of incrementing values.</p>
-<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/cpp/latest/thrust/api/classthrust_1_1counting__iterator.html">thrust::counting_iterator</a>.</p>
+<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/cpp/unstable/thrust/api/classthrust_1_1counting__iterator.html">thrust::counting_iterator</a>.</p>
 <p>The iterator starts at <cite>start</cite> and increments by 1 for each advance.</p>
 <p class="rubric">Example</p>
 <p>The code snippet below demonstrates the usage of a <code class="docutils literal notranslate"><span class="pre">CountingIterator</span></code>
@@ -3827,7 +3827,7 @@ type structure but different runtime state should share cached reducers.</p>
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">PermutationIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.PermutationIterator" title="Link to this definition">#</a></dt>
 <dd><p>Iterator that accesses values through an index mapping.</p>
 <p>At position i, yields values[indices[i]].</p>
-<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/cpp/latest/thrust/api/classthrust_1_1permutation__iterator.html">thrust::permutation_iterator</a>.</p>
+<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/cpp/unstable/thrust/api/classthrust_1_1permutation__iterator.html">thrust::permutation_iterator</a>.</p>
 <p class="rubric">Example</p>
 <p>The code snippet below demonstrates accessing values through an index mapping.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">"""</span>
@@ -4033,7 +4033,7 @@ different (deterministic) permutations. Defaults to 0.</p></li>
 
 <span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.TransformIterator" title="Link to this definition">#</a></dt>
 <dd><p>An iterator that applies a unary function to elements as they are read from an underlying iterator.</p>
-<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/cpp/latest/thrust/api/classthrust_1_1transform__iterator.html">thrust::transform_iterator</a>.</p>
+<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/cpp/unstable/thrust/api/classthrust_1_1transform__iterator.html">thrust::transform_iterator</a>.</p>
 <p>For input iteration (default): reads from underlying, applies transform, returns result.
 For output iteration: applies transform to input values, writes to underlying.</p>
 <p class="rubric">Example</p>
@@ -4147,7 +4147,7 @@ For output iterators: must be provided or have annotations.</p></li>
 
 <span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.TransformOutputIterator" title="Link to this definition">#</a></dt>
 <dd><p>An iterator that applies a unary function to values before writing them to an underlying iterator.</p>
-<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/cpp/latest/thrust/api/classthrust_1_1transform__output__iterator.html">thrust::transform_output_iterator</a>.</p>
+<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/cpp/unstable/thrust/api/classthrust_1_1transform__output__iterator.html">thrust::transform_output_iterator</a>.</p>
 <p>This is a convenience subclass of TransformIterator configured for output mode.</p>
 <p class="rubric">Example</p>
 <p>The code snippet below demonstrates the usage of a <code class="docutils literal notranslate"><span class="pre">TransformOutputIterator</span></code> to transform the output
@@ -4235,7 +4235,7 @@ For output iterators: must be provided or have annotations.</p></li>
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cuda.compute.iterators.</span></span><span class="sig-name descname"><span class="pre">ZipIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cuda.compute.iterators.ZipIterator" title="Link to this definition">#</a></dt>
 <dd><p>Iterator that zips multiple iterators together.</p>
 <p>At each position, yields a tuple of values from all underlying iterators.</p>
-<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/cpp/latest/thrust/api/classthrust_1_1zip__iterator.html">thrust::zip_iterator</a>.</p>
+<p>Similar to <a class="reference external" href="https://nvidia.github.io/cccl/cpp/unstable/thrust/api/classthrust_1_1zip__iterator.html">thrust::zip_iterator</a>.</p>
 <p class="rubric">Example</p>
 <p>The code snippet below demonstrates how to zip together an array and a
 <a class="reference internal" href="#cuda.compute.iterators.CountingIterator" title="cuda.compute.iterators.CountingIterator"><code class="xref py py-class docutils literal notranslate"><span class="pre">CountingIterator</span></code></a> to

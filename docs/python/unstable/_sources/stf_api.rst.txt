@@ -9,7 +9,7 @@
 
 The core context, logical-data, task, and place types are implemented as a compiled
 extension; they are covered in the :ref:`narrative guide <cccl-python-stf>` and the
-`C++ CUDASTF documentation <https://nvidia.github.io/cccl/cpp/latest/cudax/stf.html>`_. Because the extension is compiled (and mocked
+`C++ CUDASTF documentation <https://nvidia.github.io/cccl/cpp/unstable/cudax/stf.html>`_. Because the extension is compiled (and mocked
 during documentation builds), autodoc cannot introspect these types, so their public
 surface is documented explicitly below. The pure-Python helper layers follow.
 
