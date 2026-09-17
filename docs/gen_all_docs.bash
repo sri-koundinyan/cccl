@@ -3,7 +3,7 @@
 # Build the development documentation for both components.
 #
 # Mirrors cuda-python's build_all_docs.sh: it runs each component's own build in
-# latest-only mode and adds the files that belong to the site as a whole rather
+# unstable-only mode and adds the files that belong to the site as a whole rather
 # than to either component.
 #
 # Usage:
@@ -14,12 +14,12 @@
 #   _build/artifacts/docs/
 #     index.html            neutral C++ / Python chooser
 #     .nojekyll
-#     cpp/index.html        redirect to latest/
-#     cpp/latest/           C++ development documentation
+#     cpp/index.html        redirect to unstable/
+#     cpp/unstable/         C++ development documentation
 #     cpp/nv-versions.json
 #     cpp/objects.inv
-#     python/index.html     redirect to latest/
-#     python/latest/        Python development documentation
+#     python/index.html     redirect to unstable/
+#     python/unstable/      Python development documentation
 #     python/nv-versions.json
 #     python/objects.inv
 #
@@ -34,11 +34,11 @@ cd "$SCRIPT_PATH"
 
 ARTIFACTS="_build/artifacts/docs"
 
-# Both latest trees come from this one invocation, so they are always built from
+# Both unstable trees come from this one invocation, so they are always built from
 # the same commit. Their releases remain independent; only development
 # documentation is coupled, because a single push advances both.
-./gen_docs.bash latest-only "$@"
-./gen_python_docs.bash latest-only "$@"
+./gen_docs.bash unstable-only "$@"
+./gen_python_docs.bash unstable-only "$@"
 
 # The site shell. It belongs to neither component, so a component release never
 # supplies it -- which is what stops a release rewriting what every reader first

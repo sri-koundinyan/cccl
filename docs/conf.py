@@ -156,7 +156,7 @@ _component_root = (
 )
 
 # The directory this build is served from, which is also the switcher entry
-# that represents it. "latest" is the development branch -- not the newest
+# that represents it. "unstable" is the development branch -- not the newest
 # release -- matching cuda-python, whose latest/ is likewise built from main.
 # A stable build uses its exact MAJOR.MINOR.PATCH.
 _publication_label = os.environ.get("CCCL_DOCS_LABEL", release)
@@ -184,7 +184,7 @@ html_theme_options = {
     "footer_end": ["sphinx-version"],
     "sidebar_includehidden": True,
     "collapse_navigation": False,
-    # A reader landing on latest/ must not mistake development documentation
+    # A reader landing on unstable/ must not mistake development documentation
     # for a release. cuda-python uses the same convention.
     **(
         {
@@ -195,14 +195,14 @@ html_theme_options = {
                 "versions</a>."
             )
         }
-        if _publication_label == "latest"
+        if _publication_label == "unstable"
         else {}
     ),
     "switcher": {
         # Deliberately the component root, not html_baseurl: the manifest lists
         # every version, so it cannot live inside one of them.
         "json_url": f"{_component_root}nv-versions.json",
-        # Must equal the directory this build is served from: "latest" for a
+        # Must equal the directory this build is served from: "unstable" for a
         # development build, or the exact release for a stable one.
         #
         # cuda-python does not do this -- its latest/ is stamped with the source

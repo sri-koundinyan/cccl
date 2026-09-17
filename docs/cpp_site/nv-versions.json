@@ -1,7 +1,7 @@
 [
   {
-    "version": "latest",
-    "url": "https://nvidia.github.io/cccl/cpp/latest/"
+    "version": "unstable",
+    "url": "https://nvidia.github.io/cccl/cpp/unstable/"
   },
   {
     "version": "3.4.2",

@@ -17,9 +17,9 @@ all. Now each is its own versioned site.
 
 ```
 /cccl/                          a chooser: C++ or Python
-/cccl/cpp/latest/               C++, built from main
+/cccl/cpp/unstable/             C++, built from main
 /cccl/cpp/3.4.2/                C++ release 3.4.2
-/cccl/python/latest/            Python, built from main
+/cccl/python/unstable/          Python, built from main
 /cccl/python/1.1.1/             Python release 1.1.1
 ```
 
@@ -30,9 +30,9 @@ Readers pick a version from a dropdown in the page header.
 
 ---
 
-## `latest` updates automatically
+## `unstable` updates automatically
 
-**Merging to `main` republishes both `latest/` trees.** Both products are
+**Merging to `main` republishes both `unstable/` trees.** Both products are
 rebuilt from that one commit, so their development docs never describe
 different commits. Released versions are not touched.
 
@@ -60,7 +60,7 @@ documentation that nothing links to.
 
 ## Things to keep in mind
 
-**`latest` means "built from `main`". It is not the newest release.** It
+**`unstable` means "built from `main`". It is not the newest release.** It
 documents code that is not in any release yet, and it changes every time `main`
 changes.
 
@@ -76,7 +76,7 @@ were all rebuilt without it, but the URL still works and still serves the old
 content.
 
 This only happens where a deployment writes into a directory that already has
-files (in practice, the two `latest/` trees). People usually pin to and cite
+files (in practice, the two `unstable/` trees). People usually pin to and cite
 specific releases, and those do not accumulate stale content.
 
 **Versions accumulate forever.** Nothing retires automatically. A C++ release is

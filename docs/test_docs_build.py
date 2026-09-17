@@ -62,7 +62,7 @@ def test_tag_names_component_and_version(tag, expected):
         "python-1.1",
         "3.4.2",           # unprefixed: which component?
         "refs/tags/v3.4.2",
-        "latest",
+        "unstable",
         "main",
         "",
     ],
@@ -121,38 +121,38 @@ def manifest_versions(component_root):
 def test_published_label_is_listed_in_the_manifest(tmp_path):
     """The reader reaches a version through the switcher; if the manifest does
     not list it, the documentation exists but cannot be found."""
-    comp = make_component(tmp_path, "cpp", "3.4.2", ["latest", "3.4.2"])
+    comp = make_component(tmp_path, "cpp", "3.4.2", ["unstable", "3.4.2"])
     assert stamp_of(comp / "3.4.2" / "index.html") in manifest_versions(comp)
 
 
 def test_stamp_missing_from_manifest_is_detectable(tmp_path):
     """The failure the build guard exists to catch."""
-    comp = make_component(tmp_path, "cpp", "3.4.3", ["latest", "3.4.2"])
+    comp = make_component(tmp_path, "cpp", "3.4.3", ["unstable", "3.4.2"])
     assert stamp_of(comp / "3.4.3" / "index.html") not in manifest_versions(comp)
 
 
 def test_stamp_equals_the_served_directory(tmp_path):
-    """cuda-python stamps latest/ with the source version, so its switcher can
+    """cuda-python stamps unstable/ with the source version, so its switcher can
     never highlight the current page. Ours must match the directory."""
-    for label in ("latest", "3.4.2"):
-        comp = make_component(tmp_path / label, "cpp", label, ["latest", "3.4.2"])
+    for label in ("unstable", "3.4.2"):
+        comp = make_component(tmp_path / label, "cpp", label, ["unstable", "3.4.2"])
         assert stamp_of(comp / label / "index.html") == label
 
 
 def test_component_artifacts_stay_separate(tmp_path):
     """A release artifact must contain only its own component."""
     root = tmp_path / "artifacts"
-    make_component(root, "cpp", "3.4.2", ["latest", "3.4.2"])
+    make_component(root, "cpp", "3.4.2", ["unstable", "3.4.2"])
     assert (root / "cpp").is_dir()
     assert not (root / "python").exists()
 
 
 def test_manifests_list_only_their_own_component(tmp_path):
     root = tmp_path / "artifacts"
-    cpp = make_component(root, "cpp", "latest", ["latest", "3.4.2"])
-    py = make_component(root, "python", "latest", ["latest", "1.1.1"])
-    assert manifest_versions(cpp) == ["latest", "3.4.2"]
-    assert manifest_versions(py) == ["latest", "1.1.1"]
+    cpp = make_component(root, "cpp", "unstable", ["unstable", "3.4.2"])
+    py = make_component(root, "python", "unstable", ["unstable", "1.1.1"])
+    assert manifest_versions(cpp) == ["unstable", "3.4.2"]
+    assert manifest_versions(py) == ["unstable", "1.1.1"]
     assert not set(manifest_versions(cpp)) & {"1.1.1"}
 
 
@@ -163,9 +163,9 @@ def test_the_two_manifests_must_agree(tmp_path):
     comp = tmp_path / "cpp"
     comp.mkdir()
     (comp / "nv-versions.json").write_text(
-        json.dumps([{"version": v, "url": f"https://x/{v}/"} for v in ("latest", "3.4.2")])
+        json.dumps([{"version": v, "url": f"https://x/{v}/"} for v in ("unstable", "3.4.2")])
     )
-    (comp / "versions.json").write_text(json.dumps({"latest": "latest"}))
+    (comp / "versions.json").write_text(json.dumps({"unstable": "unstable"}))
     with pytest.raises(SystemExit, match="disagree"):
         check_manifests.check(comp, "3.4.2")
 
@@ -174,9 +174,9 @@ def test_unlisted_version_is_refused(tmp_path):
     comp = tmp_path / "cpp"
     comp.mkdir()
     (comp / "nv-versions.json").write_text(
-        json.dumps([{"version": "latest", "url": "https://x/latest/"}])
+        json.dumps([{"version": "unstable", "url": "https://x/unstable/"}])
     )
-    (comp / "versions.json").write_text(json.dumps({"latest": "latest"}))
+    (comp / "versions.json").write_text(json.dumps({"unstable": "unstable"}))
     with pytest.raises(SystemExit, match="does not list"):
         check_manifests.check(comp, "3.4.2")
 
@@ -190,20 +190,20 @@ def test_retarget_moves_every_absolute_url(tmp_path):
     comp.mkdir()
     (comp / "nv-versions.json").write_text(json.dumps(
         [{"version": v, "url": f"https://nvidia.github.io/cccl/cpp/{v}/"}
-         for v in ("latest", "3.4.2")]))
-    (comp / "versions.json").write_text(json.dumps({"latest": "latest", "3.4.2": "3.4.2"}))
+         for v in ("unstable", "3.4.2")]))
+    (comp / "versions.json").write_text(json.dumps({"unstable": "unstable", "3.4.2": "3.4.2"}))
     (comp / "index.html").write_text(
-        '<link rel="canonical" href="https://nvidia.github.io/cccl/cpp/latest/">')
+        '<link rel="canonical" href="https://nvidia.github.io/cccl/cpp/unstable/">')
 
     check_manifests.retarget(comp, "cpp", "https://fork.example/cccl")
 
     urls = [e["url"] for e in json.loads((comp / "nv-versions.json").read_text())]
-    assert urls == ["https://fork.example/cccl/cpp/latest/",
+    assert urls == ["https://fork.example/cccl/cpp/unstable/",
                     "https://fork.example/cccl/cpp/3.4.2/"]
-    assert "fork.example/cccl/cpp/latest/" in (comp / "index.html").read_text()
+    assert "fork.example/cccl/cpp/unstable/" in (comp / "index.html").read_text()
     assert "nvidia.github.io" not in (comp / "index.html").read_text()
     # Still a valid manifest pair afterwards.
-    assert check_manifests.check(comp, "3.4.2") == ["latest", "3.4.2"]
+    assert check_manifests.check(comp, "3.4.2") == ["unstable", "3.4.2"]
 
 
 def test_checked_in_sources_still_name_production():
@@ -218,7 +218,7 @@ def test_checked_in_sources_still_name_production():
 
 @pytest.mark.parametrize("component,version", [("cpp", "3.4.2"), ("python", "1.1.1")])
 def test_shipped_manifests_pass_their_own_check(component, version):
-    for label in ("latest", version):
+    for label in ("unstable", version):
         assert check_manifests.check(DOCS / f"{component}_site", label)
 
 
@@ -226,10 +226,10 @@ def test_checked_in_manifests_match_the_launch_set():
     """The real manifests, as shipped."""
     cpp = json.loads((DOCS / "cpp_site" / "nv-versions.json").read_text())
     py = json.loads((DOCS / "python_site" / "nv-versions.json").read_text())
-    assert [e["version"] for e in cpp] == ["latest", "3.4.2"]
-    assert [e["version"] for e in py] == ["latest", "1.1.1"]
-    # latest first, then descending semantic versions
-    assert cpp[0]["version"] == "latest" and py[0]["version"] == "latest"
+    assert [e["version"] for e in cpp] == ["unstable", "3.4.2"]
+    assert [e["version"] for e in py] == ["unstable", "1.1.1"]
+    # unstable first, then descending semantic versions
+    assert cpp[0]["version"] == "unstable" and py[0]["version"] == "unstable"
     for entries, component in ((cpp, "cpp"), (py, "python")):
         for entry in entries:
             assert entry["url"].startswith(f"https://nvidia.github.io/cccl/{component}/")
@@ -240,13 +240,13 @@ def test_checked_in_manifests_match_the_launch_set():
 # --------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("label", ["latest", "3.4.2", "1.1.1", "3.10.0"])
+@pytest.mark.parametrize("label", ["unstable", "3.4.2", "1.1.1", "3.10.0"])
 def test_build_scripts_accept_valid_labels(label):
     for script in ("gen_docs.bash", "gen_python_docs.bash"):
         assert _label_accepted(DOCS / script, label), f"{script} rejected {label}"
 
 
-@pytest.mark.parametrize("label", ["unstable", "3.4", "latest; rm -rf /", "v3.4.2", ""])
+@pytest.mark.parametrize("label", ["latest", "3.4", "unstable; rm -rf /", "v3.4.2", ""])
 def test_build_scripts_reject_bad_labels(label):
     """No rolling MAJOR.MINOR directory, and no shell injection."""
     if label == "":
@@ -263,7 +263,7 @@ def _label_accepted(script, label):
             "-c",
             (
                 'VERSION="$1"; '
-                'if [[ ! "${VERSION}" =~ ^(latest|[0-9]+\\.[0-9]+\\.[0-9]+)$ ]]; '
+                'if [[ ! "${VERSION}" =~ ^(unstable|[0-9]+\\.[0-9]+\\.[0-9]+)$ ]]; '
                 "then exit 1; fi"
             ),
             "_",
@@ -410,11 +410,18 @@ def test_release_and_development_share_one_workflow():
     assert uses == {"./.github/workflows/build-docs.yml"}
 
 
-def test_no_legacy_unstable_paths_remain():
-    """The old combined scheme is retired; nothing should still point at it."""
+def test_no_legacy_combined_paths_remain():
+    """The old combined scheme is retired; nothing should still point at it.
+
+    This can no longer match on the bare word. The development directory is
+    itself called `unstable` now, so `/cccl/python/unstable/` is current while
+    `/cccl/unstable/python/` is the retired one. Position is what distinguishes
+    them: the old scheme put the label directly under /cccl/."""
     text = (DOCS / "index.html").read_text(encoding="utf-8")
-    assert "/cccl/unstable" not in text
-    assert "python/unstable" not in text
+    assert "/cccl/unstable/" not in text, "links at the retired combined tree"
+    assert "unstable/python" not in text, "links at Python nested inside C++"
+    assert 'href="cpp/unstable/"' in text
+    assert 'href="python/unstable/"' in text
 
 
 def test_no_custom_404_is_shipped():

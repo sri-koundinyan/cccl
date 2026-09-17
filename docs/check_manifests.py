@@ -92,7 +92,7 @@ def retarget(component_root, component, site_root):
         landing.write_text(
             re.sub(
                 r'(<link rel="canonical" href=")[^"]*(">)',
-                rf"\g<1>{base}/latest/\g<2>",
+                rf"\g<1>{base}/unstable/\g<2>",
                 landing.read_text(encoding="utf-8"),
             ),
             encoding="utf-8",

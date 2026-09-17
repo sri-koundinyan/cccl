@@ -25,13 +25,13 @@ while [[ $# -gt 0 ]]; do
         clean)               CLEAN=true ;;
         --all)               CLEAN_ALL=true ;;
         # The directory this build is served from, which is also the switcher
-        # entry representing it: "latest" for a development build, or the exact
+        # entry representing it: "unstable" for a development build, or the exact
         # MAJOR.MINOR.PATCH for a release. Supplied explicitly so the stamp
         # never depends on an inherited environment value.
         --label)             LABEL="${2:-}"; shift ;;
         --label=*)           LABEL="${1#*=}" ;;
         # cuda-python's mode name, kept so the two read alike.
-        latest-only)         LABEL="latest" ;;
+        unstable-only)       LABEL="unstable" ;;
         *)                   echo "Unknown argument: $1"; exit 1 ;;
     esac
     shift
@@ -272,19 +272,19 @@ fi
 # The destination directory decides the rendered version stamp, and the two must
 # agree or the switcher can never highlight the current page -- a failure that
 # renders perfectly and is invisible to a page-level smoke test.
-VERSION="${LABEL:-${CCCL_DOCS_LABEL:-latest}}"
+VERSION="${LABEL:-${CCCL_DOCS_LABEL:-unstable}}"
 
-if [[ ! "${VERSION}" =~ ^(latest|[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
-    echo "Error: --label must be 'latest' or an exact MAJOR.MINOR.PATCH release," >&2
+if [[ ! "${VERSION}" =~ ^(unstable|[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+    echo "Error: --label must be 'unstable' or an exact MAJOR.MINOR.PATCH release," >&2
     echo "       got '${VERSION}'." >&2
-    echo "       'latest' is the development branch; a release uses its full" >&2
+    echo "       'unstable' is the development branch; a release uses its full" >&2
     echo "       version, e.g. 3.4.2. There is no rolling MAJOR.MINOR directory." >&2
     exit 1
 fi
 
 # conf.py reads the label for the canonical URL and the switcher entry, and
 # SPHINX_CCCL_VER for the displayed release. For a stable build these are the
-# same; for a development build the source version differs from "latest".
+# same; for a development build the source version differs from "unstable".
 export CCCL_DOCS_LABEL="${VERSION}"
 export SPHINX_CCCL_VER="${SPHINX_CCCL_VER:-${VERSION}}"
 
@@ -337,7 +337,7 @@ cp "${SCRIPT_PATH}/cpp_site/index.html" "${HTML_DIR}/index.html"
 
 # The convenience inventory at the component root, for intersphinx consumers
 # who want a stable URL. It tracks the development documentation.
-if [[ "${VERSION}" == "latest" && -f "${VERSIONED_HTML_DIR}/objects.inv" ]]; then
+if [[ "${VERSION}" == "unstable" && -f "${VERSIONED_HTML_DIR}/objects.inv" ]]; then
     cp "${VERSIONED_HTML_DIR}/objects.inv" "${HTML_DIR}/objects.inv"
 fi
 

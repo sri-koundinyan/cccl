@@ -25,8 +25,6 @@ GRAMMAR = {
     "python": re.compile(r"^python-([0-9]+\.[0-9]+\.[0-9]+)\Z"),
 }
 
-# What a development build publishes under, for both components.
-DEVELOPMENT = "latest"
 
 
 def resolve(tag):

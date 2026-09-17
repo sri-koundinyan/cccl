@@ -3,7 +3,7 @@
 # Modelled on cuda-python's build-docs.yml. One reusable workflow serves both
 # publication paths, so development and release publishing cannot drift apart:
 #
-#   main CI      component=all,    is-release=false  ->  both latest/ trees
+#   main CI      component=all,    is-release=false  ->  both unstable/ trees
 #   release      component=cpp,    is-release=true   ->  cpp/<version>/
 #                component=python, is-release=true   ->  python/<version>/
 #
@@ -27,7 +27,7 @@ on:
         type: string
         default: ""
       is-release:
-        description: "Publish under the exact version rather than latest/"
+        description: "Publish under the exact version rather than unstable/"
         required: false
         type: boolean
         default: false
@@ -80,7 +80,7 @@ jobs:
           COMPONENT: ${{ inputs.component }}
         run: |
           if [[ "${IS_RELEASE}" != "true" ]]; then
-            echo "label=latest" >> "${GITHUB_OUTPUT}"
+            echo "label=unstable" >> "${GITHUB_OUTPUT}"
             echo "components=${COMPONENT}" >> "${GITHUB_OUTPUT}"
             exit 0
           fi

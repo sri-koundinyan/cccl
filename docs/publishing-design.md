@@ -46,10 +46,7 @@ The old site did not reflect this. It published a single combined tree:
 /cccl/unstable/python/          ← Python docs nested inside the C++ tree
 ```
 
-Three things are wrong here, in increasing order of seriousness.
-
-**`unstable` is an unhelpful name.** It reads as a warning about quality. What
-it actually meant was "built from `main`."
+Two things are wrong here, in increasing order of seriousness.
 
 **Nesting Python inside C++ makes the Python docs a subdirectory of a C++
 artifact.** Publishing C++ documentation therefore republishes the Python
@@ -77,13 +74,13 @@ the details have somewhere to attach.
    SOURCE                    BUILD                      PUBLISHED SITE
    ──────                    ─────                      ──────────────
 
-   push to main   ─────►  build both  ──────────►  cpp/latest/      replaced
-                          products                 python/latest/   replaced
+   push to main   ─────►  build both  ──────────►  cpp/unstable/      replaced
+                          products                 python/unstable/   replaced
                                                    everything else  untouched
 
    tag v3.5.0     ─────►  build C++   ──────────►  cpp/3.5.0/       added
    (dispatched              only                   python/**        untouched
-    by hand)                                       cpp/latest/      untouched
+    by hand)                                       cpp/unstable/      untouched
                                                    cpp/3.4.2/       untouched
 ```
 
@@ -109,8 +106,8 @@ re-explained at the point it matters.
 
 **GitHub Pages** is GitHub's static web host. It is configured to serve a
 particular *branch* and *directory* of the repository. For CCCL that is the
-branch `gh-pages`, directory `docs/`. So the file at `gh-pages:docs/cpp/latest/index.html`
-is served at `https://nvidia.github.io/cccl/cpp/latest/`.
+branch `gh-pages`, directory `docs/`. So the file at `gh-pages:docs/cpp/unstable/index.html`
+is served at `https://nvidia.github.io/cccl/cpp/unstable/`.
 
 Note the consequence: **`gh-pages` is not source code.** It is a branch whose
 contents *are* the website. Publishing means committing files to it.
@@ -166,11 +163,11 @@ this.
 
 ```
 https://nvidia.github.io/cccl/                  the chooser
-                              cpp/              → redirects to cpp/latest/
-                              cpp/latest/       C++, built from main
+                              cpp/              → redirects to cpp/unstable/
+                              cpp/unstable/       C++, built from main
                               cpp/3.4.2/        C++ release 3.4.2
-                              python/           → redirects to python/latest/
-                              python/latest/    Python, built from main
+                              python/           → redirects to python/unstable/
+                              python/unstable/    Python, built from main
                               python/1.1.1/     Python release 1.1.1
 ```
 
@@ -178,20 +175,21 @@ https://nvidia.github.io/cccl/                  the chooser
 neither. C++ and Python are peers, and the site should not assume which one a
 visitor wants.
 
-### `latest` means "built from `main`"
+### `unstable` means "built from `main`"
 
 This is the single most important definition in the document, because the word
 naturally reads the other way.
 
-> **`latest` is the development branch, not the newest release.**
+> **`unstable` is the development branch, not the newest release.**
 
-It is the successor to `unstable` — the same content, a less alarming name. It
-moves every time `main` moves. It is *ahead* of every released version, and it
+The name is kept from the old site deliberately: it is the one piece of
+vocabulary readers already know, and it says plainly that this is not a release.
+It moves every time `main` moves. It is *ahead* of every released version, and it
 documents code that is not in any release.
 
 This is cuda-python's meaning of the word, and
-[its own `latest`](https://nvidia.github.io/cuda-python/latest/) behaves the same
-way. To reduce the chance of a reader misreading it, every page under `latest/`
+[its own `unstable`](https://nvidia.github.io/cuda-python/latest/) behaves the same
+way. To reduce the chance of a reader misreading it, every page under `unstable/`
 carries a banner saying it documents the development branch.
 
 A reader who wants "the docs for the version I installed" wants `cpp/3.4.2/`,
@@ -237,7 +235,7 @@ reusable workflow so they cannot drift apart:
 
 | | trigger | builds | publishes to |
 |---|---|---|---|
-| **Development** | push to `main` | both products | `cpp/latest/`, `python/latest/` |
+| **Development** | push to `main` | both products | `cpp/unstable/`, `python/unstable/` |
 | **Release** | manual dispatch with a tag | the tagged product only | that product's exact version |
 
 Development publication is automatic — merge to `main` and the site updates.
@@ -252,8 +250,8 @@ docs/_build/artifacts/docs/
 ├── index.html            ← the chooser        ┐
 ├── .nojekyll                                  │ only the combined build
 ├── cpp/                                       │ emits these
-│   ├── index.html        ← redirect to latest/
-│   ├── latest/           ← the documentation
+│   ├── index.html        ← redirect to unstable/
+│   ├── unstable/           ← the documentation
 │   ├── nv-versions.json  ← the manifest
 │   ├── versions.json
 │   └── objects.inv
@@ -284,7 +282,7 @@ system to arbitrate it:
 - a Python release carries only `python/1.2.0/` and the Python manifests, so
   every C++ path and every earlier Python version is *physically not mentioned*
   and therefore cannot be disturbed;
-- a development build carries both `latest/` trees, so releases are untouched;
+- a development build carries both `unstable/` trees, so releases are untouched;
 - exact versions accumulate because nothing ever removes them.
 
 The corollary is worth stating plainly, because it is the cost of the model:
@@ -320,20 +318,20 @@ v3.4           rejected — no rolling MAJOR.MINOR directory exists
 Someone fixes a docstring in `cub/` and merges to `main`.
 
 1. The push triggers **Deploy CCCL Documentation**.
-2. The workflow resolves the label: this is not a release, so it is `latest`,
+2. The workflow resolves the label: this is not a release, so it is `unstable`,
    for `component: all`.
 3. It resolves the site URL from the repository: `https://nvidia.github.io/cccl`.
 4. `gen_all_docs.bash` builds **both** products from that one commit — C++ into
-   `artifacts/docs/cpp/latest/`, Python into `artifacts/docs/python/latest/` —
+   `artifacts/docs/cpp/unstable/`, Python into `artifacts/docs/python/unstable/` —
    then adds the chooser and `.nojekyll`.
 5. Checks run: does each product's `index.html` and `objects.inv` exist, do the
    manifests parse and agree, does the C++ tree wrongly contain a `python/`
    subtree, does the full artifact carry `.nojekyll`.
 6. The artifact is copied onto `gh-pages:docs/` with `clean: false`.
 
-**Result:** both `latest/` trees are replaced. `cpp/3.4.2/` and `python/1.1.1/`
+**Result:** both `unstable/` trees are replaced. `cpp/3.4.2/` and `python/1.1.1/`
 are not in the artifact, so they are not touched. The Python docs were rebuilt
-even though only C++ changed — both `latest` trees always come from the same
+even though only C++ changed — both `unstable` trees always come from the same
 commit, which is what keeps them consistent with each other.
 
 ### Worked example: releasing C++ 3.5.0
@@ -354,7 +352,7 @@ commit, which is what keeps them consistent with each other.
 7. The artifact — containing only `cpp/3.5.0/` and the two C++ manifests — is
    deployed with `clean: false`.
 
-**Result:** `/cccl/cpp/3.5.0/` appears. `cpp/3.4.2/` is untouched. `cpp/latest/`
+**Result:** `/cccl/cpp/3.5.0/` appears. `cpp/3.4.2/` is untouched. `cpp/unstable/`
 is untouched. Every path under `python/` is untouched. The chooser is untouched,
 because a release artifact does not contain one.
 
@@ -408,7 +406,7 @@ dropdown. The C++ copy, at `/cccl/cpp/nv-versions.json`:
 
 ```json
 [
-  { "version": "latest", "url": "https://nvidia.github.io/cccl/cpp/latest/" },
+  { "version": "unstable", "url": "https://nvidia.github.io/cccl/cpp/unstable/" },
   { "version": "3.4.2",  "url": "https://nvidia.github.io/cccl/cpp/3.4.2/" }
 ]
 ```
@@ -418,7 +416,7 @@ different versions:
 
 ```json
 [
-  { "version": "latest", "url": "https://nvidia.github.io/cccl/python/latest/" },
+  { "version": "unstable", "url": "https://nvidia.github.io/cccl/python/unstable/" },
   { "version": "1.1.1",  "url": "https://nvidia.github.io/cccl/python/1.1.1/" }
 ]
 ```
@@ -427,7 +425,7 @@ different versions:
 Again one per product — C++ on the left, Python on the right:
 
 ```json
-{ "latest": "latest", "3.4.2": "3.4.2" }      { "latest": "latest", "1.1.1": "1.1.1" }
+{ "unstable": "unstable", "3.4.2": "3.4.2" }      { "unstable": "unstable", "1.1.1": "1.1.1" }
 ```
 
 Nothing reads `versions.json` today. It is carried to stay aligned with the
@@ -468,8 +466,8 @@ e.match = e.version == DOCUMENTATION_OPTIONS.theme_switcher_version_match
 ```
 
 So the page's stamp must **exactly equal** the `version` field of its own entry.
-CCCL stamps each page with the directory it is served from — `latest/` is
-stamped `latest`, `3.4.2/` is stamped `3.4.2`.
+CCCL stamps each page with the directory it is served from — `unstable/` is
+stamped `unstable`, `3.4.2/` is stamped `3.4.2`.
 
 **2. `json_url` — where the browser fetches the manifest.** This is an absolute
 URL baked into every page. It must name the host actually serving the page.
@@ -635,8 +633,8 @@ robustness addition. None changes the architecture:
 | 2 | Check the two manifests agree | they have silently drifted in the reference |
 | 3 | Derive the site URL from the repository | otherwise a fork's switcher is empty |
 | 4 | Refuse to publish a version the manifest omits | otherwise it publishes unreachable |
-| 5 | Two build modes, not build-then-delete | a release never creates a `latest/` it must remember to remove |
-| 6 | Root `objects.inv` only from a `latest` build | otherwise a release downgrades it |
+| 5 | Two build modes, not build-then-delete | a release never creates a `unstable/` it must remember to remove |
+| 6 | Root `objects.inv` only from a `unstable` build | otherwise a release downgrades it |
 | 7 | Reject pre-release tags explicitly | not left to convention |
 | 8 | Emit `.nojekyll` from the build | otherwise nothing can restore it |
 
@@ -644,17 +642,17 @@ robustness addition. None changes the architecture:
 
 **1. Pages are stamped with the directory they are served from.**
 
-cuda-python stamps `latest/` with the *source* version. Its live
-`cuda-core/latest/` carries:
+cuda-python stamps `unstable/` with the *source* version. Its live
+`cuda-core/unstable/` carries:
 
 ```
 theme_switcher_version_match = '1.2.1.dev72'
 ```
 
-while its manifest lists `latest`. Those never match, so the dropdown on that
+while its manifest lists `unstable`. Those never match, so the dropdown on that
 page can never highlight the page you are on. CCCL passes the *publication
-label* to Sphinx separately from the source version, so `latest/` is stamped
-`latest` and matches.
+label* to Sphinx separately from the source version, so `unstable/` is stamped
+`unstable` and matches.
 
 **2. The manifests are checked for agreement before publication.**
 
@@ -674,12 +672,12 @@ silent.
 
 **5. Two explicit build modes instead of build-then-delete.**
 
-cuda-python's component build always produces a `latest/` copy, and its release
+cuda-python's component build always produces a `unstable/` copy, and its release
 workflow deletes that copy afterwards. CCCL expresses the same contract as two
-modes — `latest-only` and `--label <version>` — so a release job never creates a
-`latest/` it must remember to remove. The observable output is identical.
+modes — `unstable-only` and `--label <version>` — so a release job never creates a
+`unstable/` it must remember to remove. The observable output is identical.
 
-**6. The component-root `objects.inv` is written only by a `latest` build.**
+**6. The component-root `objects.inv` is written only by a `unstable` build.**
 
 cuda-python's script copies it unconditionally, so a release overwrites the
 root inventory with an older release's — contradicting the stated intent of that
@@ -752,7 +750,7 @@ The architecture, and its consequences, are inherited as-is:
 - `clean: false` additive deployment, with the same deploy action at the same
   pinned SHA;
 - checked-in per-product manifests owned by the release;
-- `latest` meaning the development branch;
+- `unstable` meaning the development branch;
 - exact `MAJOR.MINOR.PATCH` directories with no rolling alias;
 - no automatic retirement of old versions;
 - repair by re-running the workflow, not by a rollback system.
@@ -769,7 +767,7 @@ one.
 
 ### Merging to `main`
 
-Nothing to do. Both `latest/` trees rebuild from that commit. Releases are
+Nothing to do. Both `unstable/` trees rebuild from that commit. Releases are
 untouched.
 
 ### Publishing a release
@@ -891,7 +889,7 @@ and manifest agreement, product isolation, and the shape of the workflow.
 
 | file | role |
 |---|---|
-| `docs/gen_docs.bash` | builds C++, into `latest/` or an exact version |
+| `docs/gen_docs.bash` | builds C++, into `unstable/` or an exact version |
 | `docs/gen_python_docs.bash` | builds Python, same two modes |
 | `docs/gen_all_docs.bash` | both products plus the chooser — the development build |
 

@@ -27,7 +27,7 @@ while [[ $# -gt 0 ]]; do
         clean)               CLEAN=true ;;
         --label)             LABEL="${2:-}"; shift ;;
         --label=*)           LABEL="${1#*=}" ;;
-        latest-only)         LABEL="latest" ;;
+        unstable-only)       LABEL="unstable" ;;
         *)                   echo "Unknown argument: $1"; exit 1 ;;
     esac
     shift
@@ -40,10 +40,10 @@ BUILDDIR="_build"
 HTML_DIR="${BUILDDIR}/artifacts/docs/python"
 
 # Same rule as the C++ build: the directory name is the rendered stamp.
-VERSION="${LABEL:-${CCCL_DOCS_LABEL:-latest}}"
+VERSION="${LABEL:-${CCCL_DOCS_LABEL:-unstable}}"
 
-if [[ ! "${VERSION}" =~ ^(latest|[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
-    echo "Error: --label must be 'latest' or an exact MAJOR.MINOR.PATCH release," >&2
+if [[ ! "${VERSION}" =~ ^(unstable|[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+    echo "Error: --label must be 'unstable' or an exact MAJOR.MINOR.PATCH release," >&2
     echo "       got '${VERSION}'." >&2
     exit 1
 fi
@@ -122,7 +122,7 @@ cp "${SCRIPT_PATH}/python_site/versions.json" "${HTML_DIR}/versions.json"
 cp "${SCRIPT_PATH}/python_site/index.html" "${HTML_DIR}/index.html"
 
 # Convenience inventory at the component root, tracking development docs.
-if [[ "${VERSION}" == "latest" && -f "${VERSIONED_HTML_DIR}/objects.inv" ]]; then
+if [[ "${VERSION}" == "unstable" && -f "${VERSIONED_HTML_DIR}/objects.inv" ]]; then
     cp "${VERSIONED_HTML_DIR}/objects.inv" "${HTML_DIR}/objects.inv"
 fi
 

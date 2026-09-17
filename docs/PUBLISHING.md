@@ -4,14 +4,14 @@ CCCL publishes two independently released documentation products:
 
 ```
 https://nvidia.github.io/cccl/                 chooser
-https://nvidia.github.io/cccl/cpp/latest/      C++ development docs
+https://nvidia.github.io/cccl/cpp/unstable/      C++ development docs
 https://nvidia.github.io/cccl/cpp/3.4.2/       a C++ release
-https://nvidia.github.io/cccl/python/latest/   Python development docs
+https://nvidia.github.io/cccl/python/unstable/   Python development docs
 https://nvidia.github.io/cccl/python/1.1.1/    a Python release
 ```
 
-`latest` means **built from `main`**, not "the newest release". This follows
-[cuda-python](https://nvidia.github.io/cuda-python/), whose `latest` has the
+`unstable` means **built from `main`**, not "the newest release". This follows
+[cuda-python](https://nvidia.github.io/cuda-python/), whose `unstable` has the
 same meaning. Releases live under their exact version and are reached through
 the version switcher.
 
@@ -24,7 +24,7 @@ matching dates.
 ## Everyday: merging to `main`
 
 Nothing to do. A push to `main` builds both components and replaces both
-`latest/` trees from that one commit. Releases are untouched.
+`unstable/` trees from that one commit. Releases are untouched.
 
 ---
 
@@ -39,11 +39,11 @@ cuda-python uses: the version list travels with the release.
 Each component has **two** manifest files, and both need the new version. For
 a C++ release edit `docs/cpp_site/`; for Python, `docs/python_site/`.
 
-`nv-versions.json` is the one the theme reads. Newest first, after `latest`:
+`nv-versions.json` is the one the theme reads. Newest first, after `unstable`:
 
 ```json
 [
-  { "version": "latest", "url": "https://nvidia.github.io/cccl/cpp/latest/" },
+  { "version": "unstable", "url": "https://nvidia.github.io/cccl/cpp/unstable/" },
   { "version": "3.5.0",  "url": "https://nvidia.github.io/cccl/cpp/3.5.0/" },
   { "version": "3.4.2",  "url": "https://nvidia.github.io/cccl/cpp/3.4.2/" }
 ]
@@ -53,7 +53,7 @@ a C++ release edit `docs/cpp_site/`; for Python, `docs/python_site/`.
 
 ```json
 {
-    "latest" : "latest",
+    "unstable" : "unstable",
     "3.5.0"  : "3.5.0",
     "3.4.2"  : "3.4.2"
 }
@@ -167,5 +167,5 @@ the Pages branch, not something a build can do.
 `/cccl/unstable/python/...` are not preserved or redirected. Readers arrive
 through the chooser or the component entry points.
 
-**`latest` carries a banner** saying it is development documentation, so it
+**`unstable` carries a banner** saying it is development documentation, so it
 cannot be mistaken for a release.

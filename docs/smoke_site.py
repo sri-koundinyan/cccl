@@ -77,7 +77,7 @@ def main(argv=None):
     print("routes")
     report.route(f"{base}/")
     for component, version in COMPONENTS:
-        for path in ("", "latest/", f"{version}/", "nv-versions.json", "versions.json"):
+        for path in ("", "unstable/", f"{version}/", "nv-versions.json", "versions.json"):
             report.route(f"{base}/{component}/{path}")
 
     print("\nswitcher agrees with the page it is on")
@@ -90,10 +90,10 @@ def main(argv=None):
         except (ValueError, KeyError, TypeError) as exc:
             report.check(f"/{component}/nv-versions.json parses", False, str(exc))
             continue
-        report.check(f"/{component}/ manifest lists latest and {version}",
-                     set(listed) >= {"latest", version}, f"lists {listed}")
+        report.check(f"/{component}/ manifest lists unstable and {version}",
+                     set(listed) >= {"unstable", version}, f"lists {listed}")
 
-        for label in ("latest", version):
+        for label in ("unstable", version):
             body = report.route(f"{base}/{component}/{label}/")
             if body is None:
                 continue
@@ -131,7 +131,7 @@ def main(argv=None):
 
     print("\nstatic assets (what .nojekyll protects)")
     for component, version in COMPONENTS:
-        for label in ("latest", version):
+        for label in ("unstable", version):
             page = f"{base}/{component}/{label}/"
             body = report.route(page)
             if body is None:

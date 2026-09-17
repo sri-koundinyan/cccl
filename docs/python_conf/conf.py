@@ -103,7 +103,7 @@ _component_root = (
 # Canonical URL of this build. The version is part of it because these pages are
 # served from <component root>/<version>/; without it every version would claim
 # the same canonical address.
-# The directory this build is served from: "latest" for a development build,
+# The directory this build is served from: "unstable" for a development build,
 # or the exact release for a stable one.
 _publication_label = os.environ.get("CCCL_DOCS_LABEL", release)
 
@@ -126,7 +126,7 @@ html_theme_options = {
     "footer_end": ["sphinx-version"],
     "sidebar_includehidden": True,
     "collapse_navigation": False,
-    # A reader landing on latest/ must not mistake development documentation
+    # A reader landing on unstable/ must not mistake development documentation
     # for a release. cuda-python uses the same convention.
     **(
         {
@@ -137,7 +137,7 @@ html_theme_options = {
                 "versions</a>."
             )
         }
-        if _publication_label == "latest"
+        if _publication_label == "unstable"
         else {}
     ),
     "switcher": {
