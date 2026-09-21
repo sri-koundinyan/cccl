@@ -7,6 +7,7 @@ CUDA Experimental
    :hidden:
    :maxdepth: 1
 
+   /howto/atomics
    Overview <self>
    container
    graph
