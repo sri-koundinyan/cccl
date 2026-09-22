@@ -7,7 +7,7 @@
    :hidden:
    :maxdepth: 2
 
-   /howto/atomics
+   /howto/howto2
    Overview <self>
    developer_overview
 
