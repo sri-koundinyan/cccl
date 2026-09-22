@@ -1,1 +1,0 @@
-../../howto/atomics.md
