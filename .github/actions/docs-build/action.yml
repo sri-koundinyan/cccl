@@ -1,34 +1,64 @@
 name: "CCCL Docs Build/Upload"
-description: "Builds the docs and uploads them as workflow artifacts."
+description: "Builds both documentation components and uploads them as workflow artifacts."
+
+# CCCL publishes two independently versioned documentation products: the C++
+# libraries at /cccl/<version>/ and the Python libraries at
+# /cccl/python/<version>/. This action builds both from one source commit.
+#
+# Routine pull-request CI builds exactly these two unstable candidates. It never
+# checks out a release tag or rebuilds a historical reference -- those answer a
+# one-time migration question and are not useful work to repeat on every change.
+#
+# Neither build assembles a website. Switcher manifests, inventory aliases, the
+# landing page and the 404 handler describe the site as a whole and are written
+# by docs/publish_site.py, which can see every published version.
 
 inputs:
   upload_workflow_artifact:
-    description: "Uploads the built docs as a workflow artifact (actions/upload-artifact)."
+    description: "Uploads the built docs as workflow artifacts (actions/upload-artifact)."
     required: false
     default: "true"
-
+  version_dir:
+    description: "Directory these builds are served from: 'unstable' or MAJOR.MINOR."
+    required: false
+    default: "unstable"
 
 runs:
   using: "composite"
   steps:
-    # Build all docs (gen_docs.bash detects and installs missing deps)
-    - name: Build all docs
+    # The C++ component. This no longer includes the Python pages, and
+    # gen_docs.bash fails if the artifact contains a top-level python/ directory
+    # -- the signature of a source that predates the split.
+    - name: Build C++ docs
       shell: bash --noprofile --norc -euo pipefail {0}
-      run: ./docs/gen_docs.bash --allow-dep-install
+      run: ./docs/gen_docs.bash --allow-dep-install --version-dir "${{ inputs.version_dir }}"
 
-    # Copy all docs to the right folder
-    - name: Move docs to right folder
+    # The Python component. It runs second so a failure here is attributable,
+    # but it has no dependency on the C++ build: it loads no C++ inventory, and
+    # a broken or unpublished one cannot affect it.
+    #
+    # This step is why excluding Python from the C++ build did not remove Python
+    # from CI. Without it a broken docstring would merge cleanly and surface
+    # only at deploy time, after the change was already on main.
+    - name: Build Python docs
       shell: bash --noprofile --norc -euo pipefail {0}
-      run: |
-        mkdir -p _site
-        cp -rf ./docs/_build/html/* _site/
-        touch _site/.nojekyll
+      run: ./docs/gen_python_docs.bash --allow-dep-install --version-dir "${{ inputs.version_dir }}"
 
-    # Update docs as workflow artifact:
-    - name: Upload artifact
+    # Each component is uploaded under its own name. A reviewer downloading one
+    # gets that component and nothing else, and a missing artifact is visible
+    # rather than silently absorbed into a combined upload.
+    - name: Upload C++ artifact
       if: ${{ inputs.upload_workflow_artifact == 'true' }}
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
       with:
-        name: docs
-        path: _site/
+        name: docs-cpp
+        path: docs/_build/html/
+        compression-level: 0
+
+    - name: Upload Python artifact
+      if: ${{ inputs.upload_workflow_artifact == 'true' }}
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
+      with:
+        name: docs-python
+        path: docs/_build/python-html/
         compression-level: 0

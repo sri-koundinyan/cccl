@@ -1,0 +1,10 @@
+[
+  {
+    "version": "unstable",
+    "url": "https://nvidia.github.io/cccl/cpp/unstable/"
+  },
+  {
+    "version": "3.4.2",
+    "url": "https://nvidia.github.io/cccl/cpp/3.4.2/"
+  }
+]

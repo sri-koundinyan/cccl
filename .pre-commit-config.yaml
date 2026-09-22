@@ -140,5 +140,22 @@ repos:
         language: python
         types: [text]
 
+      # Each failure these cover is silent: a tag routed to the wrong component,
+      # pages stamped with a label the switcher manifest does not list, or a
+      # deployment that stops being additive and removes the other component.
+      # They use fixtures and run in well under a second.
+      - id: docs-build-contract
+        name: docs publication contract
+        entry: python -m pytest -q docs/test_docs_build.py
+        language: python
+        additional_dependencies: [pytest, pyyaml]
+        files: >-
+          ^(docs/(release_label|test_docs_build)\.py
+          |docs/gen_(docs|python_docs|all_docs)\.bash
+          |docs/(cpp_site|python_site)/nv-versions\.json
+          |\.github/workflows/(build-docs|docs-deploy)\.yml)$
+        pass_filenames: false
+
+
 default_language_version:
   python: python3
