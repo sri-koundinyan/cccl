@@ -11,7 +11,6 @@ CCCL C++ Libraries
    ../cub/index
    ../thrust/index
    ../cudax/index
-   /howto/howto1
    tma
    determinism
    config_macros
