@@ -7,7 +7,7 @@ CUDA Experimental
    :hidden:
    :maxdepth: 1
 
-   /howto/howto2
+   /howto/howto1
    Overview <self>
    container
    graph

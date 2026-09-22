@@ -7,7 +7,7 @@
    :hidden:
    :maxdepth: 2
 
-   /howto/howto2
+   /howto/howto1
    Overview <self>
    developer_overview
 
