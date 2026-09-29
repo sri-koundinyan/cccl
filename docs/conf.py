@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.abspath("_ext"))
 #
 # The Python libraries ship on their own release line (cuda-cccl 1.x) and are
 # published as their own versioned site under /python/, built by
-# docs/gen_python_docs.bash with docs/python_conf/conf.py. Nothing here imports
+# docs/gen_python_docs.bash with docs/python/conf.py. Nothing here imports
 # a Python package, mocks one, or resolves a Python cross-reference: a C++ build
 # must succeed with the Python sources absent from the workspace entirely.
 
@@ -243,7 +243,7 @@ myst_enable_extensions = [
 ]
 
 # No Napoleon, Autodoc, or mock-import configuration. Those settings govern how
-# Python modules are imported and rendered; they moved to docs/python_conf/conf.py
+# Python modules are imported and rendered; they moved to docs/python/conf.py
 # with the component they serve. Leaving them here would let a Python-only
 # dependency break the C++ build.
 

@@ -310,14 +310,13 @@ CCCL runs **two separate Sphinx projects** out of one repository.
 
 ```
 C++      source root  docs/            config  docs/conf.py        (found by default)
-Python   source root  docs/python/     config  docs/python_conf/   (passed with -c)
+Python   source root  docs/python/     config  docs/python/conf.py  (found by default)
 ```
 
 The Python build is invoked like this, from `docs/gen_python_docs.bash`:
 
 ```bash
 python -m sphinx.cmd.build -b html \
-    -c "${SCRIPT_PATH}/python_conf" \
     "${SCRIPT_PATH}/python" \
     "${VERSIONED_HTML_DIR}"
 ```
@@ -921,7 +920,7 @@ passed cleanly against a site whose dropdown was completely dead.
 | `docs/release_label.py` | Tag to (component, version) |
 | `docs/check_manifests.py` | Manifest membership, agreement, and rehearsal retargeting |
 | `docs/conf.py` | C++ Sphinx config |
-| `docs/python_conf/conf.py` | Python Sphinx config |
+| `docs/python/conf.py` | Python Sphinx config |
 | `docs/cpp_site/`, `docs/python_site/` | Checked-in manifests and component landing redirects |
 | `docs/index.html` | The site chooser |
 | `docs/smoke_site.py` | Checks a published site |

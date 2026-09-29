@@ -159,7 +159,7 @@ BEFORE   one Sphinx project, rooted at docs/
          docs/python/ swept in, published at /cccl/unstable/python/
 
 NOW      C++      source root docs/          config docs/conf.py
-         Python   source root docs/python/   config docs/python_conf/  (via -c)
+         Python   source root docs/python/   config docs/python/conf.py
 ```
 
 The enabling line, in `docs/conf.py`:

@@ -95,11 +95,11 @@ if [[ -n "${CCCL_DOCS_SPHINXOPTS:-}" ]]; then
     read -r -a SPHINXOPTS <<< "${CCCL_DOCS_SPHINXOPTS}"
 fi
 
-# -c selects the configuration directory separately from the source directory,
-# so a release's own sources can be built with configuration that postdates it.
+# conf.py sits at the source root, so Sphinx finds it without -c -- the same
+# arrangement as the C++ build. The doctree cache is kept separate from the C++
+# one because the two projects share a _build directory and nothing else.
 python -m sphinx.cmd.build \
     -b html \
-    -c "${SCRIPT_PATH}/python_conf" \
     -d "${BUILDDIR}/python-doctrees" \
     "${SCRIPT_PATH}/python" \
     "${VERSIONED_HTML_DIR}" \

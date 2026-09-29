@@ -10,7 +10,7 @@
 # directory. That is what lets a historical release be built with current
 # configuration even though the release predates it:
 #
-#     sphinx-build -b html -c docs/python_conf docs/python <out>
+#     sphinx-build -b html docs/python <out>
 #
 # Deliberately absent, and required to stay absent:
 #

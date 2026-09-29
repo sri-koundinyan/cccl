@@ -365,7 +365,7 @@ A release build checks out **the tag's own source**, and runs the build scripts
 found there. So the release path works only for tags cut *after* this system
 landed. The two launch tags cannot be rebuilt by it:
 
-- `python-1.1.1` contains no `gen_python_docs.bash` and no `python_conf/` at
+- `python-1.1.1` contains no `gen_python_docs.bash` and no Python `conf.py` at
   all — the Python build did not exist as a separate thing yet;
 - `v3.4.2` has a `gen_docs.bash`, but one that does not understand `--label`.
 
@@ -867,7 +867,7 @@ and manifest agreement, product isolation, and the shape of the workflow.
 | file | role |
 |---|---|
 | `docs/conf.py` | Sphinx configuration for C++; excludes the Python sources |
-| `docs/python_conf/conf.py` | Sphinx configuration for Python |
+| `docs/python/conf.py` | Sphinx configuration for Python |
 
 **Build scripts**
 
