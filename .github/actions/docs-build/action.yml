@@ -2,24 +2,24 @@ name: "CCCL Docs Build/Upload"
 description: "Builds both documentation components and uploads them as workflow artifacts."
 
 # CCCL publishes two independently versioned documentation products: the C++
-# libraries at /cccl/<version>/ and the Python libraries at
+# libraries at /cccl/cpp/<version>/ and the Python libraries at
 # /cccl/python/<version>/. This action builds both from one source commit.
 #
 # Routine pull-request CI builds exactly these two unstable candidates. It never
 # checks out a release tag or rebuilds a historical reference -- those answer a
 # one-time migration question and are not useful work to repeat on every change.
 #
-# Neither build assembles a website. Switcher manifests, inventory aliases, the
-# landing page and the 404 handler describe the site as a whole and are written
-# by docs/publish_site.py, which can see every published version.
+# Neither build assembles a website. The neutral landing page and `.nojekyll`
+# describe the site as a whole rather than either component, and are added by
+# docs/gen_all_docs.bash, which the deploy workflow runs instead of this action.
 
 inputs:
   upload_workflow_artifact:
     description: "Uploads the built docs as workflow artifacts (actions/upload-artifact)."
     required: false
     default: "true"
-  version_dir:
-    description: "Directory these builds are served from: 'unstable' or MAJOR.MINOR."
+  label:
+    description: "Directory these builds are served from: 'unstable' or MAJOR.MINOR.PATCH."
     required: false
     default: "unstable"
 
@@ -31,7 +31,7 @@ runs:
     # -- the signature of a source that predates the split.
     - name: Build C++ docs
       shell: bash --noprofile --norc -euo pipefail {0}
-      run: ./docs/gen_docs.bash --allow-dep-install --version-dir "${{ inputs.version_dir }}"
+      run: ./docs/gen_docs.bash --allow-dep-install --label "${{ inputs.label }}"
 
     # The Python component. It runs second so a failure here is attributable,
     # but it has no dependency on the C++ build: it loads no C++ inventory, and
@@ -42,17 +42,21 @@ runs:
     # only at deploy time, after the change was already on main.
     - name: Build Python docs
       shell: bash --noprofile --norc -euo pipefail {0}
-      run: ./docs/gen_python_docs.bash --allow-dep-install --version-dir "${{ inputs.version_dir }}"
+      run: ./docs/gen_python_docs.bash --allow-dep-install --label "${{ inputs.label }}"
 
     # Each component is uploaded under its own name. A reviewer downloading one
     # gets that component and nothing else, and a missing artifact is visible
     # rather than silently absorbed into a combined upload.
+    #
+    # These paths are the component roots of the artifact tree, which is laid
+    # out exactly as the published site: <root>/cpp/<label>/ is what ends up at
+    # /cccl/cpp/<label>/.
     - name: Upload C++ artifact
       if: ${{ inputs.upload_workflow_artifact == 'true' }}
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
       with:
         name: docs-cpp
-        path: docs/_build/html/
+        path: docs/_build/artifacts/docs/cpp/
         compression-level: 0
 
     - name: Upload Python artifact
@@ -60,5 +64,5 @@ runs:
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
       with:
         name: docs-python
-        path: docs/_build/python-html/
+        path: docs/_build/artifacts/docs/python/
         compression-level: 0
