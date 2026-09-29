@@ -49,22 +49,14 @@ a C++ release edit `docs/cpp_site/`; for Python, `docs/python_site/`.
 ]
 ```
 
-`versions.json` is the cuda-python-style compatibility file. Same versions:
+That is the only file to edit. Forgetting it does not publish a broken site —
+the build stops and says so, because documentation nothing links to is
+documentation no reader can reach.
 
-```json
-{
-    "unstable" : "unstable",
-    "3.5.0"  : "3.5.0",
-    "3.4.2"  : "3.4.2"
-}
-```
-
-Forgetting either does not publish a broken site — the build stops and says so.
-That guard exists because nothing reads `versions.json` today, so a
-disagreement between the two is invisible until something does. cuda-python
-shows exactly that: its `cuda_core` ships a `versions.json` stopping at `0.3.2`
-next to an `nv-versions.json` reaching `1.2.0`, because each file is whatever
-the last build happened to copy.
+cuda-python ships a second file, `versions.json`, carrying the same list in a
+different shape. CCCL does not: nothing reads it, and an unread file drifts.
+Theirs shows it — `cuda_core/versions.json` stops at `0.3.2` beside an
+`nv-versions.json` reaching `1.2.0`, with no visible consequence.
 
 ### 2. Run the documentation workflow with the tag
 

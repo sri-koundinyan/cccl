@@ -156,27 +156,12 @@ def test_manifests_list_only_their_own_component(tmp_path):
     assert not set(manifest_versions(cpp)) & {"1.1.1"}
 
 
-def test_the_two_manifests_must_agree(tmp_path):
-    """Nothing reads versions.json today -- until something does. cuda-python's
-    cuda_core ships a versions.json stopping at 0.3.2 beside an nv-versions.json
-    reaching 1.2.0, because each is whatever the last build copied."""
-    comp = tmp_path / "cpp"
-    comp.mkdir()
-    (comp / "nv-versions.json").write_text(
-        json.dumps([{"version": v, "url": f"https://x/{v}/"} for v in ("unstable", "3.4.2")])
-    )
-    (comp / "versions.json").write_text(json.dumps({"unstable": "unstable"}))
-    with pytest.raises(SystemExit, match="disagree"):
-        check_manifests.check(comp, "3.4.2")
-
-
 def test_unlisted_version_is_refused(tmp_path):
     comp = tmp_path / "cpp"
     comp.mkdir()
     (comp / "nv-versions.json").write_text(
         json.dumps([{"version": "unstable", "url": "https://x/unstable/"}])
     )
-    (comp / "versions.json").write_text(json.dumps({"unstable": "unstable"}))
     with pytest.raises(SystemExit, match="does not list"):
         check_manifests.check(comp, "3.4.2")
 
@@ -191,7 +176,6 @@ def test_retarget_moves_every_absolute_url(tmp_path):
     (comp / "nv-versions.json").write_text(json.dumps(
         [{"version": v, "url": f"https://nvidia.github.io/cccl/cpp/{v}/"}
          for v in ("unstable", "3.4.2")]))
-    (comp / "versions.json").write_text(json.dumps({"unstable": "unstable", "3.4.2": "3.4.2"}))
     (comp / "index.html").write_text(
         '<link rel="canonical" href="https://nvidia.github.io/cccl/cpp/unstable/">')
 
@@ -291,7 +275,7 @@ def test_build_scripts_run_the_manifest_check():
     for script in ("gen_docs.bash", "gen_python_docs.bash"):
         body = (DOCS / script).read_text(encoding="utf-8")
         assert "check_manifests.py" in body, script
-        assert "versions.json" in body, script
+        assert "nv-versions.json" in body, script
 
 
 def test_build_scripts_are_syntactically_valid():

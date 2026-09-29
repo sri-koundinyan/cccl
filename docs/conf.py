@@ -159,7 +159,11 @@ _component_root = (
 # that represents it. "unstable" is the development branch -- not the newest
 # release -- matching cuda-python, whose latest/ is likewise built from main.
 # A stable build uses its exact MAJOR.MINOR.PATCH.
-_publication_label = os.environ.get("CCCL_DOCS_LABEL", release)
+#
+# This is `release` rather than a second variable: the directory name and the
+# version the pages claim are one value, validated by the build script before
+# Sphinx ever sees it.
+_publication_label = release
 
 # Sphinx writes html_baseurl into every page as the canonical link. These pages
 # are served from <component root>/<label>/, so the label has to be part of it

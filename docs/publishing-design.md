@@ -253,7 +253,6 @@ docs/_build/artifacts/docs/
 │   ├── index.html        ← redirect to unstable/
 │   ├── unstable/           ← the documentation
 │   ├── nv-versions.json  ← the manifest
-│   ├── versions.json
 │   └── objects.inv
 └── python/               ← same shape
 ```
@@ -337,7 +336,7 @@ commit, which is what keeps them consistent with each other.
 ### Worked example: releasing C++ 3.5.0
 
 1. **Before tagging**, a pull request adds `3.5.0` to
-   `docs/cpp_site/nv-versions.json` *and* `docs/cpp_site/versions.json`. This is
+   `docs/cpp_site/nv-versions.json`. This is
    ordinary reviewable source, in the release-preparation commit.
 2. The tag `v3.5.0` is created.
 3. A maintainer dispatches the workflow with `git-tag: v3.5.0`.
@@ -421,15 +420,13 @@ different versions:
 ]
 ```
 
-**`versions.json`** is a simpler compatibility file that cuda-python also ships.
-Again one per product — C++ on the left, Python on the right:
-
-```json
-{ "unstable": "unstable", "3.4.2": "3.4.2" }      { "unstable": "unstable", "1.1.1": "1.1.1" }
-```
-
-Nothing reads `versions.json` today. It is carried to stay aligned with the
-reference implementation, and because something may read it later.
+cuda-python ships a second file beside this one, **`versions.json`**, carrying
+the same list in a simpler shape. CCCL does not. Nothing reads it — not the
+theme, not the switcher — and an unread file drifts: at the reference revision,
+cuda-python's `cuda_core` ships a `versions.json` stopping at **0.3.2** beside
+an `nv-versions.json` reaching **1.2.0**, with no visible consequence. Carrying
+it would mean a file to maintain, a copy step in each build, and a guard whose
+only purpose is keeping a dead file in step with a live one.
 
 This separation is what makes the two dropdowns independent. The C++ switcher
 cannot offer `1.1.1` because the file it fetches has never heard of it.
@@ -522,19 +519,6 @@ anywhere offers it. It is unreachable except by typing the URL.
 
 **Guard:** the build refuses to finish if the manifest does not list the version
 being published.
-
-### The two manifests disagree
-
-**Symptom:** nothing, today — because nothing reads `versions.json`. It becomes
-a symptom the moment something does.
-
-This is not hypothetical. At the reference revision, cuda-python's `cuda_core`
-ships a `versions.json` stopping at **0.3.2** beside an `nv-versions.json`
-reaching **1.2.0**, because each file is whatever some build last copied and
-nothing compares them.
-
-**Guard:** [`check_manifests.py`](check_manifests.py) fails the build if the two
-disagree.
 
 ### `.nojekyll` is missing
 

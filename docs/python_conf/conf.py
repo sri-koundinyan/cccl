@@ -38,9 +38,9 @@ project = "CCCL Python Libraries"
 copyright = f"{datetime.now().year}, NVIDIA Corporation"
 author = "NVIDIA Corporation"
 
-# The directory this build will be served from: "unstable" or "X.Y", never a
-# full patch such as 1.1.1. gen_python_docs.bash validates the value and exports
-# it; falling back to "unstable" keeps a bare local build coherent.
+# The directory this build will be served from: "unstable" or an exact
+# MAJOR.MINOR.PATCH. gen_python_docs.bash validates the value and exports it;
+# falling back to "unstable" keeps a bare local build coherent.
 release = os.environ.get("SPHINX_CCCL_VER", "unstable")
 version = release
 
@@ -104,8 +104,9 @@ _component_root = (
 # served from <component root>/<version>/; without it every version would claim
 # the same canonical address.
 # The directory this build is served from: "unstable" for a development build,
-# or the exact release for a stable one.
-_publication_label = os.environ.get("CCCL_DOCS_LABEL", release)
+# or the exact release for a stable one. Same value as `release`, not a second
+# variable -- the build script validates it before Sphinx sees it.
+_publication_label = release
 
 html_baseurl = f"{_component_root}{_publication_label}/"
 

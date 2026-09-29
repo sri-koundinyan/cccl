@@ -40,12 +40,11 @@ different commits. Released versions are not touched.
 
 ## Publishing a tagged release
 
-**1. Before tagging, add the version to that product's two manifest files.**
+**1. Before tagging, add the version to that product's manifest.**
 
-For C++ that is `docs/cpp_site/nv-versions.json` and
-`docs/cpp_site/versions.json`; for Python, the same two under
-`docs/python_site/`. This belongs in the release-preparation commit, reviewed
-like any other change.
+For C++ that is `docs/cpp_site/nv-versions.json`; for Python,
+`docs/python_site/nv-versions.json`. This belongs in the release-preparation
+commit, reviewed like any other change.
 
 **2. Tag the release**, e.g. `v3.5.0` or `python-1.2.0`.
 

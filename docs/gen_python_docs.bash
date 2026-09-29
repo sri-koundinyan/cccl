@@ -3,8 +3,8 @@
 # Build the CCCL Python documentation as a standalone component.
 #
 # Usage:
-#   ./gen_python_docs.bash                        - Build into _build/python-html/unstable
-#   ./gen_python_docs.bash --version-dir 1.1      - Build into _build/python-html/1.1
+#   ./gen_python_docs.bash                        - Build into artifacts/docs/python/unstable
+#   ./gen_python_docs.bash --label 1.1.1          - Build into artifacts/docs/python/1.1.1
 #   ./gen_python_docs.bash --allow-dep-install    - Build, installing missing deps
 #   ./gen_python_docs.bash clean                  - Remove the Python build output
 #
@@ -12,8 +12,8 @@
 # own versioned site under /cccl/python/. This script produces that component's
 # artifact and nothing else -- no Doxygen, no site assembly, no C++ inventory.
 #
-# Output mirrors gen_docs.bash: _build/python-html/<version>/, so the publisher
-# can treat the two components identically.
+# Output mirrors gen_docs.bash: _build/artifacts/docs/python/<label>/, which is
+# the path the deploy action copies straight onto the site.
 
 set -euo pipefail
 
@@ -39,17 +39,18 @@ cd "$SCRIPT_PATH"
 BUILDDIR="_build"
 HTML_DIR="${BUILDDIR}/artifacts/docs/python"
 
-# Same rule as the C++ build: the directory name is the rendered stamp.
-VERSION="${LABEL:-${CCCL_DOCS_LABEL:-unstable}}"
+# Same rule as the C++ build: one value, and the directory name is the rendered
+# stamp. --label takes precedence over the environment form.
+VERSION="${LABEL:-${SPHINX_CCCL_VER:-unstable}}"
 
 if [[ ! "${VERSION}" =~ ^(unstable|[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
-    echo "Error: --label must be 'unstable' or an exact MAJOR.MINOR.PATCH release," >&2
+    echo "Error: the version must be 'unstable' or an exact MAJOR.MINOR.PATCH release," >&2
     echo "       got '${VERSION}'." >&2
+    echo "       Set it with --label, or with SPHINX_CCCL_VER for a local build." >&2
     exit 1
 fi
 
-export CCCL_DOCS_LABEL="${VERSION}"
-export SPHINX_CCCL_VER="${SPHINX_CCCL_VER:-${VERSION}}"
+export SPHINX_CCCL_VER="${VERSION}"
 
 VERSIONED_HTML_DIR="${HTML_DIR}/${VERSION}"
 
@@ -118,7 +119,6 @@ fi
 # as cuda-python's component builds do. The manifest is checked-in release data:
 # this release's copy of the version list ships with this release's docs.
 cp "${SCRIPT_PATH}/python_site/nv-versions.json" "${HTML_DIR}/nv-versions.json"
-cp "${SCRIPT_PATH}/python_site/versions.json" "${HTML_DIR}/versions.json"
 cp "${SCRIPT_PATH}/python_site/index.html" "${HTML_DIR}/index.html"
 
 # Convenience inventory at the component root, tracking development docs.
@@ -135,10 +135,7 @@ if ! grep -q "version_match = '${VERSION}'" "${VERSIONED_HTML_DIR}/index.html"; 
 fi
 
 # And the manifest must list what is being published, or readers cannot reach
-# it, and the two manifests must agree (§4.2). Cheap guard against the drift
-# visible on cuda-python's own site, where cuda-core's versions.json stops at
-# 0.3.2 while its nv-versions.json reaches 1.2.0 -- each is whatever the last
-# build happened to copy to the component root.
+# it: the switcher is the only thing that links versions together.
 CHECK_ARGS=("${HTML_DIR}" "${VERSION}")
 if [[ -n "${CCCL_DOCS_SITE_URL:-}" ]]; then
     CHECK_ARGS+=(--component python --site-url "${CCCL_DOCS_SITE_URL}")

@@ -77,7 +77,7 @@ def main(argv=None):
     print("routes")
     report.route(f"{base}/")
     for component, version in COMPONENTS:
-        for path in ("", "unstable/", f"{version}/", "nv-versions.json", "versions.json"):
+        for path in ("", "unstable/", f"{version}/", "nv-versions.json"):
             report.route(f"{base}/{component}/{path}")
 
     print("\nswitcher agrees with the page it is on")

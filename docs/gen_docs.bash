@@ -269,24 +269,30 @@ else
     echo "Skipping Doxygen (not installed)"
 fi
 
-# The destination directory decides the rendered version stamp, and the two must
-# agree or the switcher can never highlight the current page -- a failure that
-# renders perfectly and is invisible to a page-level smoke test.
-VERSION="${LABEL:-${CCCL_DOCS_LABEL:-unstable}}"
+# One value names the directory this build is served from, the version its pages
+# claim to be, and the release they display. The three cannot disagree because
+# there is only one of them -- and the stamp check below confirms it reached the
+# pages, since bash creates the directory and Sphinx writes the stamp.
+#
+# SPHINX_CCCL_VER is the environment form, kept from the pre-split build so the
+# documented local override still works: SPHINX_CCCL_VER=3.4.2 ./gen_docs.bash
+# builds into 3.4.2/, as docs/cccl/development/build_and_bisect_tools.rst says.
+# --label is the same value as a flag, and takes precedence.
+VERSION="${LABEL:-${SPHINX_CCCL_VER:-unstable}}"
 
 if [[ ! "${VERSION}" =~ ^(unstable|[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
-    echo "Error: --label must be 'unstable' or an exact MAJOR.MINOR.PATCH release," >&2
+    echo "Error: the version must be 'unstable' or an exact MAJOR.MINOR.PATCH release," >&2
     echo "       got '${VERSION}'." >&2
     echo "       'unstable' is the development branch; a release uses its full" >&2
     echo "       version, e.g. 3.4.2. There is no rolling MAJOR.MINOR directory." >&2
+    echo "       Set it with --label, or with SPHINX_CCCL_VER for a local build." >&2
     exit 1
 fi
 
-# conf.py reads the label for the canonical URL and the switcher entry, and
-# SPHINX_CCCL_VER for the displayed release. For a stable build these are the
-# same; for a development build the source version differs from "unstable".
-export CCCL_DOCS_LABEL="${VERSION}"
-export SPHINX_CCCL_VER="${SPHINX_CCCL_VER:-${VERSION}}"
+# conf.py reads this for the displayed release, the canonical URL and the
+# switcher entry. Exported after validation, so Sphinx can only ever see a
+# value that is a legal directory name.
+export SPHINX_CCCL_VER="${VERSION}"
 
 # Artifact layout matches what the deploy action uploads: artifacts/docs/ is
 # copied onto gh-pages:docs/, so every path here is a final site path.
@@ -305,15 +311,15 @@ mkdir -p "${VERSIONED_HTML_DIR}"
 # Use the virtual environment's Python
 python -m sphinx.cmd.build -b html -d "${BUILDDIR}/doctrees" -j auto "." "${VERSIONED_HTML_DIR}" "${SPHINXOPTS[@]}"
 
-# This script produces one component artifact and nothing else. It does not
-# assemble a website: no switcher manifest, no inventory alias, no landing page,
-# no 404 handler, no .nojekyll.
+# This script produces one component artifact and nothing else. It ships the
+# files that belong to this component -- its switcher manifests and its landing
+# redirect, copied from cpp_site/ below -- and none of the files that describe
+# the site as a whole.
 #
-# Those files describe the site as a whole -- which versions exist, which
-# component a reader chose -- and a single build cannot know any of that. They
-# are written by docs/publish_site.py from the complete published tree, which
-# can see every version. A build that guessed at them would overwrite the real
-# answer with a one-version view of the world.
+# The neutral chooser at the site root and .nojekyll are not written here. They
+# say which products exist rather than which versions of one product exist, so
+# no single component build can know them. gen_all_docs.bash adds them after
+# both components have been built.
 
 # A pre-split source builds the Python pages into this tree, which would publish
 # them under a C++ version they never shipped under. The planner rejects such a
@@ -331,8 +337,12 @@ fi
 # alongside the version directory, as cuda-python's component builds do. The
 # manifest is checked-in release data: this release's copy of the version list
 # travels with this release's documentation.
+#
+# cuda-python also ships a second, differently-shaped versions.json beside this
+# one. CCCL does not: nothing reads it, and an unread file drifts. On
+# cuda-python's live site cuda-core's versions.json stops at 0.3.2 while its
+# nv-versions.json reaches 1.2.0, with no visible consequence.
 cp "${SCRIPT_PATH}/cpp_site/nv-versions.json" "${HTML_DIR}/nv-versions.json"
-cp "${SCRIPT_PATH}/cpp_site/versions.json" "${HTML_DIR}/versions.json"
 cp "${SCRIPT_PATH}/cpp_site/index.html" "${HTML_DIR}/index.html"
 
 # The convenience inventory at the component root, for intersphinx consumers
@@ -350,11 +360,9 @@ if ! grep -q "version_match = '${VERSION}'" "${VERSIONED_HTML_DIR}/index.html"; 
     exit 1
 fi
 
-# The manifest must list the version being published, or the reader has no way
-# to reach it, and the two manifests must agree (§4.2). This is the cheap guard
-# against the drift visible on cuda-python's own site, where cuda-core's
-# versions.json stops at 0.3.2 while its nv-versions.json reaches 1.2.0 --
-# each is whatever the last build happened to copy.
+# The manifest must list the version being published, or the documentation
+# deploys and renders and no reader can reach it: the switcher is the only thing
+# that links versions together.
 CHECK_ARGS=("${HTML_DIR}" "${VERSION}")
 if [[ -n "${CCCL_DOCS_SITE_URL:-}" ]]; then
     CHECK_ARGS+=(--component cpp --site-url "${CCCL_DOCS_SITE_URL}")
