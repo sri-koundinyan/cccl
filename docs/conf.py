@@ -124,6 +124,8 @@ exclude_patterns = [
     "PUBLISHING.md",
     "publishing-design.md",
     "publishing-overview.md",
+    "publishing-tutorial.md",
+    "publishing-deck.md",
     "Thumbs.db",
     ".DS_Store",
     "env/**",  # Virtual environment
