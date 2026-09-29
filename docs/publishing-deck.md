@@ -28,9 +28,9 @@ they can be versioned independently.
 
 **Unchanged:** Sphinx · the NVIDIA theme · Doxygen 1.9.6 · Breathe ·
 `auto_api_generator` · `gh-pages` · Pages serving from `/docs` ·
-**469 of 476 source pages, byte for byte**
+**your pages and your navigation**
 
-**Changed:** five things, and 7 pages. The rest of this talk.
+**Changed:** five things. The rest of this talk.
 
 **Script**
 
@@ -48,13 +48,17 @@ about how invasive this is. It isn't. Same Sphinx. Same theme. Same Doxygen,
 same Breathe, same API generator. Still deploying to `gh-pages`, still served
 out of `/docs`.
 
-Of 476 documentation source pages, 469 are byte-identical. Seven changed. Three
-of those are cross-references from the Python docs into the C++ docs, which I'll
-come back to on the next-but-one slide because it's a real cost. Two are a
-prototype I'll show you at the end. One removes the Python entry from the C++
-table of contents, which is the split itself. And one deletes the 404 helper.
+Your content is untouched. Every page is where it was — nothing moved, nothing
+renamed, nothing reorganised, no sections shuffled.
 
-That's the whole content diff.
+The navigation is untouched too, with exactly one exception: the C++ table of
+contents no longer lists the Python docs. That's one line, and it *is* the split
+— it's how Python stops being part of the C++ book. There's no other structural
+edit anywhere.
+
+A handful of pages did change, and they're all consequences rather than
+decisions: a few cross-references from Python into C++ that I'll come back to on
+the next-but-one slide, and a prototype I'll show you at the end.
 
 Five things changed and I'll take them one at a time. But first I want to show
 you *why* those five — because the old setup was much closer to working than it
