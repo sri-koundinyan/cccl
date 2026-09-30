@@ -150,6 +150,14 @@ jobs:
           root="docs/_build/artifacts/docs"
           [[ -d "${root}" ]] || { echo "error: no artifact at ${root}" >&2; exit 1; }
 
+          # A floor on the page count, because the unstable trees are now
+          # deployed with clean: true. Without it a build that succeeded while
+          # producing almost nothing would not leave stale pages behind -- it
+          # would delete the real ones. The numbers are an order of magnitude
+          # below what either component produces (1,694 and 14), low enough
+          # never to fire on a real build and high enough to catch an empty one.
+          declare -A FLOOR=( [cpp]=200 [python]=5 )
+
           for c in ${COMPONENTS//all/cpp python}; do
             dir="${root}/${c}/${LABEL}"
             for required in index.html objects.inv; do
@@ -157,7 +165,15 @@ jobs:
                 echo "error: ${dir}/${required} missing" >&2; exit 1; }
             done
             python3 -c "import json; json.load(open('${root}/${c}/nv-versions.json'))"
-            echo "  ${c}/${LABEL}: ok"
+
+            pages=$(find "${dir}" -name '*.html' | wc -l)
+            if (( pages < FLOOR[$c] )); then
+              echo "error: ${dir} has ${pages} pages, fewer than the ${FLOOR[$c]} expected." >&2
+              echo "       The build succeeded but produced almost nothing. Deploying" >&2
+              echo "       this would delete the published pages it fails to replace." >&2
+              exit 1
+            fi
+            echo "  ${c}/${LABEL}: ok, ${pages} pages"
           done
 
           # A C++ artifact carrying a Python subtree means the source predates
@@ -183,12 +199,42 @@ jobs:
           path: docs/_build/artifacts/docs/
           compression-level: 0
 
-      # clean: false is the essential behaviour: the artifact adds or replaces
-      # only the paths it contains, leaving every other component and every
-      # earlier version untouched.
+      # Deployment happens in two shapes, and which one a path gets depends on
+      # whether that path is ever written twice.
+      #
+      # The unstable trees are rewritten on every merge, so a page renamed or
+      # removed in the source would otherwise linger there forever: additive
+      # deployment adds and replaces, and never removes. They are therefore
+      # replaced wholesale, with clean: true scoped to the one directory.
+      # Verified: clean is confined to target-folder -- a probe deploy into
+      # docs/cpp/unstable/ removed a stale page there and touched nothing else
+      # on the branch, including docs/python/unstable/ one directory away.
+      #
+      # Everything else is additive. A release directory is written once and
+      # never again, so it accumulates nothing, and clean: false is what lets a
+      # Python release leave every C++ path untouched by construction rather
+      # than by policy.
       #
       # single-commit is deliberately not set, so the branch keeps ordinary
       # deployment commits rather than being recreated as an orphan.
+      - name: Replace the C++ unstable tree
+        if: ${{ inputs.deploy-docs && !inputs.is-release && steps.label.outputs.components == 'all' }}
+        uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445  # v4.9.0
+        with:
+          branch: ${{ inputs.docs-branch }}
+          folder: docs/_build/artifacts/docs/cpp/unstable/
+          target-folder: docs/cpp/unstable/
+          clean: true
+
+      - name: Replace the Python unstable tree
+        if: ${{ inputs.deploy-docs && !inputs.is-release && steps.label.outputs.components == 'all' }}
+        uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445  # v4.9.0
+        with:
+          branch: ${{ inputs.docs-branch }}
+          folder: docs/_build/artifacts/docs/python/unstable/
+          target-folder: docs/python/unstable/
+          clean: true
+
       - name: Deploy documentation
         if: ${{ inputs.deploy-docs }}
         uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445  # v4.9.0
