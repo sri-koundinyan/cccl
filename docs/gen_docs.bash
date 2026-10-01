@@ -17,14 +17,24 @@ set -euo pipefail
 ALLOW_DEP_INSTALL=false
 CLEAN=false
 CLEAN_ALL=false
+LABEL=""
 
-for arg in "$@"; do
-    case "$arg" in
+while [[ $# -gt 0 ]]; do
+    case "$1" in
         --allow-dep-install) ALLOW_DEP_INSTALL=true ;;
         clean)               CLEAN=true ;;
         --all)               CLEAN_ALL=true ;;
-        *)                   echo "Unknown argument: $arg"; exit 1 ;;
+        # The directory this build is served from, which is also the switcher
+        # entry representing it: "unstable" for a development build, or the exact
+        # MAJOR.MINOR.PATCH for a release. Supplied explicitly so the stamp
+        # never depends on an inherited environment value.
+        --label)             LABEL="${2:-}"; shift ;;
+        --label=*)           LABEL="${1#*=}" ;;
+        # cuda-python's mode name, kept so the two read alike.
+        unstable-only)       LABEL="unstable" ;;
+        *)                   echo "Unknown argument: $1"; exit 1 ;;
     esac
+    shift
 done
 
 SCRIPT_PATH=$(cd "$(dirname "${0}")"; pwd -P)
@@ -259,12 +269,34 @@ else
     echo "Skipping Doxygen (not installed)"
 fi
 
-VERSION="${SPHINX_CCCL_VER:-unstable}"
-BASE_URL="${CCCL_DOCS_BASE_URL:-https://nvidia.github.io/cccl/}"
-BASE_URL="${BASE_URL%/}/"
-IS_LATEST="${CCCL_DOCS_IS_LATEST:-true}"
+# One value names the directory this build is served from, the version its pages
+# claim to be, and the release they display. The three cannot disagree because
+# there is only one of them -- and the stamp check below confirms it reached the
+# pages, since bash creates the directory and Sphinx writes the stamp.
+#
+# SPHINX_CCCL_VER is the environment form, kept from the pre-split build so the
+# documented local override still works: SPHINX_CCCL_VER=3.4.2 ./gen_docs.bash
+# builds into 3.4.2/, as docs/cccl/development/build_and_bisect_tools.rst says.
+# --label is the same value as a flag, and takes precedence.
+VERSION="${LABEL:-${SPHINX_CCCL_VER:-unstable}}"
 
-HTML_DIR="${BUILDDIR}/html"
+if [[ ! "${VERSION}" =~ ^(unstable|[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+    echo "Error: the version must be 'unstable' or an exact MAJOR.MINOR.PATCH release," >&2
+    echo "       got '${VERSION}'." >&2
+    echo "       'unstable' is the development branch; a release uses its full" >&2
+    echo "       version, e.g. 3.4.2. There is no rolling MAJOR.MINOR directory." >&2
+    echo "       Set it with --label, or with SPHINX_CCCL_VER for a local build." >&2
+    exit 1
+fi
+
+# conf.py reads this for the displayed release, the canonical URL and the
+# switcher entry. Exported after validation, so Sphinx can only ever see a
+# value that is a legal directory name.
+export SPHINX_CCCL_VER="${VERSION}"
+
+# Artifact layout matches what the deploy action uploads: artifacts/docs/ is
+# copied onto gh-pages:docs/, so every path here is a final site path.
+HTML_DIR="${BUILDDIR}/artifacts/docs/cpp"
 VERSIONED_HTML_DIR="${HTML_DIR}/${VERSION}"
 
 # Full builds validate the regenerated API sources from a fresh Sphinx state.
@@ -279,36 +311,63 @@ mkdir -p "${VERSIONED_HTML_DIR}"
 # Use the virtual environment's Python
 python -m sphinx.cmd.build -b html -d "${BUILDDIR}/doctrees" -j auto "." "${VERSIONED_HTML_DIR}" "${SPHINXOPTS[@]}"
 
-# Copy objects.inv to the root to support intersphinx consumers
-if [[ -f "${VERSIONED_HTML_DIR}/objects.inv" ]]; then
+# This script produces one component artifact and nothing else. It ships the
+# files that belong to this component -- its switcher manifests and its landing
+# redirect, copied from cpp_site/ below -- and none of the files that describe
+# the site as a whole.
+#
+# The neutral chooser at the site root and .nojekyll are not written here. They
+# say which products exist rather than which versions of one product exist, so
+# no single component build can know them. gen_all_docs.bash adds them after
+# both components have been built.
+
+# A pre-split source builds the Python pages into this tree, which would publish
+# them under a C++ version they never shipped under. The planner rejects such a
+# source up front; this is the check that the produced artifact actually honours
+# it, and it costs one test.
+if [[ -d "${VERSIONED_HTML_DIR}/python" ]]; then
+    echo "Error: the C++ artifact contains a top-level python/ directory." >&2
+    echo "       This source does not exclude docs/python from the C++ build," >&2
+    echo "       so it predates the C++/Python split. Publishing it would put" >&2
+    echo "       Python pages under ${VERSION}/python/ labelled '${VERSION}'." >&2
+    exit 1
+fi
+
+# Each component build ships its own landing redirect alongside the version
+# directory, as cuda-python's component builds do. The switcher manifest ships
+# beside it, generated below rather than copied from the repository.
+cp "${SCRIPT_PATH}/cpp_site/index.html" "${HTML_DIR}/index.html"
+
+# The convenience inventory at the component root, for intersphinx consumers
+# who want a stable URL. It tracks the development documentation.
+if [[ "${VERSION}" == "unstable" && -f "${VERSIONED_HTML_DIR}/objects.inv" ]]; then
     cp "${VERSIONED_HTML_DIR}/objects.inv" "${HTML_DIR}/objects.inv"
 fi
 
-# Scrape docs to generate page list
-./scrape_docs.bash "${VERSIONED_HTML_DIR}"
+# The published entry must claim the directory it is served from, or the
+# switcher silently never highlights the current page.
+if ! grep -q "version_match = '${VERSION}'" "${VERSIONED_HTML_DIR}/index.html"; then
+    echo "Error: pages are not stamped '${VERSION}'." >&2
+    echo "       The switcher matches this stamp against its manifest entry;" >&2
+    echo "       a mismatch renders correctly and is invisible to a page check." >&2
+    exit 1
+fi
 
-cp "./404.html" "${HTML_DIR}/404.html"
-cp "./index.html" "${HTML_DIR}/index.html"
+# The switcher is the only thing linking versions together, so the manifest has
+# to list this version -- and every version already published, or they vanish
+# from the dropdown while their pages stay live. Both follow from generating it
+# from the documentation branch rather than maintaining it by hand.
+#
+# Generated here, at the end of the build, because the listing is a snapshot:
+# taken minutes before the deploy it cannot miss much, taken at the start of a
+# thirteen-minute build it could.
+MANIFEST_ARGS=(--component cpp --version "${VERSION}" --out "${HTML_DIR}")
+if [[ -n "${CCCL_DOCS_SITE_URL:-}" ]]; then
+    MANIFEST_ARGS+=(--site-url "${CCCL_DOCS_SITE_URL}")
+fi
+if [[ -n "${CCCL_DOCS_BRANCH:-}" ]]; then
+    MANIFEST_ARGS+=(--from-branch "${CCCL_DOCS_BRANCH}" --repo "${SCRIPT_PATH}/..")
+fi
+python3 "${SCRIPT_PATH}/make_manifest.py" "${MANIFEST_ARGS[@]}"
 
-# Provide version metadata for the theme switcher
-cat > "${HTML_DIR}/nv-versions.json" <<EOF
-[
-  {
-    "name": "${VERSION}",
-    "version": "${VERSION}",
-    "url": "${BASE_URL}${VERSION}/",
-    "latest": ${IS_LATEST},
-    "preferred": ${IS_LATEST}
-  }
-]
-EOF
-
-cat > "${HTML_DIR}/versions.json" <<EOF
-{
-  "${VERSION}": "${VERSION}"
-}
-EOF
-
-touch "${HTML_DIR}/.nojekyll"
-
-echo "Documentation build complete! HTML output is in ${BUILDDIR}/html/"
+echo "C++ documentation build complete: ${VERSIONED_HTML_DIR}"

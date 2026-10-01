@@ -6,7 +6,6 @@ CUDA Core Compute Libraries
    :maxdepth: 3
 
    cccl/index
-   python/index
    contributors/index
    maintainers/index
    infrastructure/index
@@ -16,7 +15,6 @@ make CUDA C++ and Python more delightful.
 
 - :ref:`cccl-cpp-libraries`
 
-- :doc:`Python Libraries <python/index>`
 
 - :doc:`Contributor Docs <contributors/index>`
 
