@@ -43,6 +43,8 @@ import registry
 DEFAULT_SITE = HERE / "_site"
 # Where the per-product build scripts leave their output.
 ARTIFACTS = HERE / "_build" / "artifacts" / "docs"
+# The virtual environment the product build scripts create and share.
+VENV = HERE / "env"
 
 
 def run(command, cwd=HERE):
@@ -50,6 +52,29 @@ def run(command, cwd=HERE):
     result = subprocess.run(command, shell=True, cwd=cwd, check=False)
     if result.returncode != 0:
         raise SystemExit(f"error: command failed: {command}")
+
+
+def python_bin():
+    """The interpreter that has Sphinx, which is the one in docs/env."""
+    candidate = VENV / "bin" / "python"
+    return str(candidate) if candidate.exists() else sys.executable
+
+
+def ensure_dependencies():
+    """Create the shared virtual environment if nothing has yet.
+
+    The product build scripts do this themselves, but the root project is built
+    before any of them, and on a fresh runner there is no Sphinx anywhere. This
+    is the same environment those scripts use, so it is created once here or
+    once there, whichever runs first.
+    """
+    if (VENV / "bin" / "python").exists():
+        return
+    print("creating the documentation virtual environment")
+    run(f"{sys.executable} -m venv {VENV}")
+    run(
+        f"{VENV / 'bin' / 'python'} -m pip install --quiet -r {HERE / 'requirements.txt'}"
+    )
 
 
 def seed_from_branch(branch, site_dir, published_prefix="docs"):
@@ -127,7 +152,7 @@ def build_root(site_dir):
     # -d keeps Sphinx's doctree cache out of the output. Without it the cache
     # lands in the published tree and gets deployed with the site.
     run(
-        f"python -m sphinx.cmd.build -b html -q -W --keep-going "
+        f"{python_bin()} -m sphinx.cmd.build -b html -q -W --keep-going "
         f"-d {HERE / '_build' / 'root-doctrees'} "
         f"{root_source} {site_dir}"
     )
@@ -204,6 +229,8 @@ def main(argv=None):
 
     site_dir = pathlib.Path(args.site)
     site_dir.mkdir(parents=True, exist_ok=True)
+
+    ensure_dependencies()
 
     if args.seed_from:
         seed_from_branch(args.seed_from, site_dir)

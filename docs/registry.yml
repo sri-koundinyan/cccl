@@ -32,7 +32,7 @@ products:
     name: C++
     source_root: .
     tag_prefix: v
-    build: ./gen_docs.bash --label {label}
+    build: ./gen_docs.bash --allow-dep-install --label {label}
     summary: >-
       Thrust, CUB, libcu++ and CUDA Experimental -- the CUDA C++ core libraries,
       released and versioned together.
@@ -41,7 +41,7 @@ products:
     name: Python
     source_root: python
     tag_prefix: python-
-    build: ./gen_python_docs.bash --label {label}
+    build: ./gen_python_docs.bash --allow-dep-install --label {label}
     summary: >-
       cuda.compute and cuda.cccl -- the Python interfaces to the same
       algorithms, on their own release line.
