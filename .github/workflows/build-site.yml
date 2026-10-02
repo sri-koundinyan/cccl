@@ -21,9 +21,10 @@ on:
   workflow_dispatch:
     inputs:
       git-tag:
-        description: "Release tag to publish, e.g. v3.5.0 or python-1.2.0"
-        required: true
+        description: "Release tag to publish, e.g. v3.5.0. Leave blank to publish every product at unstable."
+        required: false
         type: string
+        default: ""
       docs-branch:
         description: "Target branch. Use a scratch branch to rehearse."
         required: false

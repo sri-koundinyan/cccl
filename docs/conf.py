@@ -108,11 +108,19 @@ source_suffix = {
 templates_path = ["_templates"]
 
 # Exclude patterns
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import registry  # noqa: E402
+
 exclude_patterns = [
-    # The Python libraries are a separate versioned product under /python/.
-    # Excluding them here is what stops a C++ release publishing Python pages
-    # labelled with a C++ version they never shipped under.
-    "python",
+    # Every other source root that sits inside this one. The C++ sources are at
+    # docs/, so the Python product and the root project are both within this
+    # tree, and without excluding them Sphinx publishes their pages under a C++
+    # version they never shipped under.
+    #
+    # Read from registry.yml rather than listed here, so a product added there
+    # is excluded by having been added. Today this resolves to ["python",
+    # "site"]; adding cuda.coop makes it ["coop", "python", "site"].
+    *registry.exclude_patterns("cpp"),
     "_build",
     "_repo",
     "tools",
@@ -120,6 +128,7 @@ exclude_patterns = [
     # Any loose .md in this directory needs an entry here. MyST would otherwise
     # treat it as a document, and a document in no toctree is a warning -- which
     # these builds treat as an error.
+    "rapids-model-prototype.md",
     "Thumbs.db",
     ".DS_Store",
     "env/**",  # Virtual environment
