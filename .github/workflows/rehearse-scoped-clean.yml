@@ -74,20 +74,29 @@ jobs:
           fi
           echo "branch=${DOCS_BRANCH}" >> "${GITHUB_OUTPUT}"
 
+      # Into a remote-tracking ref with a stable name, not FETCH_HEAD. Two
+      # things downstream read the published branch, and one of them fetches the
+      # name it is given first -- so passing FETCH_HEAD means that fetch
+      # overwrites the ref before it is read, and the manifest silently lists
+      # only the version being published.
       - name: Fetch the published site
         shell: bash --noprofile --norc -euo pipefail {0}
-        run: git fetch --depth=1 origin "${{ steps.plan.outputs.branch }}" || true
+        env:
+          BRANCH: ${{ steps.plan.outputs.branch }}
+        run: |
+          git fetch --depth=1 origin \
+            "+refs/heads/${BRANCH}:refs/remotes/origin/${BRANCH}" || true
 
       - name: Build and assemble
         shell: bash --noprofile --norc -euo pipefail {0}
         env:
           CCCL_DOCS_SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
-          CCCL_DOCS_BRANCH: FETCH_HEAD
+          CCCL_DOCS_BRANCH: origin/${{ steps.plan.outputs.branch }}
         run: |
           python3 docs/build_site.py \
             --label "${{ steps.plan.outputs.label }}" \
             ${{ steps.plan.outputs.products }} \
-            --seed-from FETCH_HEAD
+            --seed-from origin/${{ steps.plan.outputs.branch }}
 
       # The artifact is the complete site, so recreating the branch from it
       # loses nothing. One commit, every version, a small clone.

@@ -30,6 +30,7 @@ The assembled tree is what the deploy publishes:
 """
 
 import argparse
+import json
 import pathlib
 import shutil
 import subprocess
@@ -196,6 +197,47 @@ def place_product(entry, label, site_dir):
     return pages
 
 
+def check_manifests(site_dir):
+    """Every version directory in the assembled site must be in its manifest.
+
+    The site and the switcher are produced by different things -- the version
+    directories by the assembly, the manifest by each product's build reading
+    the published branch -- so they can disagree, and the disagreement is
+    invisible. Every page renders; the dropdown just does not offer a version
+    whose pages are sitting right there.
+
+    That is not hypothetical. The first rehearsal published all four versions
+    with manifests naming one, because the branch reference the manifest read
+    had been overwritten before it got to it.
+    """
+    for entry in registry.products():
+        root = pathlib.Path(site_dir) / entry["key"]
+        manifest = root / "nv-versions.json"
+        if not root.is_dir() or not manifest.exists():
+            continue
+
+        listed = {
+            e["version"] for e in json.loads(manifest.read_text(encoding="utf-8"))
+        }
+        present = {
+            p.name
+            for p in root.iterdir()
+            if p.is_dir() and registry.VERSION.match(p.name)
+        }
+        missing = present - listed
+        if missing:
+            raise SystemExit(
+                f"error: {entry['key']}/nv-versions.json does not list "
+                f"{', '.join(sorted(missing))}.\n"
+                f"       Those versions are published at {root}/ and a reader\n"
+                "       cannot reach them: the switcher is the only thing that\n"
+                "       links versions together."
+            )
+        print(
+            f"  {entry['key']}: manifest lists all {len(present)} published version(s)"
+        )
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument(
@@ -246,6 +288,8 @@ def main(argv=None):
     # GitHub Pages runs Jekyll unless this exists, and Jekyll drops directories
     # beginning with an underscore -- which is every Sphinx asset directory.
     (site_dir / ".nojekyll").touch()
+
+    check_manifests(site_dir)
 
     print()
     print(f"assembled {site_dir}")
