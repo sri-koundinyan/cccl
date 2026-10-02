@@ -12,10 +12,13 @@
 # version in place.
 name: Deploy CCCL Documentation
 
+# The push trigger is deliberately absent. build-site.yml now owns publication
+# on a merge to main; both workflows publish to the same branch, so leaving both
+# on push would race them and whichever finished second would win.
+#
+# The dispatch is kept so this model stays runnable for comparison against the
+# other one -- point it at a scratch branch rather than gh-pages.
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       git-tag:
