@@ -1,0 +1,100 @@
+# Build and publish the documentation site.
+#
+# Prototype, modelled on rapidsai/docs. One root Sphinx project indexes the
+# products; each product is built separately and composed into a complete site;
+# the complete site is published as a single commit.
+#
+#   push to main      every product at unstable/
+#   dispatch a tag    that tag's product, under its exact version
+#
+# The published branch is recreated from the artifact on every deploy, which is
+# what keeps a clone of this repository small -- measured at 10 MB for one
+# snapshot against 90 MB for 56 incremental deploys. That is only safe because
+# the artifact is seeded from what is already published, so "recreate from the
+# artifact" and "keep every version" are no longer in tension.
+name: Build documentation site
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      git-tag:
+        description: "Release tag to publish, e.g. v3.5.0 or python-1.2.0"
+        required: true
+        type: string
+      docs-branch:
+        description: "Target branch. Use a scratch branch to rehearse."
+        required: false
+        type: string
+        default: gh-pages
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ${{ github.repository == 'NVIDIA/cccl' && 'linux-amd64-cpu32' || 'ubuntu-latest' }}
+    permissions:
+      contents: write
+    steps:
+      # fetch-depth: 0 because the assembly reads the published branch, and a
+      # release build checks out the tag it is publishing.
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
+        with:
+          ref: ${{ inputs.git-tag || github.sha }}
+          fetch-depth: 0
+
+      - name: Resolve what to build
+        id: plan
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          GIT_TAG: ${{ inputs.git-tag }}
+          DOCS_BRANCH: ${{ inputs.docs-branch || 'gh-pages' }}
+        run: |
+          python3 -m pip install --quiet pyyaml
+          if [[ -z "${GIT_TAG}" ]]; then
+            # Development: every product in the registry, at unstable.
+            echo "label=unstable" >> "${GITHUB_OUTPUT}"
+            echo "products=" >> "${GITHUB_OUTPUT}"
+          else
+            # Release: the tag names the product and the version. The registry
+            # owns that mapping, so a new product is routable by being added.
+            python3 - "${GIT_TAG}" >> "${GITHUB_OUTPUT}" <<'PY'
+          import sys
+          sys.path.insert(0, "docs")
+          import registry
+          key, version = registry.resolve_tag(sys.argv[1])
+          print(f"label={version}")
+          print(f"products=--product {key}")
+          PY
+          fi
+          echo "branch=${DOCS_BRANCH}" >> "${GITHUB_OUTPUT}"
+
+      - name: Fetch the published site
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: git fetch --depth=1 origin "${{ steps.plan.outputs.branch }}" || true
+
+      - name: Build and assemble
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          CCCL_DOCS_SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+          CCCL_DOCS_BRANCH: FETCH_HEAD
+        run: |
+          python3 docs/build_site.py \
+            --label "${{ steps.plan.outputs.label }}" \
+            ${{ steps.plan.outputs.products }} \
+            --seed-from FETCH_HEAD
+
+      # The artifact is the complete site, so recreating the branch from it
+      # loses nothing. One commit, every version, a small clone.
+      - name: Publish
+        uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453  # v4.1.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: ${{ steps.plan.outputs.branch }}
+          publish_dir: docs/_site
+          destination_dir: docs
+          force_orphan: true

@@ -1,0 +1,47 @@
+# The products this repository publishes documentation for.
+#
+# Modelled on rapidsai/docs `_data/docs.yml`, which names 27 projects in one
+# file. Everything that needs to know the list of products reads it from here:
+# the landing index, each product's cross-reference mapping, the tag grammar
+# that routes a release, and the script that assembles the site. Adding a
+# product -- cuda.coop, or a Rust library later -- is an edit to this file.
+#
+# Fields:
+#   key          the URL namespace, /cccl/<key>/<version>/, and the directory
+#                name in the published site
+#   name         what a reader sees in the landing index and the switcher
+#   source_root  the Sphinx source root, relative to docs/
+#   tag_prefix   the release tag prefix that selects this product; the rest of
+#                the tag is the version
+#   summary      one line for the landing index
+
+site:
+  title: CUDA Core Compute Libraries
+  summary: >-
+    Thrust, CUB, libcu++, CUDA Experimental and the CCCL Python libraries,
+    documented per product and per release.
+  base_url: https://nvidia.github.io/cccl
+
+# The unversioned root project: the landing index, and anything that describes
+# the repository rather than one release of one library.
+root:
+  source_root: site
+
+products:
+  - key: cpp
+    name: C++
+    source_root: .
+    tag_prefix: v
+    build: ./gen_docs.bash --label {label}
+    summary: >-
+      Thrust, CUB, libcu++ and CUDA Experimental -- the CUDA C++ core libraries,
+      released and versioned together.
+
+  - key: python
+    name: Python
+    source_root: python
+    tag_prefix: python-
+    build: ./gen_python_docs.bash --label {label}
+    summary: >-
+      cuda.compute and cuda.cccl -- the Python interfaces to the same
+      algorithms, on their own release line.

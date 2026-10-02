@@ -51,6 +51,7 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
     "sphinx.ext.extlinks",
+    "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
     "myst_parser",
     "sphinx_design",
@@ -99,6 +100,20 @@ _site_root = os.environ.get("CCCL_DOCS_SITE_URL", "https://nvidia.github.io/cccl
 _component_root = (
     os.environ.get("CCCL_DOCS_BASE_URL", f"{_site_root}/python/").rstrip("/") + "/"
 )
+
+# Cross-references into the other products, resolved by symbol rather than by a
+# URL somebody typed. Each product publishes objects.inv -- an index of every
+# target it documents -- and intersphinx reads the others' at build time, so a
+# page here can write :doc:`cpp:cudax/stf` and get a working link. If that page
+# is renamed or removed, this build fails; an absolute URL would have carried
+# on working until a reader clicked it.
+#
+# The mapping comes from the registry, so a new product becomes referenceable by
+# being added there.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import registry  # noqa: E402
+
+intersphinx_mapping = registry.intersphinx_mapping("python", _site_root)
 
 # Canonical URL of this build. The version is part of it because these pages are
 # served from <component root>/<version>/; without it every version would claim
