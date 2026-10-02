@@ -2,6 +2,8 @@
 
 *What was built, why it is shaped this way, and what it proves.*
 
+**Status: live.** Publishing <https://sri-koundinyan.github.io/cccl/> from `main` on the fork as of 2 October 2026.
+
 This describes a prototype on the branch `rapids-model`. It is a second, parallel
 implementation of versioned documentation for CCCL, built from the structure
 RAPIDS uses, so that the two approaches can be compared rather than argued about.
@@ -330,7 +332,8 @@ anything. The site is rebuilt and republished whole.
 
 ## 7. What is proven, and how
 
-Every claim above was measured rather than reasoned about:
+**This is live.** It publishes <https://sri-koundinyan.github.io/cccl/> from
+`main` on the fork, after two CI rehearsals against a scratch branch.
 
 | Claim | Evidence |
 | --- | --- |
@@ -338,9 +341,50 @@ Every claim above was measured rather than reasoned about:
 | The root project builds clean | `sphinx-build -W` exits 0; index generated from the registry |
 | Cross-references resolve | Python built against the live C++ inventory; all four links correct |
 | A moved page fails the build | renamed the target; build exits 1 naming file and line |
-| The assembly produces a complete site | seeded from `gh-pages`; C++ 3.4.2 and `unstable` present alongside freshly built Python |
-| One commit is enough | simulated orphan publish of the assembled site: 14.5 MB, one commit |
+| The assembly produces a complete site | published site carries `cpp/3.4.2` and `python/1.1.1` byte-identical to the pre-publish backup, alongside 1,694 freshly built C++ pages |
+| One commit is enough | a real clone of the published branch: **15.3 MiB, one commit**, against 89.8 MiB for 56 incremental deploys |
+| The switcher offers every version | `['unstable', '3.4.2']` and `['unstable', '1.1.1']` as served |
+| The site works | 11 of 11 routes 200; `smoke_site.py` passes, including the switcher-agreement and `_static` checks |
 | Nothing regressed | the existing 64-test suite still passes; `ruff` clean |
+
+---
+
+## 7a. What the rehearsals caught
+
+Three defects surfaced in CI that local testing could not have found. They are
+worth recording, because each was invisible to a passing local build.
+
+**`docs/site/` was not excluded from the C++ source root.** The root project sits
+inside the C++ sources, so the C++ build would have swept the landing index into
+its own output and published it as a C++ page. Caught by the existing test suite
+once the file existed — and the fix is the registry-derived exclusion list, which
+means the next product excludes itself.
+
+**Sphinx was missing on a clean runner.** The root project is built *before* any
+product, and the product scripts are what create `docs/env`. Locally that
+environment already existed and was active, so the root build always found
+Sphinx. On a fresh runner there was nothing, and the first rehearsal failed in
+ninety seconds. `build_site.py` now creates that environment itself.
+
+**The published site and its switcher disagreed.** The most instructive one. The
+first rehearsal published a structurally perfect site — one commit, all four
+versions, releases byte-identical — with manifests naming a single version each:
+
+```
+cpp:    ['unstable']        should have been ['unstable', '3.4.2']
+python: ['unstable']        should have been ['unstable', '1.1.1']
+```
+
+Two things read the published branch: the assembly, which seeds from it, and each
+product's manifest generator. Both were handed `FETCH_HEAD`. But the generator
+*fetches* the name it is given before reading it, so its own fetch overwrote the
+ref in between. Seeding ran first and worked; the manifests ran after and found
+an empty tree.
+
+Every page returned 200. Every page rendered. The dropdown simply did not offer
+versions whose pages were sitting right there. Nothing short of comparing the
+published directories against the manifest would have found it — so that
+comparison is now a check the assembly runs, and it fails the build.
 
 ---
 
@@ -359,12 +403,14 @@ index and nothing else. Moving the contributor and infrastructure documentation
 into it is the obvious next step and is the thing Jake and Georgii actually asked
 for.
 
-**The existing workflows are untouched.** `build-site.yml` is a separate entry
-point. The two models can run side by side against different branches.
+**The previous model is parked, not deleted.** `docs-deploy.yml` lost its push
+trigger — both workflows publish to the same branch, and leaving both armed would
+race them on every merge. It keeps its dispatch, so the old model stays runnable
+against a scratch branch for comparison.
 
-**The deploy has not been rehearsed.** Everything above was verified locally and
-by measurement; no CI run has published this. That is the first thing to do before
-taking it seriously.
+**The previous published branch is backed up** at `gh-pages-before-rapids`
+(`946b18506a`). This is the first `force_orphan` publish against the real branch;
+`git push --force fork gh-pages-before-rapids:gh-pages` restores it.
 
 **Cross-product links target the development line**, for the reason in §5. If
 version-tracking links are wanted, that needs a policy decision about what a C++
