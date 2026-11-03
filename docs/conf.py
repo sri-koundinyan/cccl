@@ -109,6 +109,12 @@ exclude_patterns = [
     # docs/site/ is the root project, added by the backfill branch.
     "python",
     "site",
+    # These moved to the unversioned root project, which serves them at
+    # /cccl/. Excluded here so a reader on 3.5.0 is not offered a second,
+    # frozen copy of docs that describe the repository rather than a release.
+    "contributors",
+    "maintainers",
+    "infrastructure",
     "_build",
     "_repo",
     "tools",
