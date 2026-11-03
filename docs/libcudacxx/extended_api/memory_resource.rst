@@ -1,5 +1,4 @@
 .. _libcudacxx-extended-api-memory-resources:
-.. _libcudacxx-memory-resource-async:
 
 Memory Resources
 ================
