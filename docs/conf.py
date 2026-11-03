@@ -104,6 +104,11 @@ templates_path = ["_templates"]
 
 # Exclude patterns
 exclude_patterns = [
+    # This tag predates the split, so docs/python/ is inside this source root
+    # and Sphinx would publish it under a C++ version it never shipped under.
+    # docs/site/ is the root project, added by the backfill branch.
+    "python",
+    "site",
     "_build",
     "_repo",
     "tools",
@@ -146,7 +151,12 @@ html_theme_options = {
     "sidebar_includehidden": True,
     "collapse_navigation": False,
     "switcher": {
-        "json_url": f"{html_baseurl}nv-versions.json",
+        # The product root, not html_baseurl: the manifest lists every version,
+        # so it cannot live inside one of them.
+        "json_url": os.environ.get(
+            "CCCL_DOCS_BASE_URL", "https://nvidia.github.io/cccl/"
+        ).rstrip("/")
+        + "/nv-versions.json",
         "version_match": release,
     },
 }
