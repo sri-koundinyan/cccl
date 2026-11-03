@@ -152,9 +152,14 @@ html_theme_options = {
     "collapse_navigation": False,
     "switcher": {
         # The product root, not html_baseurl: the manifest lists every version,
-        # so it cannot live inside one of them.
+        # so it cannot live inside one of them. Derived from CCCL_DOCS_SITE_URL,
+        # which is what the workflow actually sets -- CCCL_DOCS_BASE_URL is never
+        # exported, so defaulting to it publishes a switcher pointing at the
+        # wrong origin and the dropdown silently offers one version.
         "json_url": os.environ.get(
-            "CCCL_DOCS_BASE_URL", "https://nvidia.github.io/cccl/"
+            "CCCL_DOCS_BASE_URL",
+            os.environ.get("CCCL_DOCS_SITE_URL", "https://nvidia.github.io/cccl").rstrip("/")
+            + "/cpp/",
         ).rstrip("/")
         + "/nv-versions.json",
         "version_match": release,
