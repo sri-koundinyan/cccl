@@ -365,6 +365,25 @@ def extract_doxygen_items(xml_dir):
             except Exception as e:
                 logger.debug(f"Failed to parse macros from {file_xml_file}: {e}")
 
+        # Class template argument deduction guides look like namespace-scope
+        # functions to Doxygen, which reports them as kind="function" whose name
+        # is the class they deduce:
+        #
+        #     template <typename... Specs>
+        #     partition_spec(Specs...) -> partition_spec<decay_t<Specs>...>;
+        #
+        # Emitting a doxygenfunction page for that is wrong twice over. Sphinx's
+        # C++ domain has no concept of a deduction guide, so it parses the guide
+        # as a function declaration -- which then collides with the real struct
+        # ("Duplicate C++ declaration") and reports the struct's own members as
+        # "C++ declarations inside functions are not supported".
+        #
+        # A guide carries no documentation the class page does not already
+        # carry, so it is dropped rather than rendered. Detected structurally,
+        # by name collision with a class or struct, so future guides need no
+        # maintenance.
+        compound_names = {name for name, _ in items["classes"] + items["structs"]}
+
         # Extract functions, typedefs, enums, and variables from namespaces
         for namespace_compound in namespace_compounds:
             namespace_name = namespace_compound.find("name").text
@@ -378,6 +397,14 @@ def extract_doxygen_items(xml_dir):
                     full_name = f"{namespace_name}::{name}"
                 else:
                     full_name = name
+
+                if full_name in compound_names:
+                    logger.info(
+                        f"Skipping deduction guide {full_name} "
+                        "(documented by its class page)"
+                    )
+                    continue
+
                 items["functions"].append((full_name, refid))
 
                 # Also track function groups for overloads
