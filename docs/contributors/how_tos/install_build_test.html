@@ -1,0 +1,696 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Install, Build, Test &#8212; CUDA Core Compute Libraries</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/nvidia-sphinx-theme.css?v=933278ad" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+
+
+    <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'contributors/how_tos/install_build_test';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+
+    <link rel="canonical" href="https://sri-koundinyan.github.io/cccl/contributors/how_tos/install_build_test.html" />
+    <link rel="icon" href="../../_static/favicon.png"/>
+
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Build and run targeted tests" href="targeted_builds.html" />
+    <link rel="prev" title="How Tos" href="index.html" />
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
+
+
+  </head>
+
+  <body data-default-mode="">
+
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class=" navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/nvidia-logo-horiz-rgb-blk-for-screen.svg" class="logo__image only-light" alt="CUDA Core Compute Libraries - Home"/>
+    <img src="../../_static/nvidia-logo-horiz-rgb-wht-for-screen.svg" class="logo__image only-dark pst-js-only" alt="CUDA Core Compute Libraries - Home"/>
+  
+  
+    <p class="title logo__title">CUDA Core Compute Libraries</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class=" navbar-header-items">
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/nvidia-logo-horiz-rgb-blk-for-screen.svg" class="logo__image only-light" alt="CUDA Core Compute Libraries - Home"/>
+    <img src="../../_static/nvidia-logo-horiz-rgb-wht-for-screen.svg" class="logo__image only-dark pst-js-only" alt="CUDA Core Compute Libraries - Home"/>
+  
+  
+    <p class="title logo__title">CUDA Core Compute Libraries</p>
+  
+</a>
+
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Table of Contents">
+  <p class="bd-links__title" role="heading" aria-level="1">Table of Contents</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../index.html">Contributor Docs</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="index.html">How Tos</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3 current active"><a aria-current="page" class="current reference internal" href="#">Install, Build, Test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="targeted_builds.html">Build and run targeted tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="launching.html">Launching a container</a></li>
+<li class="toctree-l3"><a class="reference internal" href="vscode_cmake_tools.html">Using CMake Presets via VS Code GUI extension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="creating_a_pull_request.html">Creating a Pull Request</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reproducing_ci.html">Reproducing CI locally</a></li>
+<li class="toctree-l3"><a class="reference internal" href="override_matrix.html">Override matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adding_build_target.html">Adding a build target</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../license.html">License</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../maintainers/index.html">Maintainer Docs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../maintainers/how_tos/index.html">How Tos</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../maintainers/backport_process.html">How to commit fixes to release branches (backport process)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../maintainers/how_tos/compile_time.html">Run compile-time benchmarks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../maintainers/how_tos/plan_work_with_github_issues.html">How To Plan Work with GitHub Issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../maintainers/how_tos/adding_ci_coverage.html">Adding CI coverage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../maintainers/how_tos/adding_new_devcontainer.html">Adding a new devcontainer toolchain</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../maintainers/references/index.html">References</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../maintainers/branching_strategy.html">Git Methodology</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../maintainers/coderabbit.html">CodeRabbit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../maintainers/references/compile_time.html">Compile-time benchmark reference</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../infrastructure/index.html">Infrastructure</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../infrastructure/ci/references/index.html">CI Reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../infrastructure/ci/references/ci_overview.html">CI overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../infrastructure/ci/references/change_detection.html">Change detection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../infrastructure/ci/references/matrix_yaml.html">matrix.yaml reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../infrastructure/ci/references/ci_scripts.html">CI scripts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../infrastructure/ci/references/ci_artifacts.html">Artifact system</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../infrastructure/ci/references/gha_workflows.html">GitHub Actions workflows</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../infrastructure/ci/references/skip_tags.html">Skip tags</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../infrastructure/cmake/references/index.html">CMake Reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../infrastructure/cmake/references/preset_reference.html">Preset reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../infrastructure/cmake/references/cmake_modules.html">CMake helper modules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../infrastructure/cmake/references/architecture_flags.html">Architecture flags</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../infrastructure/devcontainer/references/index.html">Devcontainer Reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../infrastructure/devcontainer/references/devcontainer_overview.html">Devcontainer overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../infrastructure/devcontainer/references/launch_sh_reference.html">launch.sh reference</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Contributor Docs</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">How Tos</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Install, Build, Test</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="install-build-test">
+<span id="infra-install-build-test"></span><h1>Install, Build, Test<a class="headerlink" href="#install-build-test" title="Link to this heading">#</a></h1>
+<p>CCCL provides several developer interfaces for working with the codebase.
+Purpose-built scripts exist that drive routine work, and using the wrong tool can waste hours of developer time.
+For example, the <code class="docutils literal notranslate"><span class="pre">ci/test_*.sh</span></code> scripts can take hours to run a full validation suite, while the
+<code class="docutils literal notranslate"><span class="pre">ci/util/build_and_test_targets.sh</span></code> tool configures, builds, and runs a small subset in seconds.
+Prebuilt development containers simplify working in specific toolchains and environments.
+Core members can launch GitHub Actions benchmarking / bisection workflows that run on cloud infrastructure.</p>
+<section id="pick-a-path-by-goal">
+<h2>Pick a path by goal<a class="headerlink" href="#pick-a-path-by-goal" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 34.0%" />
+<col style="width: 38.0%" />
+<col style="width: 14.0%" />
+<col style="width: 14.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Goal</p></th>
+<th class="head"><p>Tools</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Availability</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Install CCCL headers to a prefix</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ci/install_cccl.sh</span></code></p></td>
+<td><p>Script</p></td>
+<td><p>Public</p></td>
+</tr>
+<tr class="row-odd"><td><p>Build and run a specific test</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ci/util/build_and_test_targets.sh</span></code></p></td>
+<td><p>Script</p></td>
+<td><p>Public</p></td>
+</tr>
+<tr class="row-even"><td><p>Build or test an entire project</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ci/build_&lt;project&gt;.sh</span></code> / <code class="docutils literal notranslate"><span class="pre">ci/test_&lt;project&gt;.sh</span></code></p></td>
+<td><p>Script</p></td>
+<td><p>Public</p></td>
+</tr>
+<tr class="row-odd"><td><p>Bisect a regression</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ci/util/git_bisect.sh</span></code>, git-bisect.yml</p></td>
+<td><p>Script, GHA</p></td>
+<td><p>Public / members</p></td>
+</tr>
+<tr class="row-even"><td><p>Request a benchmark comparison</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ci/bench/bench.sh</span></code>, bench.yml, <code class="docutils literal notranslate"><span class="pre">ci/bench.yaml</span></code></p></td>
+<td><p>Script, GHA, PR tool</p></td>
+<td><p>Public / members</p></td>
+</tr>
+<tr class="row-odd"><td><p>Custom build</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">--preset</span></code></p></td>
+<td><p>Script</p></td>
+<td><p>Public</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<section id="install-only">
+<h3>Install only<a class="headerlink" href="#install-only" title="Link to this heading">#</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">ci/install_cccl.sh</span> <span class="pre">&lt;prefix&gt;</span></code> copies CCCL’s headers and CMake config files into a prefix
+directory. CCCL is header-only, so the install has no build step and finishes in seconds.</p>
+<p>Use it when a downstream project needs <code class="docutils literal notranslate"><span class="pre">find_package(CCCL)</span></code> against a fixed checkout, or when you
+want CCCL on a system include path without cloning into the consumer’s tree.</p>
+</section>
+<section id="build-and-run-a-specific-test">
+<h3>Build and run a specific test<a class="headerlink" href="#build-and-run-a-specific-test" title="Link to this heading">#</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">ci/util/build_and_test_targets.sh</span></code> configures one preset, builds the Ninja targets you name,
+and runs the CTest or lit tests you name. It is the fast-iteration path for a single test or a
+handful of targets.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">ci</span><span class="o">/</span><span class="n">util</span><span class="o">/</span><span class="n">build_and_test_targets</span><span class="o">.</span><span class="n">sh</span> \
+  <span class="o">--</span><span class="n">preset</span> <span class="n">cub</span><span class="o">-</span><span class="n">cpp20</span> \
+  <span class="o">--</span><span class="n">build</span><span class="o">-</span><span class="n">targets</span> <span class="s2">"cub.test.iterator"</span> \
+  <span class="o">--</span><span class="n">ctest</span><span class="o">-</span><span class="n">targets</span> <span class="s2">"cub.test.iterator"</span>
+</pre></div>
+</div>
+<p>Use it when you are fixing one test and want a tight edit-build-run loop. Building tests does not
+require a GPU; running them does.</p>
+<p>Need a specific CTK or host compiler? Launch the matching container with <code class="docutils literal notranslate"><span class="pre">.devcontainer/launch.sh</span></code>
+first, then run the script inside it. Valid toolchain combinations are in the
+<code class="docutils literal notranslate"><span class="pre">devcontainers:</span></code> section of <code class="docutils literal notranslate"><span class="pre">ci/matrix.yaml</span></code>; launching is covered at
+<a class="reference internal" href="launching.html#infra-devcontainer-launching"><span class="std std-ref">Launching a container</span></a>.</p>
+</section>
+<section id="build-or-test-an-entire-project">
+<h3>Build or test an entire project<a class="headerlink" href="#build-or-test-an-entire-project" title="Link to this heading">#</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">ci/build_&lt;project&gt;.sh</span></code> and <code class="docutils literal notranslate"><span class="pre">ci/test_&lt;project&gt;.sh</span></code> build or test a full project across a host
+compiler, C++ standard, and architecture set. These are the scripts CI runs, so they reproduce a
+CI job exactly.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">ci</span><span class="o">/</span><span class="n">build_cub</span><span class="o">.</span><span class="n">sh</span> <span class="o">-</span><span class="n">cxx</span> <span class="n">g</span><span class="o">++</span> <span class="o">-</span><span class="n">std</span> <span class="mi">17</span> <span class="o">-</span><span class="n">arch</span> <span class="s2">"75;80;90"</span>
+<span class="o">./</span><span class="n">ci</span><span class="o">/</span><span class="n">test_cub</span><span class="o">.</span><span class="n">sh</span>  <span class="o">-</span><span class="n">cxx</span> <span class="n">g</span><span class="o">++</span> <span class="o">-</span><span class="n">std</span> <span class="mi">17</span> <span class="o">-</span><span class="n">arch</span> <span class="s2">"75;80;90"</span>
+</pre></div>
+</div>
+<p>Use them to reproduce a CI failure or to validate a project end to end before pushing. A full
+project build takes hours; a targeted <code class="docutils literal notranslate"><span class="pre">build_and_test_targets.sh</span></code> run takes minutes. Test scripts
+require a GPU.</p>
+<p>Need a specific toolchain? Run these inside a devcontainer launched with <code class="docutils literal notranslate"><span class="pre">.devcontainer/launch.sh</span></code>
+(<a class="reference internal" href="launching.html#infra-devcontainer-launching"><span class="std std-ref">Launching a container</span></a>). CI failure logs print the exact container and arguments to
+reproduce the job.</p>
+</section>
+<section id="bisect-a-regression">
+<h3>Bisect a regression<a class="headerlink" href="#bisect-a-regression" title="Link to this heading">#</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">ci/util/git_bisect.sh</span></code> walks the commit history between a good and a bad ref, building and
+testing each candidate, until it pins the commit that introduced a regression. It takes the same
+<code class="docutils literal notranslate"><span class="pre">--preset</span></code>, <code class="docutils literal notranslate"><span class="pre">--build-targets</span></code>, and <code class="docutils literal notranslate"><span class="pre">--ctest-targets</span></code> arguments as
+<code class="docutils literal notranslate"><span class="pre">build_and_test_targets.sh</span></code>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">ci</span><span class="o">/</span><span class="n">util</span><span class="o">/</span><span class="n">git_bisect</span><span class="o">.</span><span class="n">sh</span> \
+  <span class="o">--</span><span class="n">preset</span> <span class="n">cub</span><span class="o">-</span><span class="n">cpp20</span> \
+  <span class="o">--</span><span class="n">build</span><span class="o">-</span><span class="n">targets</span> <span class="s2">"cub.test.iterator"</span> \
+  <span class="o">--</span><span class="n">ctest</span><span class="o">-</span><span class="n">targets</span> <span class="s2">"cub.test.iterator"</span> \
+  <span class="o">--</span><span class="n">good</span><span class="o">-</span><span class="n">ref</span> <span class="n">v1</span><span class="mf">.13.0</span> \
+  <span class="o">--</span><span class="n">bad</span><span class="o">-</span><span class="n">ref</span> <span class="n">origin</span><span class="o">/</span><span class="n">main</span>
+</pre></div>
+</div>
+<p>Use it when a test passes on an old ref and fails on <code class="docutils literal notranslate"><span class="pre">main</span></code> and you need the offending commit.
+<code class="docutils literal notranslate"><span class="pre">--repeat</span> <span class="pre">N</span></code> re-runs multiple times to help catch intermittent failures.</p>
+<p>Need a specific toolchain? Run the script inside a devcontainer launched with
+<code class="docutils literal notranslate"><span class="pre">.devcontainer/launch.sh</span></code> (<a class="reference internal" href="launching.html#infra-devcontainer-launching"><span class="std std-ref">Launching a container</span></a>).</p>
+<p>Members can run the same bisect remotely on CI machines through the <a class="reference external" href="https://github.com/NVIDIA/cccl/actions/workflows/git-bisect.yml">Git Bisect workflow</a>: choose a runner, set the good
+and bad refs and target arguments, and dispatch. Source is <code class="docutils literal notranslate"><span class="pre">.github/workflows/git-bisect.yml</span></code>.</p>
+</section>
+<section id="request-a-benchmark-comparison">
+<h3>Request a benchmark comparison<a class="headerlink" href="#request-a-benchmark-comparison" title="Link to this heading">#</a></h3>
+<p>Compare benchmark results between two refs from the browser, a local script, or a pull request.</p>
+<p>Members can dispatch the <a class="reference external" href="https://github.com/NVIDIA/cccl/actions/workflows/bench.yml">Benchmark Compare workflow</a> from the browser: choose “Run
+workflow”, set the base and test refs and the CUB and Python filters, and it runs on the CI GPU
+pool. Source is <code class="docutils literal notranslate"><span class="pre">.github/workflows/bench.yml</span></code>.</p>
+<p>Locally, <code class="docutils literal notranslate"><span class="pre">ci/bench/bench.sh</span> <span class="pre">&lt;base&gt;</span> <span class="pre">&lt;test&gt;</span></code> runs the same comparison against checked-out refs:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">ci</span><span class="o">/</span><span class="n">bench</span><span class="o">/</span><span class="n">bench</span><span class="o">.</span><span class="n">sh</span> <span class="n">origin</span><span class="o">/</span><span class="n">main</span> <span class="n">HEAD</span> <span class="o">--</span><span class="n">cpp</span><span class="o">-</span><span class="nb">filter</span> <span class="s2">"^cub\.bench\.copy\.memcpy\.base$"</span>
+</pre></div>
+</div>
+<p>It wraps <code class="docutils literal notranslate"><span class="pre">ci/bench/compare_git_refs.sh</span></code> and <code class="docutils literal notranslate"><span class="pre">ci/bench/compare_paths.sh</span></code>; call those directly
+when you already have two checkouts.</p>
+<p>To benchmark inside a PR, edit <code class="docutils literal notranslate"><span class="pre">ci/bench.yaml</span></code> to set GPUs and filters and push; PR CI detects the
+diff from <code class="docutils literal notranslate"><span class="pre">ci/bench.template.yaml</span></code> and dispatches the jobs. Reset <code class="docutils literal notranslate"><span class="pre">ci/bench.yaml</span></code> to match the
+template before merging. Argument behavior and artifact layout live in <code class="docutils literal notranslate"><span class="pre">ci/bench/README.md</span></code>.</p>
+</section>
+<section id="full-cmake-control">
+<h3>Full CMake control<a class="headerlink" href="#full-cmake-control" title="Link to this heading">#</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">--preset</span> <span class="pre">&lt;name&gt;</span></code> configures a build directory directly.
+This is discouraged, but available for custom workflows / tool integrations.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">--</span><span class="n">preset</span> <span class="nb">all</span><span class="o">-</span><span class="n">dev</span>
+<span class="n">cmake</span> <span class="o">--</span><span class="n">build</span> <span class="o">--</span><span class="n">preset</span> <span class="nb">all</span><span class="o">-</span><span class="n">dev</span>
+<span class="n">ctest</span> <span class="o">--</span><span class="n">preset</span> <span class="nb">all</span><span class="o">-</span><span class="n">dev</span>
+</pre></div>
+</div>
+<p>List the presets with <code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">--list-presets</span></code>. The <code class="docutils literal notranslate"><span class="pre">all-dev</span></code> preset enables every library,
+test, and example against your native GPU; per-library presets like <code class="docutils literal notranslate"><span class="pre">cub-cpp20</span></code> scope the build
+to one library and standard. The <a class="reference internal" href="../../infrastructure/cmake/references/preset_reference.html#infra-cmake-preset-reference"><span class="std std-ref">Preset reference</span></a> catalogs the full preset set.</p>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">How Tos</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="targeted_builds.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Build and run targeted tests</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+
+
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pick-a-path-by-goal">Pick a path by goal</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#install-only">Install only</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#build-and-run-a-specific-test">Build and run a specific test</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#build-or-test-an-entire-project">Build or test an entire project</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#bisect-a-regression">Bisect a regression</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#request-a-benchmark-comparison">Request a benchmark comparison</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#full-cmake-control">Full CMake control</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+<a class="footer-brand logo" href="https://www.nvidia.com">
+  <img src="../../_static/nvidia-logo-horiz-rgb-1c-blk-for-screen.svg" class="logo__image only-light" alt="NVIDIA"/>
+  <img src="../../_static/nvidia-logo-horiz-rgb-1c-wht-for-screen.svg" class="logo__image only-dark" alt="NVIDIA"/>
+</a></div>
+      
+        <div class="footer-item">
+
+<div class="footer-links">
+  
+  
+  <a class="external" href="https://www.nvidia.com/en-us/about-nvidia/privacy-policy/">Privacy Policy</a>
+   | 
+  
+  
+  
+  <a class="external" href="https://www.nvidia.com/en-us/about-nvidia/privacy-center/">Your Privacy Choices</a>
+   | 
+  
+  
+  
+  <a class="external" href="https://www.nvidia.com/en-us/about-nvidia/terms-of-service/">Terms of Service</a>
+   | 
+  
+  
+  
+  <a class="external" href="https://www.nvidia.com/en-us/about-nvidia/accessibility/">Accessibility</a>
+   | 
+  
+  
+  
+  <a class="external" href="https://www.nvidia.com/en-us/about-nvidia/company-policies/">Corporate Policies</a>
+   | 
+  
+  
+  
+  <a class="external" href="https://www.nvidia.com/en-us/product-security/">Product Security</a>
+   | 
+  
+  
+  
+  <a class="external" href="https://www.nvidia.com/en-us/contact/">Contact</a>
+  
+  
+  
+</div>
+</div>
+      
+        <div class="footer-item">
+
+
+
+
+  <p class="copyright">
+    
+      Copyright © 2026, NVIDIA Corporation.
+      <br/>
+    
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+  </body>
+</html>
