@@ -1,0 +1,803 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Radix Sort and Rank &#8212; CCCL Python Libraries</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/nvidia-sphinx-theme.css?v=933278ad" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=6a604523" />
+    <link rel="stylesheet" type="text/css" href="../../_static/coop-load.css?v=0eb92e8c" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+
+
+    <script src="../../_static/documentation_options.js?v=bbe6ed3a"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=5ceeb459"></script>
+    <script data-sd-tabs-storage-prefix="sphinx-design-tab-id-" src="../../_static/design-tabs.js?v=fcb327ea"></script>
+    <script defer="defer" src="../../_static/coop-explorer.js?v=a439be83"></script>
+    <script defer="defer" src="../../_static/coop-radix.js?v=422acb60"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'coop_cutlass/visualizations/radix';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.24.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://sri-koundinyan.github.io/cccl/python/nv-versions.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'unstable';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+
+    <link rel="canonical" href="https://sri-koundinyan.github.io/cccl/python/unstable/coop_cutlass/visualizations/radix.html" />
+    <link rel="icon" href="../../_static/favicon.png"/>
+
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="TopK" href="topk.html" />
+    <link rel="prev" title="Merge Sort" href="merge-sort.html" />
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="unstable" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
+
+
+  </head>
+
+  <body data-default-mode="">
+
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">This is the <strong>development</strong> documentation, built from the latest commit on <code>main</code>.</div>
+</aside>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/nvidia-logo-horiz-rgb-blk-for-screen.svg" class="logo__image only-light" alt="CCCL Python Libraries - Home"/>
+    <img src="../../_static/nvidia-logo-horiz-rgb-wht-for-screen.svg" class="logo__image only-dark pst-js-only" alt="CCCL Python Libraries - Home"/>
+  
+  
+    <p class="title logo__title">CCCL Python Libraries</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+
+
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/NVIDIA/cccl" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/nvidia-logo-horiz-rgb-blk-for-screen.svg" class="logo__image only-light" alt="CCCL Python Libraries - Home"/>
+    <img src="../../_static/nvidia-logo-horiz-rgb-wht-for-screen.svg" class="logo__image only-dark pst-js-only" alt="CCCL Python Libraries - Home"/>
+  
+  
+    <p class="title logo__title">CCCL Python Libraries</p>
+  
+</a>
+
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+
+
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-3"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-3"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-3"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-3">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/NVIDIA/cccl" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Table of Contents">
+  <p class="bd-links__title" role="heading" aria-level="1">Table of Contents</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">CCCL Python Libraries</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../setup.html">Setup and Installation</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../compute/index.html"><code class="docutils literal notranslate"><span class="pre">cuda.compute</span></code>: Parallel Computing Primitives</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../compute/index.html">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../compute/developer_overview.html"><code class="docutils literal notranslate"><span class="pre">cuda.compute</span></code> Developer Overview</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../index.html"><code class="docutils literal notranslate"><span class="pre">cuda.coop.cutlass</span></code></a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../concepts.html">Programming concepts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../programming_guide.html">Programming Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html"><code class="docutils literal notranslate"><span class="pre">cuda.coop.cutlass</span></code> API Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html">Executable examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tensor_memory_topk.html">Tensor Core and TopK interop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer_guide.html">Developer Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cutlass_primer.html">Introduction to CUTLASS for cuda.coop Developers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cutlass_integration_example.html">Minimal CuTe DSL Integration Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../configuration.html">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../faqs.html">FAQs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../glossary.html">Glossary</a></li>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="index.html">Visualizations</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="load.html">Load</a></li>
+<li class="toctree-l3"><a class="reference internal" href="store.html">Store</a></li>
+<li class="toctree-l3"><a class="reference internal" href="exchange.html">Exchange</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shuffle.html">Shuffle</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduce.html">Reduce</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduce-batched.html">Batched Warp Reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="scan.html">Scan</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adjacent-difference.html">Adjacent Difference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discontinuity.html">Discontinuity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="histogram.html">Histogram</a></li>
+<li class="toctree-l3"><a class="reference internal" href="run-length-decode.html">Run Length Decode</a></li>
+<li class="toctree-l3"><a class="reference internal" href="merge-sort.html">Merge Sort</a></li>
+<li class="toctree-l3 current active"><a aria-current="page" class="current reference internal" href="#">Radix Sort and Rank</a></li>
+<li class="toctree-l3"><a class="reference internal" href="topk.html">TopK</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../../stf.html"><code class="docutils literal notranslate"><span class="pre">cuda.stf._experimental</span></code>: Sequential Task Flow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../resources.html">Resources</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../api_reference.html">API Reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../compute_api.html"><code class="docutils literal notranslate"><span class="pre">cuda.compute</span></code> API Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../stf_api.html"><code class="docutils literal notranslate"><span class="pre">cuda.stf._experimental</span></code> API Reference</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link"><code class="docutils literal notranslate"><span class="pre">cuda.coop.cutlass</span></code></a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Visualizations</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Radix Sort and Rank</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="radix-sort-and-rank">
+<span id="coop-visualization-radix"></span><h1>Radix Sort and Rank<a class="headerlink" href="#radix-sort-and-rank" title="Link to this heading">#</a></h1>
+<p><a class="reference internal" href="../api.html#cuda.coop.cutlass.radix_sort_keys" title="cuda.coop.cutlass.radix_sort_keys"><code class="xref py py-func docutils literal notranslate"><span class="pre">cuda.coop.cutlass.radix_sort_keys()</span></code></a> and <a class="reference internal" href="../api.html#cuda.coop.cutlass.radix_sort_pairs" title="cuda.coop.cutlass.radix_sort_pairs"><code class="xref py py-func docutils literal notranslate"><span class="pre">cuda.coop.cutlass.radix_sort_pairs()</span></code></a>
+order a block’s keys by selected bits. Sort processes digits from the
+least significant selected bits upward, moving keys after each stable pass.
+The pairs operation moves associated values with their keys.</p>
+<p><a class="reference internal" href="../api.html#cuda.coop.cutlass.radix_rank_keys" title="cuda.coop.cutlass.radix_rank_keys"><code class="xref py py-func docutils literal notranslate"><span class="pre">cuda.coop.cutlass.radix_rank_keys()</span></code></a> computes destinations for <strong>one digit</strong>. It
+returns an <code class="docutils literal notranslate"><span class="pre">int32</span></code> rank in each key’s original slot. The input keys stay
+where they were; ranking does not perform a scatter. All three operations
+preserve their input payloads.</p>
+<p>The explorer uses eight teaching threads with unsigned <code class="docutils literal notranslate"><span class="pre">uint32</span></code> keys.
+Only their low eight bits are shown. The examples below the explorer use
+complete, executable blocks of 64 threads.</p>
+<div class="coop-visualization docutils container">
+<div data-coop-explorer="radix"></div><div class="coop-visualization-fallback docutils container">
+<figure class="align-default" id="id1">
+<a class="reference internal image-reference" href="../../_images/radix-sort.svg"><img alt="Keys 35, 18, 33, 2, 35, 17, 1, 18 sort by their low four bits and then their next four bits. Associated original positions move with each key, preserving the order of equal keys." src="../../_images/radix-sort.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Two stable digit passes sort eight unsigned keys. Values identify
+the original positions of the keys.</span><a class="headerlink" href="#id1" title="Link to this image">#</a></p>
+</figcaption>
+</figure>
+<p>For <code class="docutils literal notranslate"><span class="pre">begin_bit=0,</span> <span class="pre">end_bit=8</span></code>, the low digit orders bits zero through
+three. The next pass orders bits four through seven, keeping the order
+established by the low digit within each equal high digit.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Original keys       35  18  33   2  35  17   1  18
+Original values      0   1   2   3   4   5   6   7
+After bits [0, 4)    33  17   1  18   2  18  35  35
+Associated values    2   5   6   1   3   7   0   4
+After bits [4, 8)     1   2  17  18  18  33  35  35
+Associated values    6   3   5   1   7   2   0   4
+</pre></div>
+</div>
+<figure class="align-default" id="id2">
+<a class="reference internal image-reference" href="../../_images/radix-rank.svg"><img alt="Ranking the low four bits of the same keys returns ranks 6, 3, 0, 4, 7, 1, 2, 5 in the original input slots. The keys remain unchanged." src="../../_images/radix-rank.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">One digit’s ranks describe destinations without moving the keys.</span><a class="headerlink" href="#id2" title="Link to this image">#</a></p>
+</figcaption>
+</figure>
+<p>For <code class="docutils literal notranslate"><span class="pre">radix_rank_keys(...,</span> <span class="pre">begin_bit=0,</span> <span class="pre">end_bit=4)</span></code>, digits one, two, and
+three occur three, three, and two times. Their ascending bin starts
+are zero, three, and six. Add the number of earlier keys with the
+same digit to obtain each destination.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Input keys          35  18  33   2  35  17   1  18
+Low-four-bit digit   3   2   1   2   3   1   1   2
+Returned ranks       6   3   0   4   7   1   2   5
+Input after ranking 35  18  33   2  35  17   1  18
+</pre></div>
+</div>
+</div>
+</div>
+<section id="reading-the-stages">
+<h2>Reading the stages<a class="headerlink" href="#reading-the-stages" title="Link to this heading">#</a></h2>
+<p>Input order is <a class="reference internal" href="../glossary.html#coop-glossary-layouts"><span class="std std-ref">blocked</span></a>: all of thread zero’s
+items, then all of thread one’s items, and so on. For <code class="docutils literal notranslate"><span class="pre">K</span></code> items per
+thread, item <code class="docutils literal notranslate"><span class="pre">i</span></code> of thread <code class="docutils literal notranslate"><span class="pre">t</span></code> has input position <code class="docutils literal notranslate"><span class="pre">t</span> <span class="pre">*</span> <span class="pre">K</span> <span class="pre">+</span> <span class="pre">i</span></code>. This
+order also determines which equal-digit key comes first.</p>
+<p>For ascending Rank, each result is the number of keys with smaller digits
+plus the number of earlier input keys with the same digit. For descending
+Rank, count greater digits instead. The rank is a unique destination in the
+block tile, but it is returned at the key’s original blocked position.
+The counts and bin starts in the picture explain the calculation; the
+function returns per-key ranks and can fill an explicit bin-prefix payload.</p>
+<p>Sort uses those destinations to move a working copy of the keys, and any
+associated values, before examining the next digit. Equal digits retain
+their order at each pass. That stability lets the more significant pass
+retain the ordering already established by less significant bits.
+<code class="docutils literal notranslate"><span class="pre">descending=True</span></code> reverses digit ordering while preserving the input
+order of ties; it does not reverse a finished ascending array.</p>
+<p>The provider uses the CUB <code class="docutils literal notranslate"><span class="pre">BlockRadixSort</span></code> specialization
+with four bits per pass. A final pass may use fewer bits. This is an
+implementation choice, not an argument to <code class="docutils literal notranslate"><span class="pre">radix_sort_keys</span></code> or
+<code class="docutils literal notranslate"><span class="pre">radix_sort_pairs</span></code>. The picture shows ranks and ownership changes, not
+the exact CUB instruction sequence or shared-memory layout.</p>
+<p>Sort returns blocked output by default and also accepts
+<code class="docutils literal notranslate"><span class="pre">blocked_to_striped=True</span></code>. With <code class="docutils literal notranslate"><span class="pre">T</span></code> block threads, sorted position <code class="docutils literal notranslate"><span class="pre">p</span></code>
+then belongs to thread <code class="docutils literal notranslate"><span class="pre">p</span> <span class="pre">%</span> <span class="pre">T</span></code>, slot <code class="docutils literal notranslate"><span class="pre">p</span> <span class="pre">//</span> <span class="pre">T</span></code>. Intermediate digit passes
+still use blocked ownership. Keys and values use the same output layout;
+select a matching layout when storing them. Rank has no striped-output or
+pairs option.</p>
+</section>
+<section id="bit-intervals-and-key-types">
+<h2>Bit intervals and key types<a class="headerlink" href="#bit-intervals-and-key-types" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">[begin_bit,</span> <span class="pre">end_bit)</span></code> is a half-open interval in CUB’s ordered key
+representation. Unsigned keys use their bits directly, which is why the
+explorer uses unsigned keys. Sorting a subset of bits orders that bit field;
+the full numeric keys need not be increasing. Bits outside the field do not
+break ties.</p>
+<p>For signed integers, the sign bit is inverted before digit extraction.
+Sort also accepts <code class="docutils literal notranslate"><span class="pre">float32</span></code> and <code class="docutils literal notranslate"><span class="pre">float64</span></code> keys:
+CUB inverts all bits for negative floating-point keys and the sign bit for
+nonnegative keys before selecting the interval. Returned keys retain their
+original representations. Negative and positive zero compare equally and
+preserve their input order; NaNs follow CUB’s transformed-bit ordering.
+The unsigned explorer does not model these floating-point cases.</p>
+<p>Calls accept <code class="docutils literal notranslate"><span class="pre">ThreadData</span></code> keys with <code class="docutils literal notranslate"><span class="pre">int32</span></code>, <code class="docutils literal notranslate"><span class="pre">uint32</span></code>,
+<code class="docutils literal notranslate"><span class="pre">int64</span></code>, or <code class="docutils literal notranslate"><span class="pre">uint64</span></code> dtype. Associated values may use the supported
+numeric dtypes and must have the same extent as the keys. Scalars,
+CuTe register tensors, and <code class="docutils literal notranslate"><span class="pre">TensorSSA</span></code> are also supported.
+Floating-point keys are supported for Sort, while Rank requires integral keys.</p>
+<p>Sort’s bit bounds may be block-uniform runtime integers and must satisfy
+<code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">&lt;=</span> <span class="pre">begin_bit</span> <span class="pre">&lt;</span> <span class="pre">end_bit</span> <span class="pre">&lt;=</span> <span class="pre">key_width</span></code>. Omitting <code class="docutils literal notranslate"><span class="pre">end_bit</span></code> selects the
+key width. Rank requires compile-time bounds selecting one through eight
+bits. Its omitted end is <code class="docutils literal notranslate"><span class="pre">begin_bit</span> <span class="pre">+</span> <span class="pre">radix_bits</span></code>, with four bits when
+<code class="docutils literal notranslate"><span class="pre">radix_bits</span></code> is also omitted. If both <code class="docutils literal notranslate"><span class="pre">radix_bits</span></code> and <code class="docutils literal notranslate"><span class="pre">end_bit</span></code> are
+supplied, they must describe the same digit width. The explorer limits its
+controls to the low eight bits of its small example keys.</p>
+<p>All threads in the complete physical block must participate with matching
+controls and payload extents. These operations do not accept warp groups
+or a <code class="docutils literal notranslate"><span class="pre">valid_items</span></code> argument. Sort can use explicit <code class="docutils literal notranslate"><span class="pre">temp_storage</span></code>;
+its size and alignment must cover the specialization. Explicit descriptors
+default to <code class="docutils literal notranslate"><span class="pre">auto_sync=False</span></code>, so the caller must synchronize before reuse or
+request <code class="docutils literal notranslate"><span class="pre">auto_sync=True</span></code>. Rank allocates and synchronizes its scratch
+automatically.</p>
+<p>Rank can additionally write <code class="docutils literal notranslate"><span class="pre">exclusive_digit_prefix</span></code>.
+That side output describes digit bins and has its own per-thread extent,
+separate from the returned per-key ranks. See
+<a class="reference internal" href="../api.html#cuda.coop.cutlass.radix_rank_keys" title="cuda.coop.cutlass.radix_rank_keys"><code class="xref py py-func docutils literal notranslate"><span class="pre">cuda.coop.cutlass.radix_rank_keys()</span></code></a> for the supported output containers,
+layout, and undefined tail slots. The explorer’s bin rows are mathematical
+explanations, not an invocation of that optional output.</p>
+</section>
+<section id="sorting-key-value-pairs-in-a-kernel">
+<h2>Sorting key/value pairs in a kernel<a class="headerlink" href="#sorting-key-value-pairs-in-a-kernel" title="Link to this heading">#</a></h2>
+<p>This example checks key order, associated values, striped output, and
+Radix Rank bin prefixes against independent references.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cute</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">order_tile</span><span class="p">(</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+    <span class="n">full_keys</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+    <span class="n">digit_keys</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+    <span class="n">digit_positions</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+    <span class="n">ranks_out</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+    <span class="n">prefixes_out</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+    <span class="n">original_keys</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+    <span class="n">items_per_thread</span><span class="p">:</span> <span class="n">cutlass</span><span class="o">.</span><span class="n">Constexpr</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">block</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">this_block</span><span class="p">()</span>
+    <span class="n">positions</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">ThreadData</span><span class="p">(</span><span class="n">items_per_thread</span><span class="p">)</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">items_per_thread</span><span class="o">=</span><span class="n">items_per_thread</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">cutlass</span><span class="o">.</span><span class="n">range_constexpr</span><span class="p">(</span><span class="n">items_per_thread</span><span class="p">):</span>
+        <span class="n">positions</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">cutlass</span><span class="o">.</span><span class="n">Int32</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">rank</span><span class="p">())</span> <span class="o">*</span> <span class="n">items_per_thread</span> <span class="o">+</span> <span class="n">item</span>
+        <span class="p">)</span>
+    <span class="n">scratch</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">TempStorage</span><span class="p">(</span><span class="n">alignment</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">auto_sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">ordered</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">radix_sort_keys</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">temp_storage</span><span class="o">=</span><span class="n">scratch</span><span class="p">)</span>
+    <span class="n">coop</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">full_keys</span><span class="p">,</span> <span class="n">ordered</span><span class="p">)</span>
+    <span class="n">pair_keys</span><span class="p">,</span> <span class="n">pair_positions</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">radix_sort_pairs</span><span class="p">(</span>
+        <span class="n">block</span><span class="p">,</span>
+        <span class="n">keys</span><span class="p">,</span>
+        <span class="n">positions</span><span class="p">,</span>
+        <span class="n">begin_bit</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span>
+        <span class="n">end_bit</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+        <span class="n">descending</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">temp_storage</span><span class="o">=</span><span class="n">scratch</span><span class="p">,</span>
+        <span class="n">blocked_to_striped</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1"># Match the Store layout to the striped result registers.</span>
+    <span class="n">coop</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">digit_keys</span><span class="p">,</span> <span class="n">pair_keys</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="s2">"striped"</span><span class="p">)</span>
+    <span class="n">coop</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">digit_positions</span><span class="p">,</span> <span class="n">pair_positions</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="s2">"striped"</span><span class="p">)</span>
+    <span class="n">prefixes</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">ThreadData</span><span class="p">(</span><span class="n">items_per_thread</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">ranks</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">radix_rank_keys</span><span class="p">(</span>
+        <span class="n">block</span><span class="p">,</span>
+        <span class="n">keys</span><span class="p">,</span>
+        <span class="n">begin_bit</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span>
+        <span class="n">radix_bits</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+        <span class="n">descending</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">exclusive_digit_prefix</span><span class="o">=</span><span class="n">prefixes</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1"># Only the first 16 bin slots are defined for this four-bit digit.</span>
+    <span class="n">coop</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">prefixes_out</span><span class="p">,</span> <span class="n">prefixes</span><span class="p">,</span> <span class="n">valid_items</span><span class="o">=</span><span class="n">_BINS</span><span class="p">)</span>
+    <span class="n">coop</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">ranks_out</span><span class="p">,</span> <span class="n">ranks</span><span class="p">)</span>
+    <span class="n">coop</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">original_keys</span><span class="p">,</span> <span class="n">keys</span><span class="p">)</span>
+
+<span class="nd">@cute</span><span class="o">.</span><span class="n">jit</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">launch</span><span class="p">(</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+    <span class="n">full_keys</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+    <span class="n">digit_keys</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+    <span class="n">digit_positions</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+    <span class="n">ranks_out</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+    <span class="n">prefixes_out</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+    <span class="n">original_keys</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+    <span class="n">items_per_thread</span><span class="p">:</span> <span class="n">cutlass</span><span class="o">.</span><span class="n">Constexpr</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">order_tile</span><span class="p">(</span>
+        <span class="n">source</span><span class="p">,</span>
+        <span class="n">full_keys</span><span class="p">,</span>
+        <span class="n">digit_keys</span><span class="p">,</span>
+        <span class="n">digit_positions</span><span class="p">,</span>
+        <span class="n">ranks_out</span><span class="p">,</span>
+        <span class="n">prefixes_out</span><span class="p">,</span>
+        <span class="n">original_keys</span><span class="p">,</span>
+        <span class="n">items_per_thread</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">grid</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="n">_BLOCK</span><span class="p">)</span>
+
+</pre></div>
+</div>
+</section>
+<section id="ranking-one-unsigned-digit">
+<h2>Ranking one unsigned digit<a class="headerlink" href="#ranking-one-unsigned-digit" title="Link to this heading">#</a></h2>
+<p>The Rank part of the example selects a digit’s bit interval and returns
+ranks with the same per-thread extent. A bin-prefix payload records exclusive
+digit prefixes. See <a class="reference internal" href="../programming_guide.html#coop-cutlass-radix"><span class="std std-ref">the Programming Guide</span></a> and
+<a class="reference internal" href="../api.html"><span class="doc">cuda.coop.cutlass API Reference</span></a> for dtype, bit-range, and output constraints.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="merge-sort.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Merge Sort</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="topk.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">TopK</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+
+
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reading-the-stages">Reading the stages</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#bit-intervals-and-key-types">Bit intervals and key types</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#sorting-key-value-pairs-in-a-kernel">Sorting key/value pairs in a kernel</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ranking-one-unsigned-digit">Ranking one unsigned digit</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+
+
+
+  <p class="copyright">
+    
+      Copyright © 2026, NVIDIA Corporation.
+      <br/>
+    
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+  </p>
+</div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

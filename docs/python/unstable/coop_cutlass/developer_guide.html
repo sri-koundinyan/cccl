@@ -1,0 +1,1539 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Developer Guide &#8212; CCCL Python Libraries</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/nvidia-sphinx-theme.css?v=933278ad" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=6a604523" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+
+
+    <script src="../_static/documentation_options.js?v=bbe6ed3a"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=5ceeb459"></script>
+    <script data-sd-tabs-storage-prefix="sphinx-design-tab-id-" src="../_static/design-tabs.js?v=fcb327ea"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'coop_cutlass/developer_guide';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.24.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://sri-koundinyan.github.io/cccl/python/nv-versions.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'unstable';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+
+    <link rel="canonical" href="https://sri-koundinyan.github.io/cccl/python/unstable/coop_cutlass/developer_guide.html" />
+    <link rel="icon" href="../_static/favicon.png"/>
+
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Introduction to CUTLASS for cuda.coop Developers" href="cutlass_primer.html" />
+    <link rel="prev" title="Tensor Core and TopK interop" href="tensor_memory_topk.html" />
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="unstable" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+
+
+  </head>
+
+  <body data-default-mode="">
+
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">This is the <strong>development</strong> documentation, built from the latest commit on <code>main</code>.</div>
+</aside>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/nvidia-logo-horiz-rgb-blk-for-screen.svg" class="logo__image only-light" alt="CCCL Python Libraries - Home"/>
+    <img src="../_static/nvidia-logo-horiz-rgb-wht-for-screen.svg" class="logo__image only-dark pst-js-only" alt="CCCL Python Libraries - Home"/>
+  
+  
+    <p class="title logo__title">CCCL Python Libraries</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+
+
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/NVIDIA/cccl" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/nvidia-logo-horiz-rgb-blk-for-screen.svg" class="logo__image only-light" alt="CCCL Python Libraries - Home"/>
+    <img src="../_static/nvidia-logo-horiz-rgb-wht-for-screen.svg" class="logo__image only-dark pst-js-only" alt="CCCL Python Libraries - Home"/>
+  
+  
+    <p class="title logo__title">CCCL Python Libraries</p>
+  
+</a>
+
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+
+
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-3"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-3"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-3"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-3">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/NVIDIA/cccl" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Table of Contents">
+  <p class="bd-links__title" role="heading" aria-level="1">Table of Contents</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">CCCL Python Libraries</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../setup.html">Setup and Installation</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../compute/index.html"><code class="docutils literal notranslate"><span class="pre">cuda.compute</span></code>: Parallel Computing Primitives</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../compute/index.html">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../compute/developer_overview.html"><code class="docutils literal notranslate"><span class="pre">cuda.compute</span></code> Developer Overview</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html"><code class="docutils literal notranslate"><span class="pre">cuda.coop.cutlass</span></code></a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="concepts.html">Programming concepts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html">Programming Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html"><code class="docutils literal notranslate"><span class="pre">cuda.coop.cutlass</span></code> API Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html">Executable examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tensor_memory_topk.html">Tensor Core and TopK interop</a></li>
+<li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">Developer Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_primer.html">Introduction to CUTLASS for cuda.coop Developers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_integration_example.html">Minimal CuTe DSL Integration Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html">FAQs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="glossary.html">Glossary</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="visualizations/index.html">Visualizations</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/load.html">Load</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/store.html">Store</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/exchange.html">Exchange</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/shuffle.html">Shuffle</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/reduce.html">Reduce</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/reduce-batched.html">Batched Warp Reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/scan.html">Scan</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/adjacent-difference.html">Adjacent Difference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/discontinuity.html">Discontinuity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/histogram.html">Histogram</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/run-length-decode.html">Run Length Decode</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/merge-sort.html">Merge Sort</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/radix.html">Radix Sort and Rank</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/topk.html">TopK</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../stf.html"><code class="docutils literal notranslate"><span class="pre">cuda.stf._experimental</span></code>: Sequential Task Flow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../resources.html">Resources</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../api_reference.html">API Reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../compute_api.html"><code class="docutils literal notranslate"><span class="pre">cuda.compute</span></code> API Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../stf_api.html"><code class="docutils literal notranslate"><span class="pre">cuda.stf._experimental</span></code> API Reference</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link"><code class="docutils literal notranslate"><span class="pre">cuda.coop.cutlass</span></code></a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Developer Guide</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="developer-guide">
+<span id="cuda-coop-cutlass-developer-guide"></span><h1>Developer Guide<a class="headerlink" href="#developer-guide" title="Link to this heading">#</a></h1>
+<style>
+.coop-cutlass-compiler-tabs { container-type: inline-size; }
+.coop-cutlass-compiler-tabs .coop-cutlass-diagram-mobile {
+  display: none;
+  max-width: 360px;
+  margin-inline: auto;
+}
+#developer-guide code.literal .pre {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@container (max-width: 760px) {
+  .coop-cutlass-compiler-tabs .coop-cutlass-diagram-desktop { display: none; }
+  .coop-cutlass-compiler-tabs .coop-cutlass-diagram-mobile { display: block; }
+}
+@media print {
+  .coop-cutlass-compiler-tabs .coop-cutlass-diagram-desktop { display: block; }
+  .coop-cutlass-compiler-tabs .coop-cutlass-diagram-mobile { display: none; }
+}
+</style><p>CuTe compiles your kernel and its control flow. For each cooperative
+primitive, <code class="docutils literal notranslate"><span class="pre">cuda.coop.cutlass</span></code> generates a C++ device function that calls
+CUB. NVRTC compiles those functions to LTO-IR, which CuTe links into
+the kernel before it runs. The implementation calls these generated
+functions <em>providers</em>.</p>
+<p>During tracing, CuTe runs the kernel’s Python code with symbolic values
+and builds its intermediate representation (IR). A cooperative call at
+this stage adds device instructions to that representation; the GPU runs
+them later. <em>Lowering</em> adapts the call and its values to the generated
+provider’s argument and result types. A <em>provider request</em> records which
+C++ function is needed, and a <em>session</em> collects those requests for one
+trace.</p>
+<p>The <a class="reference internal" href="index.html"><span class="doc">overview</span></a> introduces groups, per-thread items, and the
+public import. The <a class="reference internal" href="programming_guide.html"><span class="doc">Programming Guide</span></a> covers writing
+kernels and choosing operation controls. Here, an executable prefix-sum
+example shows how a call becomes a compiled device function and where to
+look when changing the implementation.</p>
+<p>For a hands-on tour, follow the <a class="reference internal" href="#cuda-coop-cutlass-debugger-walkthrough"><span class="std std-ref">Debugger Walkthrough</span></a>.
+It uses a 128-thread tile copy to show import, planning, code generation,
+linking, and repeated execution.</p>
+<p>If CUTLASS and its CuTe DSL are new to you, read <a class="reference internal" href="cutlass_primer.html"><span class="doc">Introduction to CUTLASS for cuda.coop Developers</span></a>
+first. It explains how the DSL traces a kernel, how that differs from
+Dynamo, Numba, and Triton, and which DSL facilities this package relies on.
+For the CuTe integration mechanisms alone, without the package’s
+abstractions, see <a class="reference internal" href="cutlass_integration_example.html"><span class="doc">Minimal CuTe DSL Integration Example</span></a>. It calls
+<code class="docutils literal notranslate"><span class="pre">cub::BlockReduce</span></code> from a CuTe kernel in one file and lists the questions
+open for CUTLASS reviewers.</p>
+<section id="following-a-prefix-sum">
+<h2>Following a prefix sum<a class="headerlink" href="#following-a-prefix-sum" title="Link to this heading">#</a></h2>
+<p>The executable Scan example launches one <code class="docutils literal notranslate"><span class="pre">(8,</span> <span class="pre">4,</span> <span class="pre">2)</span></code> block. By default,
+each of its 64 threads owns two items, for a tile of 128 integers. The host entry point checks the following kernel against NumPy:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="nd">@cute</span><span class="o">.</span><span class="n">kernel</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">scan_tiles</span><span class="p">(</span>
+        <span class="n">source</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+        <span class="n">destination</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+        <span class="n">items_per_thread</span><span class="p">:</span> <span class="n">cutlass</span><span class="o">.</span><span class="n">Constexpr</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">this_block</span><span class="p">()</span>
+        <span class="n">storage</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">TempStorage</span><span class="p">(</span>
+            <span class="n">sharing</span><span class="o">=</span><span class="s2">"shared"</span><span class="p">,</span> <span class="n">alignment</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">auto_sync</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="n">payload</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+            <span class="n">group</span><span class="p">,</span>
+            <span class="n">source</span><span class="p">,</span>
+            <span class="n">items_per_thread</span><span class="o">=</span><span class="n">items_per_thread</span><span class="p">,</span>
+            <span class="n">algorithm</span><span class="o">=</span><span class="s2">"transpose"</span><span class="p">,</span>
+            <span class="n">temp_storage</span><span class="o">=</span><span class="n">storage</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">scanned</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">exclusive_scan</span><span class="p">(</span>
+            <span class="n">group</span><span class="p">,</span> <span class="n">payload</span><span class="p">,</span> <span class="n">initial_value</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">temp_storage</span><span class="o">=</span><span class="n">storage</span>
+        <span class="p">)</span>
+        <span class="c1"># Scan returns a new payload. The input retains its original values.</span>
+        <span class="n">coop</span><span class="o">.</span><span class="n">store</span><span class="p">(</span>
+            <span class="n">group</span><span class="p">,</span>
+            <span class="n">destination</span><span class="p">,</span>
+            <span class="n">scanned</span><span class="p">,</span>
+            <span class="n">algorithm</span><span class="o">=</span><span class="s2">"transpose"</span><span class="p">,</span>
+            <span class="n">temp_storage</span><span class="o">=</span><span class="n">storage</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@cute</span><span class="o">.</span><span class="n">jit</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">launch</span><span class="p">(</span>
+        <span class="n">source</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+        <span class="n">destination</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+        <span class="n">items_per_thread</span><span class="p">:</span> <span class="n">cutlass</span><span class="o">.</span><span class="n">Constexpr</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">scan_tiles</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="n">items_per_thread</span><span class="p">)</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span>
+            <span class="n">grid</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="n">_BLOCK</span>
+        <span class="p">)</span>
+
+</pre></div>
+</div>
+<p>Load fills <code class="docutils literal notranslate"><span class="pre">payload</span></code> with consecutive input values. Scan returns a new
+payload whose item at position <code class="docutils literal notranslate"><span class="pre">i</span></code> is seven plus the sum of all inputs
+before <code class="docutils literal notranslate"><span class="pre">i</span></code> in blocked order. Input <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1,</span> <span class="pre">2,</span> <span class="pre">3,</span> <span class="pre">...]</span></code> therefore produces
+<code class="docutils literal notranslate"><span class="pre">[7,</span> <span class="pre">7,</span> <span class="pre">8,</span> <span class="pre">10,</span> <span class="pre">...]</span></code>. Store writes those prefixes to the destination.
+Every thread calls all three primitives. They reuse one <code class="docutils literal notranslate"><span class="pre">TempStorage</span></code>
+descriptor, with <code class="docutils literal notranslate"><span class="pre">auto_sync=True</span></code> synchronizing scratch reuse.</p>
+<p>The <a class="reference download internal" download="" href="../_downloads/8ddfc5bc2587973117a9518950da94ac/scan.py"><code class="xref download docutils literal notranslate"><span class="pre">complete</span> <span class="pre">example</span></code></a> includes
+allocation, launch, cleanup, and an independent NumPy result check. From the
+repository root, run it in the compatible environment described in the
+programming guide:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>python/cuda_coop_cutlass/examples/scan.py
+</pre></div>
+</div>
+<p>CuTe owns the <code class="docutils literal notranslate"><span class="pre">&#64;cute.kernel</span></code> and <code class="docutils literal notranslate"><span class="pre">&#64;cute.jit</span></code> functions, their Python
+control flow, and the launch. Each primitive is a device call inside the
+same kernel.</p>
+</section>
+<section id="compiler-requirements">
+<span id="coop-cutlass-compiler-requirements"></span><h2>Compiler requirements<a class="headerlink" href="#compiler-requirements" title="Link to this heading">#</a></h2>
+<p>The CuTe compiler must support external NVIDIA LTO-IR linking and
+trace-finalization hooks that run after tracing and before module hashing.
+It must provide access to the active compiler environment, exact block, grid,
+and cluster dimensions, and launch flags.
+<code class="docutils literal notranslate"><span class="pre">_compiler/_runtime.py</span></code> checks for the required Python interfaces
+during compiler initialization. Compilation and execution tests check that the
+interfaces work together with NVRTC and the final linker.</p>
+</section>
+<section id="compiler-phases-and-handoffs">
+<span id="cuda-coop-cutlass-compiler-flow"></span><h2>Compiler phases and handoffs<a class="headerlink" href="#compiler-phases-and-handoffs" title="Link to this heading">#</a></h2>
+<p>Read each figure from top to bottom. These steps run on the host. CuTe
+traces the Python kernel with symbolic values. It compiles and links the
+result before the GPU executes it.</p>
+<p>The phase map shows where cooperative calls enter this process. Select
+<strong>Python classes</strong> to see the classes, data records, and module functions
+that implement each step. Function labels include parentheses; a data
+record carries information between steps.</p>
+<div class="sd-tab-set coop-cutlass-compiler-tabs docutils">
+<input checked="checked" id="sd-tab-item-0" name="sd-tab-set-0" type="radio">
+<label aria-controls="sd-tab-item-0-content" class="sd-tab-label" for="sd-tab-item-0">
+Overview</label><div class="sd-tab-content docutils" id="sd-tab-item-0-content">
+<figure class="coop-cutlass-diagram-desktop align-default" id="id1">
+<a class="reference internal image-reference" href="../_images/cutlass-compiler-phases.svg"><img alt="CUTLASS compilation phases, from tracing cooperative calls through provider collection, bundle compilation, scratch materialization, and final linking." src="../_images/cutlass-compiler-phases.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Tracing records calls. Finalization supplies their definitions and
+completes deferred scratch allocations.</span><a class="headerlink" href="#id1" title="Link to this image">#</a></p>
+</figcaption>
+</figure>
+<figure class="coop-cutlass-diagram-mobile align-default" id="id2">
+<a class="reference internal image-reference" href="../_images/cutlass-compiler-phases-mobile.svg"><img alt="CUTLASS compilation phases arranged vertically, from tracing through provider compilation, scratch materialization, linking, and execution." src="../_images/cutlass-compiler-phases-mobile.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Tracing records calls. Finalization supplies their definitions and
+completes deferred scratch allocations.</span><a class="headerlink" href="#id2" title="Link to this image">#</a></p>
+</figcaption>
+</figure>
+</div>
+<input id="sd-tab-item-1" name="sd-tab-set-0" type="radio">
+<label aria-controls="sd-tab-item-1-content" class="sd-tab-label" for="sd-tab-item-1">
+Python classes</label><div class="sd-tab-content docutils" id="sd-tab-item-1-content">
+<figure class="coop-cutlass-diagram-desktop align-default" id="id3">
+<a class="reference internal image-reference" href="../_images/cutlass-compiler-phases-classes.svg"><img alt="CUTLASS phases with concrete implementation names. BundleSession collects provider requests. The trace finalizer obtains a BundleCompilation and materializes DeferredTempStoragePlan records before CuTe links the kernel." src="../_images/cutlass-compiler-phases-classes.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Classes and records describe ownership and data. Module functions
+perform much of the compilation work.</span><a class="headerlink" href="#id3" title="Link to this image">#</a></p>
+</figcaption>
+</figure>
+<figure class="coop-cutlass-diagram-mobile align-default" id="id4">
+<a class="reference internal image-reference" href="../_images/cutlass-compiler-phases-classes-mobile.svg"><img alt="Detailed CUTLASS phases in a vertical layout, including BundleSession, provider request records, bundle compilation, and deferred scratch plans." src="../_images/cutlass-compiler-phases-classes-mobile.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Classes and records describe ownership and data. Module functions
+perform much of the compilation work.</span><a class="headerlink" href="#id4" title="Link to this image">#</a></p>
+</figcaption>
+</figure>
+</div>
+</div>
+<p>Each cooperative call is planned as CuTe traces it. The lowering already
+has the operand types and exact launch facts needed to select its provider.
+It adds a request to <code class="docutils literal notranslate"><span class="pre">BundleSession</span></code>, then emits a symbolic call. CuTe’s
+end-of-trace hook runs after these requests have been collected and before
+device linking.</p>
+<p>The next figure expands this boundary. It shows a nonempty session on a
+provider-cache miss, with deferred scratch. NVRTC compiles the provider
+bundle; CuTe compiles the enclosing kernel and arranges the final link.
+The figures show the device-LTO path that produces a cubin. CuTe supplies
+kernel LTO-IR and provider LTO-IR to nvJitLink.</p>
+<div class="sd-tab-set coop-cutlass-compiler-tabs docutils">
+<input checked="checked" id="sd-tab-item-2" name="sd-tab-set-1" type="radio">
+<label aria-controls="sd-tab-item-2-content" class="sd-tab-label" for="sd-tab-item-2">
+Overview</label><div class="sd-tab-content docutils" id="sd-tab-item-2-content">
+<figure class="coop-cutlass-diagram-desktop align-default" id="id5">
+<a class="reference internal image-reference" href="../_images/cutlass-compiler-swimlane.svg"><img alt="Actor swimlanes show CuTe tracing, cuda.coop collecting providers, NVRTC returning LTO-IR and scratch layouts, and CuTe arranging the final device link before launch." src="../_images/cutlass-compiler-swimlane.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">The bundle and layout queries share one NVRTC program. The final
+device link is a later step.</span><a class="headerlink" href="#id5" title="Link to this image">#</a></p>
+</figcaption>
+</figure>
+<figure class="coop-cutlass-diagram-mobile align-default" id="id6">
+<a class="reference internal image-reference" href="../_images/cutlass-compiler-swimlane-mobile.svg"><img alt="CUTLASS compilation handoffs in time order, with CuTe, cuda.coop, NVRTC, and the device linker identified at each step." src="../_images/cutlass-compiler-swimlane-mobile.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">The bundle and layout queries share one NVRTC program. The final
+device link is a later step.</span><a class="headerlink" href="#id6" title="Link to this image">#</a></p>
+</figcaption>
+</figure>
+</div>
+<input id="sd-tab-item-3" name="sd-tab-set-1" type="radio">
+<label aria-controls="sd-tab-item-3-content" class="sd-tab-label" for="sd-tab-item-3">
+Python classes</label><div class="sd-tab-content docutils" id="sd-tab-item-3-content">
+<figure class="coop-cutlass-diagram-desktop align-default" id="id7">
+<a class="reference internal image-reference" href="../_images/cutlass-compiler-swimlane-classes.svg"><img alt="Implementation-level handoffs through BundleSession, the trace-finalization hook, BundleCompilation, deferred storage planning, and GPU module link-libraries." src="../_images/cutlass-compiler-swimlane-classes.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">The finalizer supplies an artifact path and completes scratch
+operands. It does not launch the kernel.</span><a class="headerlink" href="#id7" title="Link to this image">#</a></p>
+</figcaption>
+</figure>
+<figure class="coop-cutlass-diagram-mobile align-default" id="id8">
+<a class="reference internal image-reference" href="../_images/cutlass-compiler-swimlane-classes-mobile.svg"><img alt="Detailed CUTLASS handoffs in a vertical layout, from provider requests and symbolic calls through NVRTC results, scratch operand replacement, and final linking." src="../_images/cutlass-compiler-swimlane-classes-mobile.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">The finalizer supplies an artifact path and completes scratch
+operands. It does not launch the kernel.</span><a class="headerlink" href="#id8" title="Link to this image">#</a></p>
+</figcaption>
+</figure>
+</div>
+</div>
+<p>Equivalent provider requests share one generated wrapper. Scratch events
+retain each traced use, because separate uses can need separate slices.
+A valid cache entry supplies both the LTO-IR and the queried layouts, so
+that path does not call NVRTC. A session with no providers needs no bundle.
+Separate trace modules keep separate sessions. A trace module can contain
+several kernels; deferred scratch is allocated separately for each kernel.</p>
+<section id="calls-before-compiled-provider-code-exists">
+<h3>Calls before compiled provider code exists<a class="headerlink" href="#calls-before-compiled-provider-code-exists" title="Link to this heading">#</a></h3>
+<p>A provider request determines a symbol name and an argument/result contract
+before NVRTC runs. The renderer uses that name for the C++ definition.
+The lowering uses the same name and contract to emit <code class="docutils literal notranslate"><span class="pre">cute.ffi</span></code> calls.
+This step needs a symbol, not a loaded device address.</p>
+<p>At finalization, <code class="docutils literal notranslate"><span class="pre">_trace_finalize_hook()</span></code> attaches the compiled bundle to
+the GPU module’s <code class="docutils literal notranslate"><span class="pre">link-libraries</span></code> attribute. CuTe computes its module hash
+after the hook returns, builds the module, then checks its compile cache.
+The device linker resolves the call against its definition and can optimize
+it with the kernel.
+The provider can be inlined, so it need not remain a separate function in
+the final cubin. Loading that cubin makes the kernel available to launch.</p>
+<p>Scratch addresses follow a separate path. During tracing, calls that need
+deferred scratch use placeholder address and size operands. NVRTC supplies
+the exact C++ size and alignment. The finalizer inserts shared-memory
+allocations and replaces those operands before device compilation finishes.
+It does not replace a placeholder provider function pointer.</p>
+</section>
+<section id="what-to-inspect-at-each-boundary">
+<h3>What to inspect at each boundary<a class="headerlink" href="#what-to-inspect-at-each-boundary" title="Link to this heading">#</a></h3>
+<div class="pst-scrollable-table-container"><table class="table" id="id9">
+<caption><span class="caption-text">Trace data and finalization data</span><a class="headerlink" href="#id9" title="Link to this table">#</a></caption>
+<colgroup>
+<col style="width: 33.0%" />
+<col style="width: 67.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Object or record</p></th>
+<th class="head"><p>What it tells you</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GroupLoweringPlan</span></code></p></td>
+<td><p>Selected implementation, participation, result, storage, and
+synchronization requirements for one cooperative call.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Provider request, such as <code class="docutils literal notranslate"><span class="pre">_CubScanRequest</span></code></p></td>
+<td><p>Plan plus the CuTe types and ABI choices needed to render a
+wrapper and emit its matching call.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">BundleSession</span></code></p></td>
+<td><p>Unique provider requests and ordered scratch events for one trace
+module. A snapshot restores this bookkeeping after failed emission;
+it does not undo emitted IR.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">BundleCompilation</span></code></p></td>
+<td><p>Path to provider LTO-IR and exact C++ layouts indexed by requirement.
+A cache hit and a fresh compilation return the same kind of result.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DeferredTempStoragePlan</span></code></p></td>
+<td><p>Allocation size, alignment, and per-use bindings. Materialization
+inserts allocations and replaces each use’s address and size.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<section id="compiler-integration">
+<span id="coop-compiler-ownership"></span><h2>Compiler integration<a class="headerlink" href="#compiler-integration" title="Link to this heading">#</a></h2>
+<p>Importing <code class="docutils literal notranslate"><span class="pre">cuda.coop.cutlass</span></code> checks the CuTe runtime through
+<code class="docutils literal notranslate"><span class="pre">_compiler/_runtime.py</span></code>. A cooperative call reads the active CuTe compiler
+environment and emits into the enclosing kernel trace. Import itself does
+not compile a kernel.</p>
+<p>The private <code class="docutils literal notranslate"><span class="pre">_compiler</span></code> modules own trace sessions, provider bundles,
+launch facts, finalization, cache artifacts, and deferred storage. The
+<code class="docutils literal notranslate"><span class="pre">_planning</span></code> modules select CUB specializations and their participation,
+result, storage, and synchronization contracts. The <code class="docutils literal notranslate"><span class="pre">_headers</span></code> package
+resolves the configured source tree or installed header bundle and toolkit.</p>
+</section>
+<section id="primitive-families">
+<h2>Primitive families<a class="headerlink" href="#primitive-families" title="Link to this heading">#</a></h2>
+<p>A <a class="reference internal" href="glossary.html#term-family"><span class="xref std std-term">family</span></a> groups related primitives and their implementation. Scan
+includes <code class="docutils literal notranslate"><span class="pre">scan</span></code>, <code class="docutils literal notranslate"><span class="pre">inclusive_scan</span></code>, <code class="docutils literal notranslate"><span class="pre">exclusive_scan</span></code>, <code class="docutils literal notranslate"><span class="pre">inclusive_sum</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">exclusive_sum</span></code>. Its public entry points and type declarations live in
+<code class="docutils literal notranslate"><span class="pre">_group_scan.py</span></code> and <code class="docutils literal notranslate"><span class="pre">_group_scan.pyi</span></code>; planning lives in
+<code class="docutils literal notranslate"><span class="pre">_planning/group/scan.py</span></code> and CuTe adaptation in <code class="docutils literal notranslate"><span class="pre">_lowering/_scan.py</span></code>.
+Paths in this guide are relative to
+<code class="docutils literal notranslate"><span class="pre">python/cuda_coop_cutlass/cuda/coop/cutlass</span></code> unless stated otherwise.</p>
+</section>
+<section id="planning-the-cub-call">
+<span id="from-a-call-to-a-typed-provider-request"></span><h2>Planning the CUB call<a class="headerlink" href="#planning-the-cub-call" title="Link to this heading">#</a></h2>
+<p>For Load, <code class="docutils literal notranslate"><span class="pre">_group_load_store.py</span></code> first validates the group, payload,
+and controls. It classifies a control as omitted, a compile-time constant,
+or a runtime value. The lowering then reads the CuTe memory operand’s
+element type, or takes the <code class="docutils literal notranslate"><span class="pre">dtype</span></code> the caller declared for it, and checks
+that its layout exposes the contiguous pointer required by CUB.</p>
+<p>The planner uses those arguments and the kernel’s launch dimensions to
+choose a CUB specialization. It also determines which threads must participate
+and what scratch storage and barriers the call needs. The lowering puts the plan and CuTe scalar type into a
+provider request, which the renderer uses to generate the wrapper.</p>
+<p>In the example, <code class="docutils literal notranslate"><span class="pre">algorithm=&quot;transpose&quot;</span></code> selects CUB Block Load and Store
+for a 64-thread block with two integers per thread. Thread rank <code class="docutils literal notranslate"><span class="pre">t</span></code> owns
+tile items <code class="docutils literal notranslate"><span class="pre">2</span> <span class="pre">*</span> <span class="pre">t</span></code> and <code class="docutils literal notranslate"><span class="pre">2</span> <span class="pre">*</span> <span class="pre">t</span> <span class="pre">+</span> <span class="pre">1</span></code>. Block Scan computes exclusive sums
+in that blocked order. The generated wrappers and scratch plans reflect
+each primitive’s algorithm, element type, and items per thread.</p>
+<p>The renderer generates a device wrapper with an ordinary callable symbol.
+CuTe’s <code class="docutils literal notranslate"><span class="pre">cute.ffi</span></code> emits the call to that symbol. Load uses a result buffer
+to return its items, then updates the <code class="docutils literal notranslate"><span class="pre">ThreadData</span></code> values after the FFI
+call is successfully emitted. Store passes the existing items to its
+provider. The plan identifies equivalent requests so they can share one
+generated function and cached artifact.</p>
+<p>Other primitive families use the same approach. For Reduce, the planner
+selects CUB BlockReduce or WarpReduce, checks scalar or per-thread payload
+support, and records scratch requirements. Block reductions accept an explicit
+<code class="docutils literal notranslate"><span class="pre">TempStorage</span></code> descriptor; warp reductions use compiler-owned storage.
+The Reduce lowering generates the wrapper and adapts CuTe’s values to its
+arguments. The returned scalar is defined only at group rank zero.</p>
+</section>
+<section id="exact-launch-facts">
+<span id="coop-cutlass-exact-launch-facts"></span><h2>Exact launch facts<a class="headerlink" href="#exact-launch-facts" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">_compiler/_launch.py</span></code> reads the compiler-provided exact block,
+grid, and cluster dimensions and the cooperative/cluster launch flags. The
+adapter records their origin in the <code class="docutils literal notranslate"><span class="pre">LaunchFacts</span></code> object. If a
+dimension or flag is unavailable, it stays unknown in that object. Planning
+fails if the primitive needs the missing value.</p>
+<p>For the prefix sum, block dimensions determine both the CUB specialization
+and linear rank: <code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">+</span> <span class="pre">block_x</span> <span class="pre">*</span> <span class="pre">(y</span> <span class="pre">+</span> <span class="pre">block_y</span> <span class="pre">*</span> <span class="pre">z)</span></code>. Warp primitives also
+need the exact block size to establish complete physical warps and allocate
+one scratch slice per group. Cluster primitives need consistent cluster
+dimensions and launch mode.</p>
+<p>Do not substitute <code class="docutils literal notranslate"><span class="pre">maxntid</span></code> for exact dimensions: an upper bound does not
+prove the number of participating threads. The adapter does not infer
+launches from Python frames or a user-maintained launch description.</p>
+</section>
+<section id="one-provider-bundle-per-trace">
+<h2>One provider bundle per trace<a class="headerlink" href="#one-provider-bundle-per-trace" title="Link to this heading">#</a></h2>
+<p>Each trace has a provider session keyed by its compile options and MLIR
+module. The session deduplicates equivalent requests and records deferred
+scratch uses. Load, Scan, and Store in the example contribute to the same
+bundle; finalization compiles the three providers together.</p>
+<p><code class="docutils literal notranslate"><span class="pre">cuda.coop.cutlass</span></code> registers one persistent trace-finalization hook with CuTe.
+The hook runs for every trace on that DSL. It finds the session belonging
+to the module being finalized and leaves unrelated or nested sessions alone.
+The hook renders the requests into one C++ translation unit, compiles it
+to NVIDIA LTO-IR, and attaches the artifact to each <code class="docutils literal notranslate"><span class="pre">gpu.module</span></code> in the
+trace through its <code class="docutils literal notranslate"><span class="pre">link-libraries</span></code> attribute. The CuTe compiler and final linker then resolve
+the <code class="docutils literal notranslate"><span class="pre">cute.ffi</span></code> calls while compiling the enclosing kernel.</p>
+<p>Header and toolkit discovery use the helpers under <code class="docutils literal notranslate"><span class="pre">_headers</span></code>.
+The compiler libraries for the selected toolkit are loaded before importing
+the NVRTC bindings, and the loaded NVRTC version is checked against that
+selection. A mismatch reports an error before provider compilation. The
+final linker must also accept the generated LTO-IR; successful NVRTC
+compilation alone does not establish that compatibility.</p>
+<p>The cache identity includes the rendered source, header identity, compiler
+options, architecture, and resolved toolkit/compiler information. Cache
+loads validate the artifact and any recorded scratch layouts. Cache writes
+use a lock and atomic replacement. The LTO-IR file remains available until
+the final linker has read it. Finalization removes stale managed library
+paths from persistent compiler options so the next trace cannot link an
+earlier bundle by mistake.</p>
+<p>Failed emission restores the queued requests and pending scratch uses saved in
+the provider-session snapshot. It does not undo emitted IR or payload changes.
+Finalization removes only its own session. Lifecycle tests exercise failed
+compilation or linking followed by a successful retry, as well as repeated and
+nested compilation. These checks matter because one Python process can compile
+many kernels through the same CuTe DSL.</p>
+</section>
+<section id="scratch-allocation-after-tracing">
+<span id="coop-cutlass-scratch-allocation"></span><h2>Scratch allocation after tracing<a class="headerlink" href="#scratch-allocation-after-tracing" title="Link to this heading">#</a></h2>
+<p>Direct, striped, and vectorized Load/Store do not use scratch. Their provider
+ABI omits a storage pointer, and passing a <code class="docutils literal notranslate"><span class="pre">TempStorage</span></code> descriptor does
+not add a reuse barrier or change the storage-free provider’s identity.</p>
+<p>Calls with deferred scratch record its use while tracing. The finalizer
+adds <code class="docutils literal notranslate"><span class="pre">sizeof</span></code> and <code class="docutils literal notranslate"><span class="pre">alignof</span></code> probes to the same NVRTC program as the
+provider bundle. The resulting C++ layouts determine the allocation; the
+adapter does not estimate storage sizes from the element count. Other
+providers, including Warp Scan, declare their shared storage inside the
+generated C++ wrapper and do not need this placeholder-replacement step.</p>
+<p>Deferred events let one explicit descriptor serve several calls. Shared
+storage uses enough capacity for the largest requirement, while exclusive
+storage assigns separate slices to distinct call sites. Requested alignment
+is a minimum. An explicit capacity that cannot accommodate its uses is an
+error. Once the layouts are known, the finalizer materializes shared-memory
+allocations and replaces the trace’s storage placeholders.</p>
+<p><code class="docutils literal notranslate"><span class="pre">TempStorage.reserve</span></code> records an event with a known element size and
+alignment, and returns an ordinary CuTe tensor built from an address
+placeholder. It participates in the same descriptor layout as primitive
+scratch. Finalization resolves these views even when the kernel has no
+cooperative provider calls. A descriptor with reservations requires
+<code class="docutils literal notranslate"><span class="pre">auto_sync=False</span></code> for every use; finalization also checks earlier and later
+primitive events before materializing its allocation.</p>
+<p><code class="docutils literal notranslate"><span class="pre">TempStorage.release(dtype=None)</span></code> consumes the descriptor and returns its
+complete region as a one-dimensional native CuTe tensor. The default dtype
+is <code class="docutils literal notranslate"><span class="pre">cutlass.Uint8</span></code>. Inferred size resolves during finalization; exclusive
+slices, their padding, and explicit extra capacity are included. The region
+must be nonempty, its size divisible by the element size, and its guaranteed
+alignment sufficient for the requested type. The descriptor must be
+constructed inside the kernel.
+For a typed release without preceding primitive or reservation uses, specify
+<code class="docutils literal notranslate"><span class="pre">alignment</span></code> of at least the dtype’s element size on the constructor.</p>
+<p>Release adds no allocation or synchronization. Complete previous accesses
+and asynchronous operations before using overlapping bytes. All aliases of
+the descriptor become unusable on the executing path, including calls to
+<code class="docutils literal notranslate"><span class="pre">reserve</span></code>, <code class="docutils literal notranslate"><span class="pre">sync</span></code>, <code class="docutils literal notranslate"><span class="pre">release</span></code>, and storage-free primitives. The finalizer
+checks reachable branch and loop paths, so a conditional release prevents a
+later use after the branches join. Mutually exclusive releases are valid,
+as is a fresh descriptor constructed and consumed within each iteration.
+Runtime selection between different descriptor instances is rejected when
+release is involved; it cannot silently select the Python trace’s template.
+Identity tokens and use markers support this analysis without device-side
+lifetime flags.</p>
+<p>Exclusive slices still need reuse synchronization when one call site runs
+again in a loop. Explicit descriptors default to <code class="docutils literal notranslate"><span class="pre">auto_sync=False</span></code> for both
+sharing modes, so the kernel must call <code class="docutils literal notranslate"><span class="pre">storage.sync()</span></code> before reuse. Set
+<code class="docutils literal notranslate"><span class="pre">auto_sync=True</span></code> to insert automatic trailing synchronization.
+Compiler-managed scratch synchronizes automatically. Physical and logical
+warp primitives use independent per-group storage and the appropriate warp
+mask rather than a block barrier. See the programming guide for each family’s
+explicit-storage support and participation rules.</p>
+</section>
+<section id="finding-the-implementation">
+<h2>Finding the implementation<a class="headerlink" href="#finding-the-implementation" title="Link to this heading">#</a></h2>
+<p>Paths below are relative to <code class="docutils literal notranslate"><span class="pre">python/cuda_coop_cutlass/cuda/coop/cutlass</span></code>.
+Planning describes primitive semantics; lowering adapts CuTe values and emits
+provider calls.</p>
+<div class="pst-scrollable-table-container"><table class="table" id="id10">
+<caption><span class="caption-text">Source map</span><a class="headerlink" href="#id10" title="Link to this table">#</a></caption>
+<colgroup>
+<col style="width: 36.0%" />
+<col style="width: 64.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Area</p></th>
+<th class="head"><p>Starting points</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Header and toolkit discovery</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_headers/__init__.py</span></code>, <code class="docutils literal notranslate"><span class="pre">_headers/_identity.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">_headers/_toolkit.py</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Compiler validation and launch facts</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_compiler/_runtime.py</span></code>, <code class="docutils literal notranslate"><span class="pre">_compiler/_launch.py</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>User-facing values and groups</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_thread_data.py</span></code>, <code class="docutils literal notranslate"><span class="pre">_thread_group.py</span></code>, <code class="docutils literal notranslate"><span class="pre">_temp_storage.py</span></code>,
+and their <code class="docutils literal notranslate"><span class="pre">.pyi</span></code> files</p></td>
+</tr>
+<tr class="row-odd"><td><p>Family planning and lowering</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_planning/group/</span></code> and <code class="docutils literal notranslate"><span class="pre">_lowering/</span></code>; public entry points live
+in the corresponding <code class="docutils literal notranslate"><span class="pre">_group_*.py</span></code> modules</p></td>
+</tr>
+<tr class="row-even"><td><p>Provider sessions and finalization</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_compiler/_state.py</span></code>, <code class="docutils literal notranslate"><span class="pre">_compiler/_finalize.py</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Rendering, compilation, and artifacts</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_compiler/_rendering.py</span></code>, <code class="docutils literal notranslate"><span class="pre">_compiler/_bundle.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">_compiler/_nvrtc.py</span></code>, <code class="docutils literal notranslate"><span class="pre">_compiler/_cache.py</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Scratch layout, materialization, and lifetime</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_compiler/_layout.py</span></code>, <code class="docutils literal notranslate"><span class="pre">_compiler/_storage.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">_compiler/_lifetime.py</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="debugger-walkthrough">
+<span id="cuda-coop-cutlass-debugger-walkthrough"></span><h2>Debugger Walkthrough<a class="headerlink" href="#debugger-walkthrough" title="Link to this heading">#</a></h2>
+<p>Follow a tile copy through a Python debugger to see the planner
+choose a CUB specialization, CuTe emit the device calls, and NVRTC compile
+their providers. These stops are in the host Python code doing the
+compilation. The GPU executes the resulting kernel later; a Python
+breakpoint does not stop a GPU thread.</p>
+<section id="an-example-to-debug">
+<h3>An example to debug<a class="headerlink" href="#an-example-to-debug" title="Link to this heading">#</a></h3>
+<p>Open <code class="docutils literal notranslate"><span class="pre">docs/python/coop_cutlass/debugger_walkthrough.py</span></code> in your checkout,
+or <a class="reference download internal" download="" href="../_downloads/36a03a73cad24c2d65f2a05f5da16e21/debugger_walkthrough.py"><code class="xref download docutils literal notranslate"><span class="pre">download</span> <span class="pre">the</span> <span class="pre">example</span></code></a>.
+It needs no command-line arguments. Its kernel and launcher are:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="nd">@cute</span><span class="o">.</span><span class="n">kernel</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">copy_tile</span><span class="p">(</span>
+        <span class="n">source</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+        <span class="n">destination</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+        <span class="n">items_per_thread</span><span class="p">:</span> <span class="n">cutlass</span><span class="o">.</span><span class="n">Constexpr</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">block</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">this_block</span><span class="p">()</span>
+        <span class="n">scratch</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">TempStorage</span><span class="p">(</span><span class="n">auto_sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+            <span class="n">block</span><span class="p">,</span>
+            <span class="n">source</span><span class="p">,</span>
+            <span class="n">items_per_thread</span><span class="o">=</span><span class="n">items_per_thread</span><span class="p">,</span>
+            <span class="n">algorithm</span><span class="o">=</span><span class="n">algorithm</span><span class="p">,</span>
+            <span class="n">temp_storage</span><span class="o">=</span><span class="n">scratch</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">coop</span><span class="o">.</span><span class="n">store</span><span class="p">(</span>
+            <span class="n">block</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="n">items</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="n">algorithm</span><span class="p">,</span> <span class="n">temp_storage</span><span class="o">=</span><span class="n">scratch</span>
+        <span class="p">)</span>
+
+    <span class="nd">@cute</span><span class="o">.</span><span class="n">jit</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">launch</span><span class="p">(</span>
+        <span class="n">source</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+        <span class="n">destination</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+        <span class="n">items_per_thread</span><span class="p">:</span> <span class="n">cutlass</span><span class="o">.</span><span class="n">Constexpr</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">copy_tile</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="n">items_per_thread</span><span class="p">)</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span>
+            <span class="n">grid</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="mi">128</span>
+        <span class="p">)</span>
+
+</pre></div>
+</div>
+<p>The default <code class="docutils literal notranslate"><span class="pre">algorithm</span></code> is <code class="docutils literal notranslate"><span class="pre">&quot;direct&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">items_per_thread</span></code> is <code class="docutils literal notranslate"><span class="pre">2</span></code>.
+Each of the 128 threads copies two integers, so the default tile contains 256
+items. The kernel and launcher specialize the item-count argument with
+<code class="docutils literal notranslate"><span class="pre">cutlass.Constexpr</span></code>; pass <code class="docutils literal notranslate"><span class="pre">--items-per-thread</span></code> to change it. <code class="docutils literal notranslate"><span class="pre">scratch</span></code>
+is a descriptor: Direct Load and Store ignore it and allocate no shared
+memory. The same descriptor shows scratch reuse in the transpose pass.</p>
+<p>The complete example allocates device buffers with the CUDA Driver API,
+wraps their addresses in CuTe pointers, and frees them before returning.
+It compiles the launcher once, then calls the resulting function twice:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>            <span class="n">compiled</span> <span class="o">=</span> <span class="n">cute</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+                <span class="n">launch</span><span class="p">,</span> <span class="n">source_pointer</span><span class="p">,</span> <span class="n">destination_pointer</span><span class="p">,</span> <span class="n">items_per_thread</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">iteration</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+                <span class="n">destination</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">_check</span><span class="p">(</span>
+                    <span class="n">driver</span><span class="o">.</span><span class="n">cuMemcpyHtoD</span><span class="p">(</span>
+                        <span class="n">destination_device</span><span class="p">,</span>
+                        <span class="n">destination</span><span class="o">.</span><span class="n">ctypes</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+                        <span class="n">destination</span><span class="o">.</span><span class="n">nbytes</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">compiled</span><span class="p">(</span><span class="n">source_pointer</span><span class="p">,</span> <span class="n">destination_pointer</span><span class="p">)</span>
+                <span class="n">_check</span><span class="p">(</span><span class="n">driver</span><span class="o">.</span><span class="n">cuCtxSynchronize</span><span class="p">())</span>
+                <span class="n">_check</span><span class="p">(</span>
+                    <span class="n">driver</span><span class="o">.</span><span class="n">cuMemcpyDtoH</span><span class="p">(</span>
+                        <span class="n">destination</span><span class="o">.</span><span class="n">ctypes</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+                        <span class="n">destination_device</span><span class="p">,</span>
+                        <span class="n">destination</span><span class="o">.</span><span class="n">nbytes</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_array_equal</span><span class="p">(</span><span class="n">destination</span><span class="p">,</span> <span class="n">source</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Launch </span><span class="si">{</span><span class="n">iteration</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">algorithm</span><span class="si">}</span><span class="s2">): copy verified"</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Each iteration resets the device output to <code class="docutils literal notranslate"><span class="pre">-1</span></code>, launches the copy,
+synchronizes, and checks every value against NumPy. Here,
+<code class="docutils literal notranslate"><span class="pre">cute.compile</span></code> makes compilation an explicit step before either launch.
+The two calls to <code class="docutils literal notranslate"><span class="pre">compiled</span></code> reuse that kernel.</p>
+<p>A direct call to a CuTe <code class="docutils literal notranslate"><span class="pre">&#64;cute.jit</span></code> function can trace again to compute the
+module’s cache key, even when compiled code is reusable. Retaining the
+compiled callable makes the two GPU launches independent of that tracing path.</p>
+</section>
+<section id="configure-vs-code">
+<h3>Configure VS Code<a class="headerlink" href="#configure-vs-code" title="Link to this heading">#</a></h3>
+<p>Open this CCCL checkout as the VS Code folder. Use <strong>Python: Select
+Interpreter</strong> to select an environment satisfying the
+<a class="reference internal" href="#coop-cutlass-compiler-requirements"><span class="std std-ref">CUTLASS compiler requirements</span></a>
+and the <a class="reference internal" href="programming_guide.html"><span class="doc">programming guide’s installation requirements</span></a>.
+A CUTLASS package that imports successfully may still lack an interface
+needed by this walkthrough. Install the Python and Python Debugger
+extensions where the program runs, including the remote side when using
+Remote SSH.</p>
+<p>Add this configuration to <code class="docutils literal notranslate"><span class="pre">.vscode/launch.json</span></code>. If the file already
+exists, add the entry to its <code class="docutils literal notranslate"><span class="pre">configurations</span></code> list:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.2.0"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"configurations"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"cuda.coop CUTLASS: Debug active Python file"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"debugpy"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"request"</span><span class="p">:</span><span class="w"> </span><span class="s2">"launch"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"program"</span><span class="p">:</span><span class="w"> </span><span class="s2">"${file}"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"console"</span><span class="p">:</span><span class="w"> </span><span class="s2">"integratedTerminal"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"cwd"</span><span class="p">:</span><span class="w"> </span><span class="s2">"${workspaceFolder}"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"justMyCode"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"env"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"PYTHONPATH"</span><span class="p">:</span><span class="w"> </span><span class="s2">"${workspaceFolder}/python/cuda_coop_cutlass"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"CUDA_COOP_CUTLASS_CCCL_ROOT"</span><span class="p">:</span><span class="w"> </span><span class="s2">"${workspaceFolder}"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"CUDA_COOP_CUTLASS_SOURCE_DUMP_DIR"</span><span class="p">:</span><span class="w"> </span><span class="s2">"${workspaceFolder}/build/coop-cutlass-debug-sources"</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">justMyCode:</span> <span class="pre">false</span></code> permits stepping into library code. <code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code> and
+<code class="docutils literal notranslate"><span class="pre">CUDA_COOP_CUTLASS_CCCL_ROOT</span></code> select this checkout’s Python sources and C++ headers.
+<code class="docutils literal notranslate"><span class="pre">cute.compile</span></code> explicitly requests CuTe compilation. When run as a script,
+the example also selects a fresh temporary provider-cache directory and
+removes it on exit. A new process with that empty provider cache lets each
+debug session reach NVRTC.</p>
+<p>On a machine with several GPUs, add <code class="docutils literal notranslate"><span class="pre">CUDA_VISIBLE_DEVICES</span></code> to <code class="docutils literal notranslate"><span class="pre">env</span></code>.
+Use the toolkit configured for your compatible compiler environment.</p>
+<p>Set the first breakpoint on <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">cuda.coop.cutlass</span> <span class="pre">as</span> <span class="pre">coop</span></code> in the example.
+Keep that file active, select the named configuration in <strong>Run and Debug</strong>,
+and press <strong>F5</strong>. <code class="docutils literal notranslate"><span class="pre">${file}</span></code> selects the active editor file when the
+session starts. <strong>F10</strong> steps over, <strong>F11</strong> steps into, <strong>Shift+F11</strong> steps
+out, and <strong>F5</strong> continues. Debug Console expressions use the selected
+Call Stack frame. See the
+<a class="reference external" href="https://code.visualstudio.com/docs/python/debugging">VS Code Python debugging documentation</a> for those controls.</p>
+<p>The stops below identify executable statements by function name, so they
+remain useful as line numbers change. Set each breakpoint before continuing
+past the stage that calls it. Avoid calling primitives from Debug Console:
+they can emit additional IR into the paused trace.</p>
+</section>
+<section id="initial-import-and-compiler-validation">
+<h3>Initial import and compiler validation<a class="headerlink" href="#initial-import-and-compiler-validation" title="Link to this heading">#</a></h3>
+<p>The first stop is just before <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">cuda.coop.cutlass</span> <span class="pre">as</span> <span class="pre">coop</span></code>; the
+example has already imported CuTe. In <code class="docutils literal notranslate"><span class="pre">_compiler/_runtime.py</span></code>, set a
+breakpoint in <code class="docutils literal notranslate"><span class="pre">validate_cutlass_runtime</span></code> before continuing through the
+package import. Inspect the compiler environment and supported runtime hooks.
+This validation establishes the available interfaces; compilation and device
+execution remain separate steps.</p>
+<p>Disable the import breakpoints and stop on
+<code class="docutils literal notranslate"><span class="pre">compiled</span> <span class="pre">=</span> <span class="pre">cute.compile(...)</span></code> in the example. Evaluate:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">coop</span><span class="o">.</span><span class="vm">__file__</span>
+<span class="n">cutlass</span><span class="o">.</span><span class="vm">__file__</span>
+<span class="n">source</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span>
+<span class="n">destination</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span>
+<span class="n">algorithm</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">coop.__file__</span></code> should point inside your checkout. <code class="docutils literal notranslate"><span class="pre">cutlass.__file__</span></code>
+identifies the dependency selected by the interpreter. The arrays start
+with <code class="docutils literal notranslate"><span class="pre">0,</span> <span class="pre">1,</span> <span class="pre">...,</span> <span class="pre">7</span></code> and eight <code class="docutils literal notranslate"><span class="pre">-1</span></code> values respectively, and
+<code class="docutils literal notranslate"><span class="pre">algorithm</span></code> is <code class="docutils literal notranslate"><span class="pre">&quot;direct&quot;</span></code>. Compilation and both launches are still
+ahead of you.</p>
+</section>
+<section id="follow-the-launch-dimensions">
+<h3>Follow the launch dimensions<a class="headerlink" href="#follow-the-launch-dimensions" title="Link to this heading">#</a></h3>
+<p>Continue from <code class="docutils literal notranslate"><span class="pre">cute.compile</span></code> until CuTe traces the kernel. Cooperative
+calls execute directly in this trace and read its exact launch dimensions.
+Paths for the following stops are relative to
+<code class="docutils literal notranslate"><span class="pre">python/cuda_coop_cutlass/cuda/coop/cutlass/</span></code>.</p>
+<p>In <code class="docutils literal notranslate"><span class="pre">_group_load_store.py:_resolve_group()</span></code>, break on
+<code class="docutils literal notranslate"><span class="pre">resolved</span> <span class="pre">=</span> <span class="pre">_resolve_primitive_group_from_launch(...)</span></code>. At that stop,
+inspect:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">operation</span>
+<span class="n">launch</span><span class="o">.</span><span class="n">exact_block_dim</span>
+<span class="n">launch</span><span class="o">.</span><span class="n">exact_grid_dim</span>
+<span class="n">launch</span><span class="o">.</span><span class="n">provenance</span>
+</pre></div>
+</div>
+<p>The first operation is <code class="docutils literal notranslate"><span class="pre">&quot;load&quot;</span></code>, with block <code class="docutils literal notranslate"><span class="pre">(128,</span> <span class="pre">1,</span> <span class="pre">1)</span></code> and grid
+<code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">1,</span> <span class="pre">1)</span></code>. The provenance names the compiler’s launch-facts API.
+Step into <code class="docutils literal notranslate"><span class="pre">current_kernel_launch_facts()</span></code> on a fresh pass if you want
+to follow that dependency boundary. These dimensions come from
+<code class="docutils literal notranslate"><span class="pre">.launch(grid=1,</span> <span class="pre">block=128)</span></code> and determine the CUB specialization.</p>
+</section>
+<section id="from-a-primitive-call-to-a-plan">
+<h3>From a primitive call to a plan<a class="headerlink" href="#from-a-primitive-call-to-a-plan" title="Link to this heading">#</a></h3>
+<p>Set a breakpoint in <code class="docutils literal notranslate"><span class="pre">_lowering/_load_store.py:_make_request()</span></code> on
+<code class="docutils literal notranslate"><span class="pre">return</span> <span class="pre">_CubLoadStoreRequest(plan,</span> <span class="pre">value_type)</span></code>. Continue and inspect:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">kind</span>
+<span class="n">value_type</span>
+<span class="n">plan</span><span class="o">.</span><span class="n">target</span>
+<span class="nb">dict</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">implementation</span><span class="o">.</span><span class="n">template_arguments</span><span class="p">)</span>
+<span class="n">plan</span><span class="o">.</span><span class="n">participation</span>
+<span class="n">plan</span><span class="o">.</span><span class="n">temp_storage</span>
+<span class="n">plan</span><span class="o">.</span><span class="n">synchronization</span>
+</pre></div>
+</div>
+<p>The plan selects <code class="docutils literal notranslate"><span class="pre">CUB_BLOCK</span></code>, <code class="docutils literal notranslate"><span class="pre">cutlass.Int32</span></code>, 128 threads, two items
+per thread, and <code class="docutils literal notranslate"><span class="pre">::cub::BLOCK_LOAD_DIRECT</span></code>. Participation requires
+the full block. Storage ownership and the storage-reuse barrier are
+<code class="docutils literal notranslate"><span class="pre">NONE</span></code>, even though the example supplied <code class="docutils literal notranslate"><span class="pre">scratch</span></code>.</p>
+<p>Set the next breakpoint in <code class="docutils literal notranslate"><span class="pre">provider_load()</span></code> in the same file, on
+<code class="docutils literal notranslate"><span class="pre">_state.register_request(request)</span></code>. Inspect <code class="docutils literal notranslate"><span class="pre">request.cpp_type</span></code>,
+<code class="docutils literal notranslate"><span class="pre">request.symbol_name</span></code>, <code class="docutils literal notranslate"><span class="pre">runtime_types</span></code>, and <code class="docutils literal notranslate"><span class="pre">runtime_args</span></code>. The C++
+type specializes <code class="docutils literal notranslate"><span class="pre">cub::BlockLoad</span></code>. The symbol names the device wrapper
+that will implement it. Both runtime-control lists are empty: this copy
+has no valid-prefix count, offset, or fill argument.</p>
+<p>Step over request registration. It records the request in a session owned
+by this trace and arranges for a finalization hook. No C++ has been
+compiled yet.</p>
+</section>
+<section id="emit-the-device-calls">
+<h3>Emit the device calls<a class="headerlink" href="#emit-the-device-calls" title="Link to this heading">#</a></h3>
+<p>Still in <code class="docutils literal notranslate"><span class="pre">provider_load()</span></code>, stop on <code class="docutils literal notranslate"><span class="pre">ffi(...)</span></code> after
+<code class="docutils literal notranslate"><span class="pre">scratch_types,</span> <span class="pre">scratch_args</span> <span class="pre">=</span> <span class="pre">_scratch_arguments(...)</span></code>. Both scratch
+lists are empty. The FFI signature has two pointers: the source address
+and a per-thread result buffer containing two integers.</p>
+<p>Step over the complete FFI call and the following payload assignments.
+CuTe has emitted a call into its IR, and <code class="docutils literal notranslate"><span class="pre">output</span></code> now holds the CuTe
+values read from that result buffer. You are inspecting compiler values;
+the GPU has not loaded a particular thread’s integers yet.</p>
+<p>Continue to the plan breakpoint for Store. It selects
+<code class="docutils literal notranslate"><span class="pre">::cub::BLOCK_STORE_DIRECT</span></code>. In <code class="docutils literal notranslate"><span class="pre">provider_store()</span></code>, break on its
+<code class="docutils literal notranslate"><span class="pre">ffi(...)</span></code> call and inspect <code class="docutils literal notranslate"><span class="pre">values</span></code> and <code class="docutils literal notranslate"><span class="pre">request.symbol_name</span></code>.
+Store passes the destination pointer and the two item values. Unlike
+Load, it needs no result buffer. Disable the plan and emission breakpoints
+after inspecting both operations.</p>
+</section>
+<section id="finalize-the-trace-and-compile-the-providers">
+<h3>Finalize the trace and compile the providers<a class="headerlink" href="#finalize-the-trace-and-compile-the-providers" title="Link to this heading">#</a></h3>
+<p>Before continuing from Store, set a breakpoint in
+<code class="docutils literal notranslate"><span class="pre">_compiler/_finalize.py:_trace_finalize_hook()</span></code> on
+<code class="docutils literal notranslate"><span class="pre">source</span> <span class="pre">=</span> <span class="pre">_rendering.render_bundle_source(requests)</span></code>. This statement
+comes after the checks that select this module’s provider session, so
+unrelated modules do not stop here. Inspect:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">len</span><span class="p">(</span><span class="n">requests</span><span class="p">)</span>
+<span class="p">[</span><span class="n">request</span><span class="o">.</span><span class="n">symbol_name</span> <span class="k">for</span> <span class="n">request</span> <span class="ow">in</span> <span class="n">requests</span><span class="p">]</span>
+<span class="n">session</span><span class="o">.</span><span class="n">deferred_temp_storage_event_list</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">module</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>There are two requests, one for Load and one for Store, and no deferred
+storage events. The IR contains calls to the symbols you saw in the
+lowerings. Step over the rendering assignment and inspect <code class="docutils literal notranslate"><span class="pre">source</span></code>.
+Both wrappers belong to one C++ translation unit. The Load wrapper builds
+a two-item C++ array, calls <code class="docutils literal notranslate"><span class="pre">BlockLoad::Load</span></code>, and writes the result
+buffer; Store builds its array from the two scalar arguments and calls
+<code class="docutils literal notranslate"><span class="pre">BlockStore::Store</span></code>.</p>
+<p>In <code class="docutils literal notranslate"><span class="pre">_compiler/_bundle.py:_compile_bundle_source()</span></code>, break on
+<code class="docutils literal notranslate"><span class="pre">options</span> <span class="pre">=</span> <span class="pre">_nvrtc.compiler_options(context,</span> <span class="pre">arch)</span></code>. Continue, inspect
+<code class="docutils literal notranslate"><span class="pre">context.include_dirs</span></code> and <code class="docutils literal notranslate"><span class="pre">context.toolkit_root</span></code>, then step over
+the assignment. <code class="docutils literal notranslate"><span class="pre">options</span></code> contains C++17, relocatable device code,
+<code class="docutils literal notranslate"><span class="pre">-dlto</span></code>, the target architecture, and the include directories. This is
+also a useful stop for detecting headers or toolkit libraries from the
+wrong installation.</p>
+<p>Before continuing, set a breakpoint in <code class="docutils literal notranslate"><span class="pre">_compiler/_nvrtc.py:_compile_ltoir()</span></code>
+on <code class="docutils literal notranslate"><span class="pre">error,</span> <span class="pre">program</span> <span class="pre">=</span> <span class="pre">nvrtc.nvrtcCreateProgram(...)</span></code>. At that stop,
+<code class="docutils literal notranslate"><span class="pre">source</span></code> contains both providers and <code class="docutils literal notranslate"><span class="pre">prepared</span></code> is <code class="docutils literal notranslate"><span class="pre">None</span></code> for this
+storage-free copy. Step through <code class="docutils literal notranslate"><span class="pre">nvrtcCompileProgram</span></code> and its error
+check, then the <code class="docutils literal notranslate"><span class="pre">nvrtcGetLTOIRSize</span></code> and <code class="docutils literal notranslate"><span class="pre">nvrtcGetLTOIR</span></code> calls. <code class="docutils literal notranslate"><span class="pre">blob</span></code>
+contains the provider LTO-IR. The full C++ is also saved under
+<code class="docutils literal notranslate"><span class="pre">build/coop-cutlass-debug-sources</span></code> for inspection outside the debugger.</p>
+</section>
+<section id="hand-the-link-input-back-to-cute">
+<h3>Hand the link input back to CuTe<a class="headerlink" href="#hand-the-link-input-back-to-cute" title="Link to this heading">#</a></h3>
+<p>Set a breakpoint at the end of <code class="docutils literal notranslate"><span class="pre">_trace_finalize_hook()</span></code> on
+<code class="docutils literal notranslate"><span class="pre">_bundle.append_link_library_attr(module,</span> <span class="pre">path)</span></code>. Continue and inspect
+<code class="docutils literal notranslate"><span class="pre">path</span></code>. It names the cached <code class="docutils literal notranslate"><span class="pre">.ltoir</span></code> file containing both providers.
+Step over the call and evaluate:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">[(</span><span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">attributes</span><span class="p">[</span><span class="s2">"link-libraries"</span><span class="p">]))</span>
+ <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">module</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">operations</span> <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">"gpu.module"</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>The GPU module now names that file as a link input. CuTe’s compiler and
+final linker consume it to resolve the device calls. The example keeps
+its temporary cache alive through compilation and both launches.
+This handoff is a useful boundary when diagnosing a failure: reaching
+it proves provider compilation finished, while successful kernel linking
+and execution still lie ahead.</p>
+</section>
+<section id="finish-the-launch-and-observe-reuse">
+<h3>Finish the launch and observe reuse<a class="headerlink" href="#finish-the-launch-and-observe-reuse" title="Link to this heading">#</a></h3>
+<p>Disable the compiler breakpoints and set one on
+<code class="docutils literal notranslate"><span class="pre">compiled(source_pointer,</span> <span class="pre">destination_pointer)</span></code> in the example.
+Continue. <code class="docutils literal notranslate"><span class="pre">cute.compile</span></code> has returned a callable; the first launch is
+about to execute it with <code class="docutils literal notranslate"><span class="pre">iteration</span> <span class="pre">==</span> <span class="pre">0</span></code>. Continue again to reach
+the second launch with <code class="docutils literal notranslate"><span class="pre">iteration</span> <span class="pre">==</span> <span class="pre">1</span></code>. The first verification message
+has printed, and <code class="docutils literal notranslate"><span class="pre">destination</span></code> has been reset to <code class="docutils literal notranslate"><span class="pre">-1</span></code> on both host
+and device.</p>
+<p>Re-enable the plan and NVRTC breakpoints, then continue. Calling <code class="docutils literal notranslate"><span class="pre">compiled</span></code>
+executes the existing kernel without tracing or provider compilation. Neither
+breakpoint should fire, and the second verification message should print.
+Calling <code class="docutils literal notranslate"><span class="pre">cute.compile</span></code> again would request another CuTe compilation, though
+the provider cache could supply its LTO-IR. Start a new debug session to
+repeat the tour; editing a file while paused does not replace the function
+already loaded in the current process.</p>
+</section>
+<section id="a-second-pass-shared-scratch-and-synchronization">
+<h3>A second pass: shared scratch and synchronization<a class="headerlink" href="#a-second-pass-shared-scratch-and-synchronization" title="Link to this heading">#</a></h3>
+<p>Add <code class="docutils literal notranslate"><span class="pre">&quot;args&quot;:</span> <span class="pre">[&quot;--algorithm&quot;,</span> <span class="pre">&quot;transpose&quot;]</span></code> to the launch configuration
+and start a new debug session. From a terminal, the equivalent is:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>docs/python/coop_cutlass/debugger_walkthrough.py<span class="w"> </span>--algorithm<span class="w"> </span>transpose
+</pre></div>
+</div>
+<p>The kernel, launch dimensions, and expected output are unchanged. At the
+plan stop, <code class="docutils literal notranslate"><span class="pre">ALGORITHM</span></code> now selects <code class="docutils literal notranslate"><span class="pre">BLOCK_LOAD_TRANSPOSE</span></code> or
+<code class="docutils literal notranslate"><span class="pre">BLOCK_STORE_TRANSPOSE</span></code>. Storage ownership is <code class="docutils literal notranslate"><span class="pre">CALLER</span></code>, and the
+storage-reuse barrier is <code class="docutils literal notranslate"><span class="pre">BLOCK</span></code>. The FFI signatures gain three scratch
+arguments: a shared-memory address, its capacity in bytes, and the
+automatic-synchronization flag.</p>
+<p>Set these additional breakpoints before reaching Load:</p>
+<ul class="simple">
+<li><p>In <code class="docutils literal notranslate"><span class="pre">_compiler/_storage.py:register_deferred_temp_storage_event()</span></code>,
+break on <code class="docutils literal notranslate"><span class="pre">session.add_deferred_temp_storage_event(...)</span></code>. Inspect
+<code class="docutils literal notranslate"><span class="pre">primitive_name</span></code>, <code class="docutils literal notranslate"><span class="pre">requirement_key</span></code>, <code class="docutils literal notranslate"><span class="pre">smem_addr_placeholder</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">size_placeholder</span></code>. The address and size are fresh IR placeholders;
+NVRTC has not yet supplied the C++ scratch layout. Load and Store record
+separate uses of the same <code class="docutils literal notranslate"><span class="pre">TempStorage</span></code> descriptor.</p></li>
+<li><p>In <code class="docutils literal notranslate"><span class="pre">_compiler/_finalize.py:_trace_finalize_hook()</span></code>, break on
+<code class="docutils literal notranslate"><span class="pre">plans</span> <span class="pre">=</span> <span class="pre">_storage.plan_deferred_temp_storage_events(...)</span></code>. Inspect
+<code class="docutils literal notranslate"><span class="pre">compilation.layouts</span></code>. NVRTC has compiled both providers and recovered
+their exact C++ <code class="docutils literal notranslate"><span class="pre">sizeof</span></code> and <code class="docutils literal notranslate"><span class="pre">alignof</span></code> requirements from the same
+program. Step over planning and inspect <code class="docutils literal notranslate"><span class="pre">plans</span></code>: there is one shared
+allocation, sized for the larger requirement. Its two bindings have
+byte offset zero. The size and alignment come from this build; do not
+copy fixed numbers from another toolkit.</p></li>
+<li><p>In <code class="docutils literal notranslate"><span class="pre">_compiler/_storage.py:materialize_deferred_temp_storage_plans()</span></code>,
+break on <code class="docutils literal notranslate"><span class="pre">smem_ptr</span> <span class="pre">=</span> <span class="pre">allocator.allocate(...)</span></code>. Inspect
+<code class="docutils literal notranslate"><span class="pre">plan.size_in_bytes</span></code>, <code class="docutils literal notranslate"><span class="pre">plan.alignment</span></code>, and <code class="docutils literal notranslate"><span class="pre">plan.bindings</span></code>. Step
+through allocation and operand replacement to see the recorded calls
+acquire their actual address and capacity.</p></li>
+</ul>
+<p>At the link-input stop, compare <code class="docutils literal notranslate"><span class="pre">print(module)</span></code> with the Direct version.
+There is now a shared allocation and the calls carry scratch operands.
+Open the dumped C++ and find <code class="docutils literal notranslate"><span class="pre">temp_storage_auto_sync</span></code>. Each wrapper
+ends with a conditional <code class="docutils literal notranslate"><span class="pre">__syncthreads()</span></code>; this example passes a true
+flag, so Load finishes using the workspace before Store reuses it.</p>
+<p>CUTLASS emits the trailing barrier in the provider wrapper and patches
+deferred storage operands after obtaining the C++ layouts. <code class="docutils literal notranslate"><span class="pre">ThreadData</span></code>
+still holds the per-thread payload; <code class="docutils literal notranslate"><span class="pre">TempStorage</span></code> describes the shared
+workspace used during each primitive. Continue to verify both launches of the
+transpose copy.</p>
+</section>
+<section id="if-a-breakpoint-does-not-stop">
+<h3>If a breakpoint does not stop<a class="headerlink" href="#if-a-breakpoint-does-not-stop" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Check <code class="docutils literal notranslate"><span class="pre">coop.__file__</span></code> at the first launch. The executing module and
+breakpoint must belong to the same checkout. Inspect <code class="docutils literal notranslate"><span class="pre">cutlass.__file__</span></code>
+too if a required compiler interface is missing.</p></li>
+<li><p>Use the named launch configuration with <code class="docutils literal notranslate"><span class="pre">justMyCode:</span> <span class="pre">false</span></code>. A hollow
+breakpoint can remain pending until its module loads. Put it on an
+executable statement rather than a decorator or <code class="docutils literal notranslate"><span class="pre">def</span></code> line.</p></li>
+<li><p>If compiler initialization is skipped, check the example’s import order.
+Read any dependency error or compiler initialization warning before
+investigating later compiler stops.</p></li>
+<li><p>If NVRTC is skipped, restart the complete script. Its temporary provider
+cache is created only under <code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">__name__</span> <span class="pre">==</span> <span class="pre">&quot;__main__&quot;</span></code>. Check that
+the provider directory is new and that you set the breakpoint before
+<code class="docutils literal notranslate"><span class="pre">cute.compile</span></code>. A stop in <code class="docutils literal notranslate"><span class="pre">_compile_bundle_source()</span></code> can show a
+provider-cache hit. A source dump alone does not prove NVRTC ran: the
+backend writes the dump before looking up a cached provider.</p></li>
+<li><p>If a later launch retraces, check that you are calling <code class="docutils literal notranslate"><span class="pre">compiled</span></code>.
+This walkthrough retains the callable returned by <code class="docutils literal notranslate"><span class="pre">cute.compile</span></code>
+and invokes it twice; calling the decorated <code class="docutils literal notranslate"><span class="pre">launch</span></code> directly follows
+CuTe’s JIT path instead.</p></li>
+</ul>
+</section>
+</section>
+<section id="working-on-a-primitive">
+<h2>Working on a primitive<a class="headerlink" href="#working-on-a-primitive" title="Link to this heading">#</a></h2>
+<p>Start with the C++ overload and a small kernel exercising it. Check the
+family plan for payload layout, participation, result ownership, and storage
+requirements. Keep the public entry point and its <code class="docutils literal notranslate"><span class="pre">.pyi</span></code> declaration aligned.</p>
+<p>Adapt the plan in <code class="docutils literal notranslate"><span class="pre">_lowering</span></code>. The lowering must agree with its provider
+wrapper about argument types, result buffers, and scratch operands. Register
+the typed request with the current session and preserve rollback if emission
+fails. Load demonstrates a newly returned payload; Scan and Reduce show
+additional result contracts and controls. Reuse the existing renderer
+compiler initialization, bundle finalizer, and storage planner when their contracts
+express the operation.</p>
+</section>
+<section id="checking-a-change">
+<h2>Checking a change<a class="headerlink" href="#checking-a-change" title="Link to this heading">#</a></h2>
+<p>Start with the affected family under
+<code class="docutils literal notranslate"><span class="pre">python/cuda_coop_cutlass/tests</span></code>. Unit tests check plan selection,
+argument contracts, and state transitions. Compile tests exercise real CuTe
+traces, launch metadata, FFI emission, and lifecycle recovery. Runtime tests
+compare results and layouts against independent references, including
+partial tiles and repeated scratch reuse. For storage-policy routing, see
+<code class="docutils literal notranslate"><span class="pre">unit/test_load_store_plans.py</span></code>.</p>
+<p>For a Load/Store or lifecycle change, the following are useful entry points
+from the repository root with the package and compatible compiler installed:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>-q<span class="w"> </span>python/cuda_coop_cutlass/tests/unit/test_compiler.py
+python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>-q<span class="w"> </span>python/cuda_coop_cutlass/tests/compile/test_compiler_lifecycle.py
+python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>-q<span class="w"> </span>python/cuda_coop_cutlass/tests/runtime/test_block_load_store.py
+python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>-q<span class="w"> </span>python/cuda_coop_cutlass/tests/runtime/test_block_algorithms.py
+</pre></div>
+</div>
+<p>The compile and runtime examples above require a compatible CUDA environment
+and GPU. Inspect skips when assessing coverage: an absent optional compiler
+does not establish a passing compiler integration. Fresh-process and installed-artifact tests check namespace coexistence,
+module origins, import diagnostics, and typing. Run affected planning tests
+when changing specialization or participation rules.</p>
+<p>To inspect the generated C++, set <code class="docutils literal notranslate"><span class="pre">CUDA_COOP_CUTLASS_SOURCE_DUMP_DIR</span></code> before
+compiling a kernel. The dump includes the source on provider-cache hits too.
+<code class="docutils literal notranslate"><span class="pre">CUDA_COOP_CUTLASS_PROVIDER_CACHE_DIR</span></code> selects the provider artifact cache
+when a test needs an isolated cache directory. See <a class="reference internal" href="configuration.html"><span class="doc">Configuration</span></a>
+for these settings and header-selection controls.</p>
+<p>For generated-code claims, inspect the final linked cubin with <code class="docutils literal notranslate"><span class="pre">cuobjdump</span></code>.
+<code class="docutils literal notranslate"><span class="pre">runtime/test_block_load_store.py</span></code> checks that direct Load/Store leave no
+provider calls, shared accesses, or barriers. The final-cubin check in
+<code class="docutils literal notranslate"><span class="pre">runtime/test_block_algorithms.py</span></code> tests striped, vectorize, and transpose.
+It requires shared memory and barriers only for transpose. The final-cubin
+checks in <code class="docutils literal notranslate"><span class="pre">runtime/test_warp_load_store.py</span></code> and
+<code class="docutils literal notranslate"><span class="pre">runtime/test_logical_warp_load_store.py</span></code> reject provider calls and block
+barriers for physical and logical Warp operations. They forbid shared memory
+and warp synchronization for storage-free algorithms. Transpose must use
+shared memory, except that the width-one test leaves allocation unconstrained.</p>
+<p>The final-cubin check in <code class="docutils literal notranslate"><span class="pre">runtime/test_reduce.py</span></code> confirms that the CUB Reduce routes leave no provider calls. It does not check shared
+memory, registers, or barriers.</p>
+<p>The final-cubin check in <code class="docutils literal notranslate"><span class="pre">runtime/test_scan.py</span></code> rejects provider calls for
+block and logical-Warp Scan, and block barriers for the logical-Warp path.
+It saves resource reports but does not check them.</p>
+<p>The final-cubin checks in <code class="docutils literal notranslate"><span class="pre">runtime/test_exchange.py</span></code> and
+<code class="docutils literal notranslate"><span class="pre">runtime/test_shuffle.py</span></code> reject provider calls for block and logical-Warp
+Exchange and for array and scalar Shuffle. The Exchange check also rejects
+block barriers on the logical-Warp path. Neither check examines shared
+memory. <code class="docutils literal notranslate"><span class="pre">runtime/test_group_hierarchy.py</span></code> checks that mapped-group queries
+leave no calls, barriers, warp synchronization, or shared memory.</p>
+<p>The final-cubin check in <code class="docutils literal notranslate"><span class="pre">runtime/test_merge_sort.py</span></code> rejects provider
+calls for a partial block sort and a logical-Warp sort. It also rejects block
+barriers on the logical-Warp path. It does not check shared memory.</p>
+<p>Provider source or intermediate PTX alone cannot prove the final result. Use
+Compute Sanitizer race checks for changes to scratch allocation or
+synchronization. Numerical correctness, generated-code evidence, and
+public-package qualification require separate checks.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="tensor_memory_topk.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Tensor Core and TopK interop</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="cutlass_primer.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Introduction to CUTLASS for cuda.coop Developers</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+
+
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#following-a-prefix-sum">Following a prefix sum</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#compiler-requirements">Compiler requirements</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#compiler-phases-and-handoffs">Compiler phases and handoffs</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#calls-before-compiled-provider-code-exists">Calls before compiled provider code exists</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#what-to-inspect-at-each-boundary">What to inspect at each boundary</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#compiler-integration">Compiler integration</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#primitive-families">Primitive families</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#planning-the-cub-call">Planning the CUB call</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#exact-launch-facts">Exact launch facts</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#one-provider-bundle-per-trace">One provider bundle per trace</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#scratch-allocation-after-tracing">Scratch allocation after tracing</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#finding-the-implementation">Finding the implementation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#debugger-walkthrough">Debugger Walkthrough</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#an-example-to-debug">An example to debug</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#configure-vs-code">Configure VS Code</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#initial-import-and-compiler-validation">Initial import and compiler validation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#follow-the-launch-dimensions">Follow the launch dimensions</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#from-a-primitive-call-to-a-plan">From a primitive call to a plan</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#emit-the-device-calls">Emit the device calls</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#finalize-the-trace-and-compile-the-providers">Finalize the trace and compile the providers</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hand-the-link-input-back-to-cute">Hand the link input back to CuTe</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#finish-the-launch-and-observe-reuse">Finish the launch and observe reuse</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#a-second-pass-shared-scratch-and-synchronization">A second pass: shared scratch and synchronization</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#if-a-breakpoint-does-not-stop">If a breakpoint does not stop</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#working-on-a-primitive">Working on a primitive</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#checking-a-change">Checking a change</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+
+
+
+  <p class="copyright">
+    
+      Copyright © 2026, NVIDIA Corporation.
+      <br/>
+    
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+  </p>
+</div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

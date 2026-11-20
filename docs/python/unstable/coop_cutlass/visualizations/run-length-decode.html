@@ -1,0 +1,743 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Run Length Decode &#8212; CCCL Python Libraries</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/nvidia-sphinx-theme.css?v=933278ad" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=6a604523" />
+    <link rel="stylesheet" type="text/css" href="../../_static/coop-load.css?v=0eb92e8c" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+
+
+    <script src="../../_static/documentation_options.js?v=bbe6ed3a"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=5ceeb459"></script>
+    <script data-sd-tabs-storage-prefix="sphinx-design-tab-id-" src="../../_static/design-tabs.js?v=fcb327ea"></script>
+    <script defer="defer" src="../../_static/coop-explorer.js?v=a439be83"></script>
+    <script defer="defer" src="../../_static/coop-run-length-decode.js?v=807b89db"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'coop_cutlass/visualizations/run-length-decode';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.24.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://sri-koundinyan.github.io/cccl/python/nv-versions.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'unstable';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+
+    <link rel="canonical" href="https://sri-koundinyan.github.io/cccl/python/unstable/coop_cutlass/visualizations/run-length-decode.html" />
+    <link rel="icon" href="../../_static/favicon.png"/>
+
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Merge Sort" href="merge-sort.html" />
+    <link rel="prev" title="Histogram" href="histogram.html" />
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="unstable" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
+
+
+  </head>
+
+  <body data-default-mode="">
+
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">This is the <strong>development</strong> documentation, built from the latest commit on <code>main</code>.</div>
+</aside>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/nvidia-logo-horiz-rgb-blk-for-screen.svg" class="logo__image only-light" alt="CCCL Python Libraries - Home"/>
+    <img src="../../_static/nvidia-logo-horiz-rgb-wht-for-screen.svg" class="logo__image only-dark pst-js-only" alt="CCCL Python Libraries - Home"/>
+  
+  
+    <p class="title logo__title">CCCL Python Libraries</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+
+
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/NVIDIA/cccl" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/nvidia-logo-horiz-rgb-blk-for-screen.svg" class="logo__image only-light" alt="CCCL Python Libraries - Home"/>
+    <img src="../../_static/nvidia-logo-horiz-rgb-wht-for-screen.svg" class="logo__image only-dark pst-js-only" alt="CCCL Python Libraries - Home"/>
+  
+  
+    <p class="title logo__title">CCCL Python Libraries</p>
+  
+</a>
+
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+
+
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-3"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-3"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-3"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-3">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/NVIDIA/cccl" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Table of Contents">
+  <p class="bd-links__title" role="heading" aria-level="1">Table of Contents</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">CCCL Python Libraries</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../setup.html">Setup and Installation</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../compute/index.html"><code class="docutils literal notranslate"><span class="pre">cuda.compute</span></code>: Parallel Computing Primitives</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../compute/index.html">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../compute/developer_overview.html"><code class="docutils literal notranslate"><span class="pre">cuda.compute</span></code> Developer Overview</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../index.html"><code class="docutils literal notranslate"><span class="pre">cuda.coop.cutlass</span></code></a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../concepts.html">Programming concepts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../programming_guide.html">Programming Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html"><code class="docutils literal notranslate"><span class="pre">cuda.coop.cutlass</span></code> API Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html">Executable examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tensor_memory_topk.html">Tensor Core and TopK interop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer_guide.html">Developer Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cutlass_primer.html">Introduction to CUTLASS for cuda.coop Developers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cutlass_integration_example.html">Minimal CuTe DSL Integration Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../configuration.html">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../faqs.html">FAQs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../glossary.html">Glossary</a></li>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="index.html">Visualizations</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="load.html">Load</a></li>
+<li class="toctree-l3"><a class="reference internal" href="store.html">Store</a></li>
+<li class="toctree-l3"><a class="reference internal" href="exchange.html">Exchange</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shuffle.html">Shuffle</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduce.html">Reduce</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reduce-batched.html">Batched Warp Reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="scan.html">Scan</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adjacent-difference.html">Adjacent Difference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discontinuity.html">Discontinuity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="histogram.html">Histogram</a></li>
+<li class="toctree-l3 current active"><a aria-current="page" class="current reference internal" href="#">Run Length Decode</a></li>
+<li class="toctree-l3"><a class="reference internal" href="merge-sort.html">Merge Sort</a></li>
+<li class="toctree-l3"><a class="reference internal" href="radix.html">Radix Sort and Rank</a></li>
+<li class="toctree-l3"><a class="reference internal" href="topk.html">TopK</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../../stf.html"><code class="docutils literal notranslate"><span class="pre">cuda.stf._experimental</span></code>: Sequential Task Flow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../resources.html">Resources</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../api_reference.html">API Reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../compute_api.html"><code class="docutils literal notranslate"><span class="pre">cuda.compute</span></code> API Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../stf_api.html"><code class="docutils literal notranslate"><span class="pre">cuda.stf._experimental</span></code> API Reference</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link"><code class="docutils literal notranslate"><span class="pre">cuda.coop.cutlass</span></code></a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Visualizations</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Run Length Decode</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="run-length-decode">
+<span id="coop-visualization-run-length-decode"></span><h1>Run Length Decode<a class="headerlink" href="#run-length-decode" title="Link to this heading">#</a></h1>
+<p>Run Length Decode expands each run value by its length. Values <code class="docutils literal notranslate"><span class="pre">[7,</span> <span class="pre">9]</span></code>
+with lengths <code class="docutils literal notranslate"><span class="pre">[3,</span> <span class="pre">2]</span></code> describe the stream <code class="docutils literal notranslate"><span class="pre">[7,</span> <span class="pre">7,</span> <span class="pre">7,</span> <span class="pre">9,</span> <span class="pre">9]</span></code>.
+<a class="reference internal" href="../api.html#cuda.coop.cutlass.run_length_decode" title="cuda.coop.cutlass.run_length_decode"><code class="xref py py-func docutils literal notranslate"><span class="pre">cuda.coop.cutlass.run_length_decode()</span></code></a> returns one window of that stream as a
+fresh per-thread payload. <a class="reference internal" href="../api.html#cuda.coop.cutlass.run_length_decode_into" title="cuda.coop.cutlass.run_length_decode_into"><code class="xref py py-func docutils literal notranslate"><span class="pre">cuda.coop.cutlass.run_length_decode_into()</span></code></a> writes
+the whole stream to an array and returns its total size to every thread.
+Both preserve the run inputs.</p>
+<p>The explorer uses a complete block of four teaching threads. Choose the
+input lengths and the number of decoded items per thread, then compare a
+single window with the bulk loop. Input runs and decoded outputs have
+independent per-thread extents. The example below uses a complete physical block.</p>
+<div class="coop-visualization docutils container">
+<div data-coop-explorer="run-length-decode"></div><div class="coop-visualization-fallback docutils container">
+<figure class="align-default" id="id1">
+<a class="reference internal image-reference" href="../../_images/run-length-decode.svg"><img alt="Run values 7 and 9 with lengths 3 and 2 have exclusive starts 0 and 3 and total size 5. A four-item window at offset 2 returns 7, 9, 9, 0. The final slot is outside the stream and zero-filled." src="../../_images/run-length-decode.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">One decoded item per teaching thread, window offset 2.</span><a class="headerlink" href="#id1" title="Link to this image">#</a></p>
+</figcaption>
+</figure>
+<p>An exclusive scan of the run lengths gives the run starts. A decoded
+index belongs to the last positive-length run whose start is no greater
+than that index.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Run values          7    9    2    5
+Run lengths         3    2    0    0     (trailing padding)
+Exclusive starts    0    3    5    5     total = 5
+Full stream         7    7    7    9    9
+Window indices      2    3    4    5     window offset = 2
+Window values       7    9    9    0     last slot zero-filled
+</pre></div>
+</div>
+</div>
+</div>
+<section id="run-inputs-and-window-ownership">
+<h2>Run inputs and window ownership<a class="headerlink" href="#run-inputs-and-window-ownership" title="Link to this heading">#</a></h2>
+<p>Each block owns a fixed tile of runs in <a class="reference internal" href="../glossary.html#term-blocked"><span class="xref std std-term">blocked</span></a> order. Thread
+<code class="docutils literal notranslate"><span class="pre">t</span></code> holds run <code class="docutils literal notranslate"><span class="pre">t</span> <span class="pre">*</span> <span class="pre">runs_per_thread</span> <span class="pre">+</span> <span class="pre">i</span></code> in its local slot <code class="docutils literal notranslate"><span class="pre">i</span></code>. All
+positive run lengths must precede any zero padding. Zeros let a fixed run
+tile represent fewer runs; an all-zero tile represents an empty stream.
+An interior zero followed by a positive length is invalid.</p>
+<p><code class="docutils literal notranslate"><span class="pre">decoded_items_per_thread</span></code> sets the returned payload’s extent. If it is
+<code class="docutils literal notranslate"><span class="pre">D</span></code>, a block of <code class="docutils literal notranslate"><span class="pre">B</span></code> threads returns a window of <code class="docutils literal notranslate"><span class="pre">B</span> <span class="pre">*</span> <span class="pre">D</span></code> positions.
+Thread <code class="docutils literal notranslate"><span class="pre">t</span></code> receives decoded indices beginning at
+<code class="docutils literal notranslate"><span class="pre">decoded_window_offset</span> <span class="pre">+</span> <span class="pre">t</span> <span class="pre">*</span> <span class="pre">D</span></code>. The window offset counts decoded items,
+so it can begin inside a run. It must have the same value in every thread.</p>
+<p>For the example above, offset 2 starts at the last <code class="docutils literal notranslate"><span class="pre">7</span></code>. The next two
+items are <code class="docutils literal notranslate"><span class="pre">9</span></code>. A four-item window also includes decoded index 5, which
+is beyond the total of 5. The wrapper fills that value slot with zero.
+These tail values are defined;
+an empty stream or a window starting at or beyond the total produces the
+same fill values in every slot.</p>
+</section>
+<section id="preparing-and-reusing-the-table">
+<h2>Preparing and reusing the table<a class="headerlink" href="#preparing-and-reusing-the-table" title="Link to this heading">#</a></h2>
+<p>The provider checks the lengths and computes exclusive run starts, then
+passes the values and starts to <a class="reference external" href="https://sri-koundinyan.github.io/cccl/cpp/unstable/cub/api/classcub_1_1BlockRunLengthDecode.html#_CPPv4I0_i_i_i0_i_iEN3cub20BlockRunLengthDecodeE" title="(in CUDA Core Compute Libraries unstable)"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">cub::BlockRunLengthDecode</span></code></a>.
+CUB holds the prepared run table in shared storage. Its decode method
+looks up each requested window in that table; it does not advance a
+hidden cursor. The explorer shows these dependencies and storage lifetime,
+not a sequence of compiled CUB instructions.</p>
+<p>Each <a class="reference internal" href="../api.html#cuda.coop.cutlass.run_length_decode" title="cuda.coop.cutlass.run_length_decode"><code class="xref py py-func docutils literal notranslate"><span class="pre">run_length_decode()</span></code></a> call prepares its own table.
+The bulk <a class="reference internal" href="../api.html#cuda.coop.cutlass.run_length_decode_into" title="cuda.coop.cutlass.run_length_decode_into"><code class="xref py py-func docutils literal notranslate"><span class="pre">run_length_decode_into()</span></code></a> call prepares the table
+once and keeps it alive across an internal loop. Each iteration decodes
+<code class="docutils literal notranslate"><span class="pre">block_threads</span> <span class="pre">*</span> <span class="pre">decoded_items_per_thread</span></code> positions and stores only the
+valid part of its window. The final iteration can be partial. No public
+parent object or prepared-state token is needed for either operation.</p>
+<p>In bulk mode, <code class="docutils literal notranslate"><span class="pre">destination_offset</span></code> is the index where the full stream
+is written. It does not skip decoded input. The destination must have
+room for that offset plus the entire decoded total. Select “One slot too
+small” to see the guard stop before any output write. An empty stream
+leaves the destination unchanged, provided its offset is within capacity.</p>
+<p>Only complete one-dimensional blocks are supported. All members take
+part, including threads holding only zero-length padding. The API checks
+negative lengths, padding order, total overflow, and runtime offset ranges.
+The caller supplies uniform controls and nonoverlapping output arrays.
+See the <a class="reference internal" href="../api.html"><span class="doc">cuda.coop.cutlass API Reference</span></a> reference for dtype and size limits.</p>
+</section>
+<section id="window-and-bulk-decoding">
+<h2>Window and bulk decoding<a class="headerlink" href="#window-and-bulk-decoding" title="Link to this heading">#</a></h2>
+<p>This example decodes a fixed window, then reuses scratch to write the complete
+stream at a nonzero destination offset. Window and run extents are independent.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cutlass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cutlass</span><span class="w"> </span><span class="kn">import</span> <span class="n">cute</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">cuda.coop.cutlass</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">coop</span>
+
+<span class="nd">@cute</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">decode_runs</span><span class="p">(</span>
+    <span class="n">window_pointer</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+    <span class="n">stream_pointer</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+    <span class="n">totals_pointer</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+    <span class="n">items_per_thread</span><span class="p">:</span> <span class="n">cutlass</span><span class="o">.</span><span class="n">Constexpr</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">block</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">this_block</span><span class="p">()</span>
+    <span class="n">rank</span> <span class="o">=</span> <span class="n">cutlass</span><span class="o">.</span><span class="n">Int32</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">rank</span><span class="p">())</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">ThreadData</span><span class="p">(</span><span class="n">items_per_thread</span><span class="p">)</span>
+    <span class="n">lengths</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">ThreadData</span><span class="p">(</span><span class="n">items_per_thread</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">cutlass</span><span class="o">.</span><span class="n">range_constexpr</span><span class="p">(</span><span class="n">items_per_thread</span><span class="p">):</span>
+        <span class="n">values</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">=</span> <span class="n">rank</span> <span class="o">*</span> <span class="n">items_per_thread</span> <span class="o">+</span> <span class="n">item</span> <span class="o">+</span> <span class="mi">10</span>
+        <span class="n">lengths</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">=</span> <span class="n">cutlass</span><span class="o">.</span><span class="n">Uint32</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">scratch</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">TempStorage</span><span class="p">(</span><span class="n">auto_sync</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">window</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">run_length_decode</span><span class="p">(</span>
+        <span class="n">block</span><span class="p">,</span>
+        <span class="n">values</span><span class="p">,</span>
+        <span class="n">lengths</span><span class="p">,</span>
+        <span class="n">decoded_items_per_thread</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">decoded_window_offset</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">temp_storage</span><span class="o">=</span><span class="n">scratch</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">coop</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">window_pointer</span><span class="p">,</span> <span class="n">window</span><span class="p">)</span>
+    <span class="n">destination</span> <span class="o">=</span> <span class="n">cute</span><span class="o">.</span><span class="n">make_tensor</span><span class="p">(</span>
+        <span class="n">stream_pointer</span><span class="p">,</span> <span class="n">cute</span><span class="o">.</span><span class="n">make_layout</span><span class="p">(</span><span class="mi">64</span> <span class="o">*</span> <span class="n">items_per_thread</span> <span class="o">+</span> <span class="mi">16</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="n">coop</span><span class="o">.</span><span class="n">run_length_decode_into</span><span class="p">(</span>
+        <span class="n">block</span><span class="p">,</span>
+        <span class="n">values</span><span class="p">,</span>
+        <span class="n">lengths</span><span class="p">,</span>
+        <span class="n">destination</span><span class="p">,</span>
+        <span class="n">decoded_items_per_thread</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">destination_offset</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">temp_storage</span><span class="o">=</span><span class="n">scratch</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">totals</span> <span class="o">=</span> <span class="n">cute</span><span class="o">.</span><span class="n">make_tensor</span><span class="p">(</span><span class="n">totals_pointer</span><span class="p">,</span> <span class="n">cute</span><span class="o">.</span><span class="n">make_layout</span><span class="p">(</span><span class="mi">32</span><span class="p">))</span>
+    <span class="n">totals</span><span class="p">[</span><span class="n">rank</span><span class="p">]</span> <span class="o">=</span> <span class="n">total</span>
+
+<span class="nd">@cute</span><span class="o">.</span><span class="n">jit</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">launch</span><span class="p">(</span>
+    <span class="n">window_pointer</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+    <span class="n">stream_pointer</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+    <span class="n">totals_pointer</span><span class="p">:</span> <span class="n">cute</span><span class="o">.</span><span class="n">Pointer</span><span class="p">,</span>
+    <span class="n">items_per_thread</span><span class="p">:</span> <span class="n">cutlass</span><span class="o">.</span><span class="n">Constexpr</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">decode_runs</span><span class="p">(</span>
+        <span class="n">window_pointer</span><span class="p">,</span> <span class="n">stream_pointer</span><span class="p">,</span> <span class="n">totals_pointer</span><span class="p">,</span> <span class="n">items_per_thread</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span>
+        <span class="n">grid</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">block</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+    <span class="p">)</span>
+
+</pre></div>
+</div>
+<p>Scratch remains occupied throughout the bulk call’s internal loop. Explicit
+descriptors default to <code class="docutils literal notranslate"><span class="pre">auto_sync=False</span></code>: synchronize before the next use
+or request <code class="docutils literal notranslate"><span class="pre">auto_sync=True</span></code>. Totals use <code class="docutils literal notranslate"><span class="pre">Uint32</span></code>; negative lengths,
+misplaced padding, and overflow trap before decoding. See
+<a class="reference internal" href="../faqs.html#coop-faq-temp-storage"><span class="std std-ref">Why or when would I provide my own TempStorage?</span></a> for reuse requirements.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="histogram.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Histogram</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="merge-sort.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Merge Sort</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+
+
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#run-inputs-and-window-ownership">Run inputs and window ownership</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#preparing-and-reusing-the-table">Preparing and reusing the table</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#window-and-bulk-decoding">Window and bulk decoding</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+
+
+
+  <p class="copyright">
+    
+      Copyright © 2026, NVIDIA Corporation.
+      <br/>
+    
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+  </p>
+</div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

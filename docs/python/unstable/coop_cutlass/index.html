@@ -1,0 +1,784 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>cuda.coop.cutlass &#8212; CCCL Python Libraries</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/nvidia-sphinx-theme.css?v=933278ad" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=6a604523" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+
+
+    <script src="../_static/documentation_options.js?v=bbe6ed3a"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=5ceeb459"></script>
+    <script data-sd-tabs-storage-prefix="sphinx-design-tab-id-" src="../_static/design-tabs.js?v=fcb327ea"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'coop_cutlass/index';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.24.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://sri-koundinyan.github.io/cccl/python/nv-versions.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'unstable';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+
+    <link rel="canonical" href="https://sri-koundinyan.github.io/cccl/python/unstable/coop_cutlass/index.html" />
+    <link rel="icon" href="../_static/favicon.png"/>
+
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Programming concepts" href="concepts.html" />
+    <link rel="prev" title="cuda.compute Developer Overview" href="../compute/developer_overview.html" />
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="unstable" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+
+
+  </head>
+
+  <body data-default-mode="">
+
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">This is the <strong>development</strong> documentation, built from the latest commit on <code>main</code>.</div>
+</aside>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/nvidia-logo-horiz-rgb-blk-for-screen.svg" class="logo__image only-light" alt="CCCL Python Libraries - Home"/>
+    <img src="../_static/nvidia-logo-horiz-rgb-wht-for-screen.svg" class="logo__image only-dark pst-js-only" alt="CCCL Python Libraries - Home"/>
+  
+  
+    <p class="title logo__title">CCCL Python Libraries</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+
+
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/NVIDIA/cccl" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/nvidia-logo-horiz-rgb-blk-for-screen.svg" class="logo__image only-light" alt="CCCL Python Libraries - Home"/>
+    <img src="../_static/nvidia-logo-horiz-rgb-wht-for-screen.svg" class="logo__image only-dark pst-js-only" alt="CCCL Python Libraries - Home"/>
+  
+  
+    <p class="title logo__title">CCCL Python Libraries</p>
+  
+</a>
+
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+
+
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-3"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-3"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-3"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-3">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/NVIDIA/cccl" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Table of Contents">
+  <p class="bd-links__title" role="heading" aria-level="1">Table of Contents</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">CCCL Python Libraries</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../setup.html">Setup and Installation</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../compute/index.html"><code class="docutils literal notranslate"><span class="pre">cuda.compute</span></code>: Parallel Computing Primitives</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../compute/index.html">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../compute/developer_overview.html"><code class="docutils literal notranslate"><span class="pre">cuda.compute</span></code> Developer Overview</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a aria-current="page" class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">cuda.coop.cutlass</span></code></a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html">Programming concepts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html">Programming Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html"><code class="docutils literal notranslate"><span class="pre">cuda.coop.cutlass</span></code> API Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html">Executable examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tensor_memory_topk.html">Tensor Core and TopK interop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer_guide.html">Developer Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_primer.html">Introduction to CUTLASS for cuda.coop Developers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_integration_example.html">Minimal CuTe DSL Integration Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html">FAQs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="glossary.html">Glossary</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="visualizations/index.html">Visualizations</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/load.html">Load</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/store.html">Store</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/exchange.html">Exchange</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/shuffle.html">Shuffle</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/reduce.html">Reduce</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/reduce-batched.html">Batched Warp Reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/scan.html">Scan</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/adjacent-difference.html">Adjacent Difference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/discontinuity.html">Discontinuity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/histogram.html">Histogram</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/run-length-decode.html">Run Length Decode</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/merge-sort.html">Merge Sort</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/radix.html">Radix Sort and Rank</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualizations/topk.html">TopK</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../stf.html"><code class="docutils literal notranslate"><span class="pre">cuda.stf._experimental</span></code>: Sequential Task Flow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../resources.html">Resources</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../api_reference.html">API Reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../compute_api.html"><code class="docutils literal notranslate"><span class="pre">cuda.compute</span></code> API Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../stf_api.html"><code class="docutils literal notranslate"><span class="pre">cuda.stf._experimental</span></code> API Reference</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis"><code class="docutils literal notranslate"><span class="pre">cuda.coop.cutlass</span></code></span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="cuda-coop-cutlass">
+<span id="coop-overview"></span><h1><code class="docutils literal notranslate"><span class="pre">cuda.coop.cutlass</span></code><a class="headerlink" href="#cuda-coop-cutlass" title="Link to this heading">#</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">cuda.coop.cutlass</span></code> provides CUB cooperative primitives inside CuTe kernels.
+Threads in a block or warp load and store tiles, reduce or scan values,
+rearrange payloads, sort or select keys, compare neighbors, count samples,
+and decode runs. CuTe compiles the enclosing kernel and links the generated
+CUB device functions into it.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cuda.coop.cutlass</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">coop</span>
+</pre></div>
+</div>
+<p>The distribution is <code class="docutils literal notranslate"><span class="pre">cuda-coop-cutlass</span></code>. It contributes the
+<code class="docutils literal notranslate"><span class="pre">cuda.coop.cutlass</span></code> package to the shared <code class="docutils literal notranslate"><span class="pre">cuda</span></code> namespace; <code class="docutils literal notranslate"><span class="pre">cuda.coop</span></code>
+is its namespace parent.</p>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">#</a></h2>
+<p>The standalone package requires CUTLASS DSL 4.9.0.dev1 or later in the 4.x
+series and CUDA 13 on Linux. Install from a checkout containing this project:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>./python/cuda_coop_cutlass
+</pre></div>
+</div>
+<p>Use a compatible CUDA driver and toolkit. NVRTC compiles the CUB providers,
+and the CuTe compiler must support external NVIDIA LTO-IR linking and
+trace-finalization hooks. The wheel includes the required CCCL headers and
+licenses. Package metadata selects the CuTe CUDA 13 libraries through the
+<code class="docutils literal notranslate"><span class="pre">nvidia-cutlass-dsl[cu13]</span></code> dependency, including the 4.9.0.dev1 prerelease.</p>
+<p>Start with the <a class="reference internal" href="programming_guide.html"><span class="doc">Programming Guide</span></a> for a complete
+prefix-sum kernel and <a class="reference internal" href="concepts.html"><span class="doc">Programming concepts</span></a> for participation, layouts, ownership,
+and storage. The <a class="reference internal" href="examples.html"><span class="doc">Executable examples</span></a> page shows executable programs with CPU
+reference checks and downloads. The <a class="reference internal" href="api.html"><span class="doc">API reference</span></a> lists every operation and
+its controls. Developers new to CUTLASS can read <a class="reference internal" href="cutlass_primer.html"><span class="doc">Introduction to CUTLASS for cuda.coop Developers</span></a>
+before the <a class="reference internal" href="developer_guide.html"><span class="doc">Developer Guide</span></a>.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">Programming concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#kernel-api">Kernel API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#calling-conventions">Calling conventions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#shared-execution-model">Shared execution model</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="programming_guide.html">Programming Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#using-the-api">Using the API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#cute-values-and-supported-features">CuTe values and supported features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#runtime-requirements">Runtime requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#a-complete-prefix-sum-example">A complete prefix-sum example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#payloads-dtypes-and-result-ownership">Payloads, dtypes, and result ownership</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#helpers-and-compile-time-values">Helpers and compile-time values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#block-algorithms">Block algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#block-scratch-and-reuse">Block scratch and reuse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#physical-warp-load-and-store">Physical Warp Load and Store</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#logical-warp-load-and-store">Logical Warp Load and Store</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#hierarchy-queries-and-synchronization">Hierarchy queries and synchronization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#compiled-scalar-device-operators">Compiled scalar device operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#reduce-and-sum">Reduce and Sum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#scan">Scan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#exchange-layouts-and-scatter">Exchange layouts and scatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#block-shuffle">Block Shuffle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#built-in-merge-sort">Built-in Merge Sort</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#radix-sort-and-rank">Radix Sort and Rank</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#topk-selection">TopK selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#batched-warp-reduction">Batched Warp Reduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#cutlass-register-payloads">CUTLASS register payloads</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#comparing-neighboring-values">Comparing neighboring values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#counting-samples-into-bins">Counting samples into bins</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#checking-and-tuning-a-kernel">Checking and tuning a kernel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#launch-dimensions-and-resources">Launch dimensions and resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="programming_guide.html#run-length-decode">Run Length Decode</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html"><code class="docutils literal notranslate"><span class="pre">cuda.coop.cutlass</span></code> API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api.html#compiled-device-operators">Compiled device operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#thread-groups">Thread groups</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#per-thread-payloads-and-cute-conversion">Per-thread payloads and CuTe conversion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#producer-protocols">Producer protocols</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#temporary-storage">Temporary storage</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Executable examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#scan-py">scan.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#reduce-py">reduce.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#exchange-shuffle-py">exchange_shuffle.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#merge-sort-py">merge_sort.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#radix-py">radix.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#topk-py">topk.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#reduce-batched-py">reduce_batched.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#shared-staging-py">shared_staging.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#tensor-memory-topk-py">tensor_memory_topk.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#integration-walkthroughs">Integration walkthroughs</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tensor_memory_topk.html">Tensor Core and TopK interop</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tensor_memory_topk.html#run-the-example">Run the example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tensor_memory_topk.html#storage-and-participation">Storage and participation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tensor_memory_topk.html#copy-layouts-define-the-register-view">Copy layouts define the register view</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tensor_memory_topk.html#mma-produces-the-next-accumulator">MMA produces the next accumulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tensor_memory_topk.html#simt-selection-operates-on-registers">SIMT selection operates on registers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tensor_memory_topk.html#store-verify-and-feed-the-next-mma">Store, verify, and feed the next MMA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tensor_memory_topk.html#checking-an-unordered-selection">Checking an unordered selection</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="developer_guide.html">Developer Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="developer_guide.html#following-a-prefix-sum">Following a prefix sum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer_guide.html#compiler-requirements">Compiler requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer_guide.html#compiler-phases-and-handoffs">Compiler phases and handoffs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer_guide.html#compiler-integration">Compiler integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer_guide.html#primitive-families">Primitive families</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer_guide.html#planning-the-cub-call">Planning the CUB call</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer_guide.html#exact-launch-facts">Exact launch facts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer_guide.html#one-provider-bundle-per-trace">One provider bundle per trace</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer_guide.html#scratch-allocation-after-tracing">Scratch allocation after tracing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer_guide.html#finding-the-implementation">Finding the implementation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer_guide.html#debugger-walkthrough">Debugger Walkthrough</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer_guide.html#working-on-a-primitive">Working on a primitive</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer_guide.html#checking-a-change">Checking a change</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cutlass_primer.html">Introduction to CUTLASS for cuda.coop Developers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_primer.html#what-cutlass-is-and-which-part-we-use">What CUTLASS is, and which part we use</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_primer.html#a-cute-kernel-piece-by-piece">A CuTe kernel, piece by piece</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_primer.html#how-the-dsl-compiles-a-function">How the DSL compiles a function</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_primer.html#where-cuda-coop-cutlass-plugs-in">Where cuda.coop.cutlass plugs in</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_primer.html#private-interfaces-we-depend-on">Private interfaces we depend on</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_primer.html#reading-the-cutlass-dsl-sources">Reading the CUTLASS DSL sources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_primer.html#vocabulary">Vocabulary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cutlass_integration_example.html">Minimal CuTe DSL Integration Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_integration_example.html#compilation-and-execution">Compilation and execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_integration_example.html#what-the-script-uses-from-the-dsl">What the script uses from the DSL</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_integration_example.html#the-kernel">The kernel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_integration_example.html#steps-1-to-3-the-trace-time-entry-point">Steps 1 to 3: the trace-time entry point</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_integration_example.html#step-4-the-trace-finalize-hook">Step 4: the trace-finalize hook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_integration_example.html#step-5-shared-memory-after-the-fact">Step 5: shared memory after the fact</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_integration_example.html#the-finalized-module">The finalized module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_integration_example.html#the-linked-cubin">The linked cubin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_integration_example.html#what-the-package-adds-beyond-this">What the package adds beyond this</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_integration_example.html#questions-for-cutlass-reviewers">Questions for CUTLASS reviewers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cutlass_integration_example.html#testing">Testing</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#runtime-environment-variables">Runtime environment variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#walkthrough-and-test-settings">Walkthrough and test settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#cuda-toolkit-settings">CUDA Toolkit settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#build-time-cmake-variables">Build-time CMake variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#compilation-and-headers">Compilation and headers</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="faqs.html">FAQs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#which-package-and-import-should-i-use">Which package and import should I use?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#why-use-threaddata-for-per-thread-values">Why use <code class="docutils literal notranslate"><span class="pre">ThreadData</span></code> for per-thread values?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#what-does-load-return">What does Load return?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#how-do-i-stage-a-tile-in-shared-memory">How do I stage a tile in shared memory?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#when-does-threaddata-need-an-explicit-element-type">When does <code class="docutils literal notranslate"><span class="pre">ThreadData</span></code> need an explicit element type?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#who-chooses-a-producer-s-memory-copy-and-synchronization">Who chooses a producer’s memory copy and synchronization?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#does-releasing-storage-wait-for-its-users">Does releasing storage wait for its users?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#why-use-tempstorage-with-sharing-exclusive">Why use <code class="docutils literal notranslate"><span class="pre">TempStorage</span></code> with <code class="docutils literal notranslate"><span class="pre">sharing=&quot;exclusive&quot;</span></code>?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#why-or-when-would-i-provide-my-own-tempstorage">Why or when would I provide my own <code class="docutils literal notranslate"><span class="pre">TempStorage</span></code>?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#does-topk-return-sorted-results">Does TopK return sorted results?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#does-sorting-each-block-sort-the-whole-array">Does sorting each block sort the whole array?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#when-should-i-use-adjacent-difference-or-discontinuity">When should I use Adjacent Difference or Discontinuity?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#can-i-zero-pad-a-partial-histogram-tile">Can I zero-pad a partial Histogram tile?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#does-histogram-retain-counters-between-calls">Does Histogram retain counters between calls?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#why-do-windowed-and-bulk-run-length-decode-use-different-calls">Why do windowed and bulk Run Length Decode use different calls?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#how-do-i-pad-run-inputs-and-recognize-the-end-of-decoded-output">How do I pad run inputs and recognize the end of decoded output?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#how-does-batched-warp-reduction-differ-from-ordinary-reduce">How does Batched Warp Reduction differ from ordinary Reduce?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#can-thread-local-work-surround-a-collective">Can thread-local work surround a collective?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#how-do-i-carry-a-scan-aggregate-across-loop-iterations">How do I carry a scan aggregate across loop iterations?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#how-do-i-change-a-payload-s-element-type">How do I change a payload’s element type?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#can-i-choose-temporary-storage-inside-a-branch-or-loop">Can I choose temporary storage inside a branch or loop?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#how-do-floating-min-max-and-scan-seeds-handle-nan-and-infinity">How do floating min/max and scan seeds handle NaN and infinity?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#why-does-import-work-but-kernel-compilation-fail">Why does import work but kernel compilation fail?</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="glossary.html">Glossary</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="glossary.html#terms">Terms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="glossary.html#blocked-versus-striped">Blocked versus striped</a></li>
+<li class="toctree-l2"><a class="reference internal" href="glossary.html#run-positions-windows-and-scratch">Run positions, windows, and scratch</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="visualizations/index.html">Visualizations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="visualizations/load.html">Load</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualizations/store.html">Store</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualizations/exchange.html">Exchange</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualizations/shuffle.html">Shuffle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualizations/reduce.html">Reduce</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualizations/reduce-batched.html">Batched Warp Reduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualizations/scan.html">Scan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualizations/adjacent-difference.html">Adjacent Difference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualizations/discontinuity.html">Discontinuity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualizations/histogram.html">Histogram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualizations/run-length-decode.html">Run Length Decode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualizations/merge-sort.html">Merge Sort</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualizations/radix.html">Radix Sort and Rank</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualizations/topk.html">TopK</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualizations/index.html#using-the-kernel-fragments">Using the kernel fragments</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../compute/developer_overview.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title"><code class="docutils literal notranslate"><span class="pre">cuda.compute</span></code> Developer Overview</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="concepts.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Programming concepts</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+
+
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installation">Installation</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+
+
+
+  <p class="copyright">
+    
+      Copyright © 2026, NVIDIA Corporation.
+      <br/>
+    
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+  </p>
+</div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
